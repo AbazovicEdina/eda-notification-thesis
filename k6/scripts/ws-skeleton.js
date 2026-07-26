@@ -1,5 +1,7 @@
 // Grundgerüst für den WebSocket-Lasttest (natives k6/ws) — Session 2
-// vervollständigt es gegen die echten Prototyp-Endpunkte. Gleiches Messprinzip
+// vervollständigt es gegen die echten Prototyp-Endpunkte.
+// ACHTUNG: bisher ungetestet — es existiert noch kein WS-Server; vor
+// Verwendung gegen den ersten echten Endpunkt verifizieren. Gleiches Messprinzip
 // wie beim SSE-Test: Event-Payload {"seq":n,"ts":<ms-epoch>}, Latenz = Empfang − ts.
 import ws from 'k6/ws';
 import { check } from 'k6';
