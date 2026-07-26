@@ -7,7 +7,10 @@
 # dann zwar kompiliert, aber nie aktiv ("conflicting k6 versions"-Warnung,
 # k6/x/sse ist zur Laufzeit unbekannt). v1.2.1 = die Version aus dem go.mod
 # von xk6-sse v0.1.12.
-FROM grafana/xk6:latest AS builder
+# Builder ebenfalls gepinnt (1.4.7 = Version des Machbarkeitsnachweises):
+# ein ungepinnter Builder kann das Build-Verhalten still ändern — genau die
+# Fehlerklasse, die den v2-Konflikt oben verursacht hat.
+FROM grafana/xk6:1.4.7 AS builder
 WORKDIR /build
 RUN xk6 build v1.2.1 --with github.com/phymbert/xk6-sse@v0.1.12 --output /build/k6
 
