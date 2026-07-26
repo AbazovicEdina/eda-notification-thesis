@@ -1,0 +1,11 @@
+# Vorlage für lokale Abweichungen.
+# Kopieren nach docker-compose.override.yml (wird nicht committet).
+# Compose zieht die Override-Datei automatisch — `docker compose up` bleibt
+# derselbe Befehl, mit oder ohne Override.
+
+services:
+  # Host-Port nur für manuelles Testen im Browser/curl; k6 braucht ihn nicht
+  # (läuft im Compose-Netzwerk und nutzt Service-Namen).
+  sse-feasibility:
+    ports:
+      - "127.0.0.1:${HOST_SSE_FEASIBILITY_PORT:-8081}:${SSE_FEASIBILITY_PORT:-8081}"

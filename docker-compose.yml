@@ -1,0 +1,35 @@
+# Portable Basis — gilt unverändert auf jeder Umgebung (lokal wie FH-Server).
+# Umgebungsspezifisches (Host-Ports etc.) gehört in docker-compose.override.yml,
+# alle Parameter in die .env. Hier nichts hartcodieren.
+
+services:
+  # Event-Backbone für die Prototypen (ab Session 2, siehe DECISIONS.md 5.4)
+  redis:
+    image: redis:7-alpine
+
+  # Minimaler SSE-Server für die xk6-sse-Machbarkeitsprüfung (kein Prototyp!)
+  sse-feasibility:
+    build: ./tools/sse-feasibility
+    environment:
+      PORT: ${SSE_FEASIBILITY_PORT:-8081}
+      EVENT_INTERVAL_MS: ${SSE_EVENT_INTERVAL_MS:-1000}
+
+  # k6 mit xk6-sse — startet nicht bei `up`, sondern per:
+  #   docker compose run --rm k6 run scripts/<skript>.js
+  k6:
+    build: ./k6
+    profiles: ["load"]
+    environment:
+      K6_TARGET_BASE_URL: ${K6_TARGET_BASE_URL:-http://sse-feasibility:8081}
+      K6_VUS: ${K6_VUS:-50}
+      K6_HOLD_SECONDS: ${K6_HOLD_SECONDS:-60}
+    working_dir: /k6
+    volumes:
+      - ./k6:/k6:ro
+      - ./results:/results
+
+  # --- Prototypen (Session 2) -------------------------------------------
+  # php-laravel:   Laravel-App hinter Nginx (infra/nginx/)
+  # php-minimal:   PHP-Minimalvariante
+  # node-express:  Express-App
+  # node-minimal:  Node-Minimalvariante
