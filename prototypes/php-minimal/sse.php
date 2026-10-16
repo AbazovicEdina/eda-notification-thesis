@@ -11,6 +11,16 @@ header('Connection: keep-alive');
 
 $channel = getenv('EVENT_CHANNEL') ?: 'scan-events';
 
+// SSE-Kommentar sofort senden: schickt die Antwort-Header ab, sodass der
+// Client den Verbindungsaufbau erkennt, bevor das erste Event kommt
+// (Messgröße Verbindungsaufbau, DECISIONS.md 5.9). Clients ignorieren
+// Kommentarzeilen.
+echo ": connected\n\n";
+if (ob_get_level() > 0) {
+    ob_flush();
+}
+flush();
+
 $redis = new Redis();
 $redis->connect(getenv('REDIS_HOST') ?: 'redis', (int) (getenv('REDIS_PORT') ?: 6379));
 

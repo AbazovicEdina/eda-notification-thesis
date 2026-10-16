@@ -1,8 +1,11 @@
-# Einheitliche Reverse-Proxy-Konfiguration vor ALLEN VIER Konfigurationen
-# (PHP/SSE, PHP/WS, Node/SSE, Node/WS) — siehe DECISIONS.md 5.6: PHP braucht
-# Nginx zwingend (FPM), Node nicht; ohne diese Vereinheitlichung hätte nur
-# PHP einen zusätzlichen Hop. Jeder Lauf geht gegen genau eine Zelle;
-# SUT_HOST/SUT_PORT wählen sie aus (tools/orchestrate schaltet sie um).
+# Front-Nginx, Modus "http" (DECISIONS.md 5.6.1): HTTP-Reverse-Proxy vor
+# allen Zellen, deren Server selbst HTTP sprechen — Node.js (SSE und WS),
+# Ratchet und Reverb. PHP-FPM-Zellen (SSE) nutzen stattdessen den Modus
+# "fastcgi" (templates/fastcgi/), damit jede Zelle genau einen Nginx
+# durchläuft, wie im realen Betrieb. Jeder Lauf geht gegen genau eine
+# Zelle; SUT_HOST/SUT_PORT wählen sie aus, SUT_MODE den Modus
+# (tools/orchestrate schaltet beides um, docker-compose.yml bindet das
+# passende Template-Verzeichnis ein).
 #
 # $sut_upstream statt eines statischen `upstream {}`-Blocks: Der Wert wird
 # über eine Variable erst pro Request aufgelöst (Docker-Resolver 127.0.0.11).
@@ -46,7 +49,7 @@ server {
 
     # WebSocket für Laravel Reverb (php-laravel/WS): Pusher-Protokoll, Pfad
     # /app/<app-key> statt /ws (k6/scripts/ws-reverb.js). Identische
-    # Direktiven wie /ws oben, damit alle vier WS-Zellen denselben Proxy-Pfad
+    # Direktiven wie /ws oben, damit alle WS-Zellen denselben Proxy-Pfad
     # durchlaufen.
     location /app/ {
         proxy_pass $sut_upstream;

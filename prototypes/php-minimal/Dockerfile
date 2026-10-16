@@ -10,6 +10,9 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && pecl install redis-6.3.0 \
     && docker-php-ext-enable redis \
     && apk del .build-deps
+# Produktionskonfiguration laut Dokumentation des offiziellen Images
+# (DECISIONS.md 5.5): ohne php.ini liefen die eingebauten Entwicklungs-Defaults.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 

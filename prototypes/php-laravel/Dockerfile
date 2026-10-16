@@ -7,6 +7,9 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && docker-php-ext-enable redis \
     && docker-php-ext-install pcntl \
     && apk del .build-deps
+# Produktionskonfiguration laut Dokumentation des offiziellen Images
+# (DECISIONS.md 5.5): ohne php.ini liefen die eingebauten Entwicklungs-Defaults.
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
 
@@ -26,6 +29,10 @@ RUN php artisan package:discover --no-interaction
 RUN chown -R www-data:www-data storage bootstrap/cache
 
 COPY fpm-pool.conf /usr/local/etc/php-fpm.d/zz-pool.conf
+# Startskript: Caches für den Produktionsbetrieb anlegen, dann den
+# eigentlichen Prozess starten (siehe docker/start.sh).
+COPY docker/start.sh /usr/local/bin/laravel-start
+RUN chmod +x /usr/local/bin/laravel-start
 
 EXPOSE 9000 8080
 CMD ["php-fpm"]

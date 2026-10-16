@@ -68,7 +68,12 @@ return [
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
-            'block_for' => null,
+            // Standard null: Der Worker fragt die Queue ab und schläft bei
+            // leerer Queue (--sleep, Standard 3 s). block_for lässt ihn
+            // stattdessen blockierend auf den nächsten Job warten, wie BullMQ
+            // es standardmäßig tut. Dokumentierte Einstellung, gesetzt über
+            // docker-compose.yml (DECISIONS.md 5.20, Abweichungen vom Standard).
+            'block_for' => env('REDIS_QUEUE_BLOCK_FOR') !== null ? (int) env('REDIS_QUEUE_BLOCK_FOR') : null,
             'after_commit' => false,
         ],
 

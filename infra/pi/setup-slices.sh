@@ -23,7 +23,8 @@ mem="$(value SUT_MEM_LIMIT)"; mem="${mem:-2g}"
 quota="$(awk -v c="$cpu" 'BEGIN { printf "%d", c * 100 }')"
 mem_sd="$(echo "$mem" | tr 'kmg' 'KMG')"
 
-cells="node_minimal_sse node_minimal_ws node_express_sse node_express_ws php_minimal_sse php_minimal_ws php_laravel_sse php_laravel_ws"
+# Alle Zellen aus tools/orchestrate/cells.json (Bindestriche als Unterstriche).
+cells="node_minimal_sse node_minimal_ws node_express_sse node_express_ws php_minimal_sse php_minimal_ws php_laravel_sse php_laravel_ws node_express_sse_queue php_laravel_sse_queue"
 
 for cell in $cells; do
   cat > "/etc/systemd/system/eda_${cell}.slice" <<EOF

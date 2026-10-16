@@ -1,0 +1,38 @@
+# Front-Nginx, Modus "fastcgi" (DECISIONS.md 5.6.1): spricht FastCGI direkt
+# mit dem PHP-FPM-Pool einer SSE-Zelle (php-minimal/SSE, php-laravel/SSE und
+# deren Queue-Variante). Entspricht dem üblichen Betrieb von PHP-FPM
+# (Client → Nginx → PHP-FPM) und gibt PHP damit genau einen Nginx, wie den
+# Node.js-Zellen im Modus "http". Die Pflicht-Direktiven entsprechen denen
+# des HTTP-Modus: keine Pufferung, gleicher Lese-Timeout.
+#
+# SUT_HOST/SUT_PORT: FPM-Pool (z. B. php-minimal-fpm:9000)
+# SUT_FASTCGI_SCRIPT, SUT_FASTCGI_SCRIPT_NAME, SUT_FASTCGI_ROOT: Skript im
+# FPM-Container (tools/orchestrate/cells.json)
+resolver 127.0.0.11 valid=10s;
+
+server {
+    listen 80;
+
+    set $sut_upstream ${SUT_HOST}:${SUT_PORT};
+
+    # Eingebauter Erreichbarkeits-Endpunkt von PHP-FPM (ping.path in
+    # fpm-pool.conf), beantwortet ohne PHP-Skript.
+    location = /healthz {
+        fastcgi_pass $sut_upstream;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_NAME /healthz;
+        fastcgi_param SCRIPT_FILENAME /healthz;
+    }
+
+    # SSE — fastcgi_buffering MUSS aus sein: sonst hält Nginx Events zurück,
+    # und die Latenzmessung misst Pufferung statt Zustellung.
+    location /sse {
+        fastcgi_pass $sut_upstream;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME ${SUT_FASTCGI_SCRIPT};
+        fastcgi_param SCRIPT_NAME ${SUT_FASTCGI_SCRIPT_NAME};
+        fastcgi_param DOCUMENT_ROOT ${SUT_FASTCGI_ROOT};
+        fastcgi_buffering off;
+        fastcgi_read_timeout ${NGINX_PROXY_READ_TIMEOUT}s;
+    }
+}

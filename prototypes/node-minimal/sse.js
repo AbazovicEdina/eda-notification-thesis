@@ -33,6 +33,9 @@ const server = http.createServer((req, res) => {
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
   });
+  // SSE-Kommentar sofort senden: schickt die Header ab, sodass der Client
+  // den Verbindungsaufbau erkennt (DECISIONS.md 5.9). Clients ignorieren ihn.
+  res.write(': connected\n\n');
   clients.add(res);
   req.on('close', () => clients.delete(res));
 });

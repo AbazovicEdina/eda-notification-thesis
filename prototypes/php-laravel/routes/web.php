@@ -11,6 +11,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 // künstlich schlanke Sonderroute.
 Route::get('/sse', function () {
     return new StreamedResponse(function () {
+        // SSE-Kommentar sofort senden, damit der Client den Verbindungsaufbau
+        // erkennt (siehe prototypes/php-minimal/sse.php).
+        echo ": connected\n\n";
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
         Redis::subscribe([config('app.event_channel')], function (string $message) {
             $payload = json_decode($message, true);
             $payload['sut_ts'] = (int) round(microtime(true) * 1000); // siehe DECISIONS.md 5.4
