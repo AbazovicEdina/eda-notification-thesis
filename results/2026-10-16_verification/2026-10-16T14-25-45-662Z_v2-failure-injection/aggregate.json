@@ -1,0 +1,687 @@
+{
+  "schema": "eda-thesis/aggregate/1",
+  "name": "v2-failure-injection",
+  "phase": "pilot",
+  "campaign_dir": "2026-10-16T14-25-45-662Z_v2-failure-injection",
+  "started_at": "2026-10-16T14:25:45.662Z",
+  "finished_at": "2026-10-16T14:28:44.998Z",
+  "aborted": false,
+  "abort_reason": null,
+  "settings": {
+    "name": "v2-failure-injection",
+    "phase": "pilot",
+    "warmupRuns": 1,
+    "pauseMinMs": 100,
+    "pauseMaxMs": 500,
+    "reportEvery": 0,
+    "maxFailureRate": 0.05,
+    "minPairs": 2,
+    "bootstrapSeed": 20261016,
+    "bootstrapResamples": 2000,
+    "resourceIntervalMs": 250,
+    "simulatorSettleMs": 2000,
+    "saturation": {
+      "minDeliveryRatio": 0.99,
+      "maxP95LatencyMs": 1000
+    },
+    "sut": {
+      "ssh": null,
+      "repoDir": null,
+      "pi": false,
+      "targetBaseUrl": "http://nginx",
+      "redisHost": null
+    }
+  },
+  "configs": [
+    {
+      "name": "node-minimal-sse",
+      "cell": "node-minimal-sse",
+      "language": "node",
+      "variant": "minimal",
+      "transport": "sse",
+      "services": [
+        "node-minimal-sse"
+      ],
+      "frontHost": "node-minimal-sse",
+      "frontPort": 8080,
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    },
+    {
+      "name": "php-minimal-sse",
+      "cell": "php-minimal-sse",
+      "language": "php",
+      "variant": "minimal",
+      "transport": "sse",
+      "services": [
+        "php-minimal-fpm",
+        "php-minimal-nginx"
+      ],
+      "frontHost": "php-minimal-nginx",
+      "frontPort": 8080,
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    }
+  ],
+  "comparisons": [
+    [
+      "node-minimal-sse",
+      "php-minimal-sse"
+    ]
+  ],
+  "tested_measures": [
+    "latency_mean_ms",
+    "cpu_seconds",
+    "working_set_peak_bytes"
+  ],
+  "note": "p-Werte hier unkorrigiert; Holm-Korrektur über alle Kampagnen in evaluate.js (DECISIONS.md 5.15).",
+  "context": {
+    "campaign": {
+      "name": "v2-failure-injection",
+      "phase": "pilot",
+      "dir": "2026-10-16T14-25-45-662Z_v2-failure-injection",
+      "file": "v2-failure.json"
+    },
+    "topology": "ein Rechner",
+    "git": {
+      "load": {
+        "commit": "fb487e85b5a1849c3141c2e61f70dc8ccf901a45",
+        "dirty_files": 12
+      },
+      "sut": {
+        "commit": "fb487e85b5a1849c3141c2e61f70dc8ccf901a45",
+        "dirty_files": 12
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": null,
+      "kernel": "6.18.54.1-microsoft-standard-WSL2",
+      "arch": "x64",
+      "cpus": 16,
+      "mem_total_bytes": 16391233536,
+      "swap_total_bytes": 4294967296,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "hugetlb",
+        "pids",
+        "rdma"
+      ],
+      "memory_controller": true,
+      "cpu_governor": null,
+      "cpu_freq_khz": null,
+      "temp_c": null,
+      "throttled": null,
+      "sampled_at": "2026-10-16T14:25:54.189Z"
+    },
+    "containers": {
+      "node-minimal-sse": {
+        "image": "eda-thesis-node-minimal:latest",
+        "image_id": "sha256:c610f72a17c6d67cc261965a80f765121fb84fa4b2bce91c39dc0080adb74739",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        }
+      },
+      "php-minimal-fpm": {
+        "image": "eda-thesis-php-minimal:latest",
+        "image_id": "sha256:c11531408a6c0f660c87842931996b48aad1fcdd2cb0dc70395056c718c348f9",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        }
+      },
+      "php-minimal-nginx": {
+        "image": "nginx:1.27-alpine",
+        "image_id": "sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+        "limits": {
+          "cpus": null,
+          "memory_bytes": null,
+          "memory_swap_bytes": null,
+          "cgroup_parent": null,
+          "nofile": 8192
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v22.13.0",
+      "platform": "win32"
+    }
+  },
+  "scenarios": {
+    "baseline": {
+      "vus": 10,
+      "hold_seconds": 8,
+      "event_rate_nominal_per_s": 2,
+      "runs_per_config": 6,
+      "warmup_runs": 1,
+      "configs": {
+        "node-minimal-sse": {
+          "cell": "node-minimal-sse",
+          "runs_measured": 5,
+          "runs_valid": 5,
+          "runs_invalid": 0,
+          "invalid_reasons": {},
+          "warmup_invalid": 0,
+          "describe": {
+            "latency_mean_ms": {
+              "n": 5,
+              "mean": 1.1011764705882352,
+              "min": 1.0823529411764705,
+              "max": 1.1411764705882352,
+              "median": 1.0941176470588236,
+              "p95": 1.1411764705882352,
+              "p99": 1.1411764705882352,
+              "stddev": 0.02439581335685614,
+              "variance": 0.0005951557093425605
+            },
+            "latency_median_ms": {
+              "n": 5,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_p95_ms": {
+              "n": 5,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_p99_ms": {
+              "n": 5,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_max_ms": {
+              "n": 5,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivery_ratio": {
+              "n": 5,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "events_lost": {
+              "n": 5,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivered_events_per_s": {
+              "n": 5,
+              "mean": 20.544406668792245,
+              "min": 20.022677757852428,
+              "max": 21.007359556219537,
+              "median": 20.686884134491507,
+              "p95": 21.007359556219537,
+              "p99": 21.007359556219537,
+              "stddev": 0.43983620092888853,
+              "variance": 0.19345588364755759
+            },
+            "source_rate_eps": {
+              "n": 5,
+              "mean": 2.0002500562632846,
+              "min": 2,
+              "max": 2.000500125031258,
+              "median": 2.000250031253907,
+              "p95": 2.000500125031258,
+              "p99": 2.000500125031258,
+              "stddev": 0.0002500625160197997,
+              "variance": 6.253126191815257e-8
+            },
+            "cpu_seconds": {
+              "n": 5,
+              "mean": 0.0234054,
+              "min": 0.017465,
+              "max": 0.034722,
+              "median": 0.021192,
+              "p95": 0.034722,
+              "p99": 0.034722,
+              "stddev": 0.006603735707915635,
+              "variance": 0.00004360932530000001
+            },
+            "cpu_cores_avg": {
+              "n": 5,
+              "mean": 0.002346484720561668,
+              "min": 0.0018124740556247408,
+              "max": 0.0034921049984914013,
+              "median": 0.0021706442691795556,
+              "p95": 0.0034921049984914013,
+              "p99": 0.0034921049984914013,
+              "stddev": 0.000661502022451338,
+              "variance": 4.375849257072105e-7
+            },
+            "working_set_avg_bytes": {
+              "n": 5,
+              "mean": 20395280.921736218,
+              "min": 19537920,
+              "max": 20916614.095238097,
+              "median": 20684390.4,
+              "p95": 20916614.095238097,
+              "p99": 20916614.095238097,
+              "stddev": 586874.706344752,
+              "variance": 344421920947.23883
+            },
+            "working_set_peak_bytes": {
+              "n": 5,
+              "mean": 21771059.2,
+              "min": 20041728,
+              "max": 22462464,
+              "median": 22155264,
+              "p95": 22462464,
+              "p99": 22462464,
+              "stddev": 1010431.8119077606,
+              "variance": 1020972446515.2
+            },
+            "data_received_bytes_per_s": {
+              "n": 5,
+              "mean": 1599.499109504594,
+              "min": 1562.9466696864806,
+              "max": 1639.8097724178429,
+              "median": 1607.8728747590321,
+              "p95": 1639.8097724178429,
+              "p99": 1639.8097724178429,
+              "stddev": 31.691102318731094,
+              "variance": 1004.3259661762834
+            },
+            "connection_errors": {
+              "n": 5,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            }
+          }
+        },
+        "php-minimal-sse": {
+          "cell": "php-minimal-sse",
+          "runs_measured": 5,
+          "runs_valid": 4,
+          "runs_invalid": 1,
+          "invalid_reasons": {
+            "k6_exit_137": 1
+          },
+          "warmup_invalid": 0,
+          "describe": {
+            "latency_mean_ms": {
+              "n": 4,
+              "mean": 0.9426470588235294,
+              "min": 0.888235294117647,
+              "max": 1.0235294117647058,
+              "median": 0.9294117647058824,
+              "p95": 1.0235294117647058,
+              "p99": 1.0235294117647058,
+              "stddev": 0.0621370661862385,
+              "variance": 0.003861014994232984
+            },
+            "latency_median_ms": {
+              "n": 4,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_p95_ms": {
+              "n": 4,
+              "mean": 1.25,
+              "min": 1,
+              "max": 2,
+              "median": 1,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0.5,
+              "variance": 0.25
+            },
+            "latency_p99_ms": {
+              "n": 4,
+              "mean": 1.5775000000000006,
+              "min": 1,
+              "max": 2,
+              "median": 1.6550000000000011,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0.5040089284923429,
+              "variance": 0.2540249999999996
+            },
+            "latency_max_ms": {
+              "n": 4,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivery_ratio": {
+              "n": 4,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "events_lost": {
+              "n": 4,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivered_events_per_s": {
+              "n": 4,
+              "mean": 20.628661987703172,
+              "min": 20.40217081708972,
+              "max": 21.018476991125226,
+              "median": 20.547000071298868,
+              "p95": 21.018476991125226,
+              "p99": 21.018476991125226,
+              "stddev": 0.28079027712799803,
+              "variance": 0.07884317972961792
+            },
+            "source_rate_eps": {
+              "n": 4,
+              "mean": 2.0000625234384772,
+              "min": 1.9997500312460943,
+              "max": 2.000250031253907,
+              "median": 2.0001250156269537,
+              "p95": 2.000250031253907,
+              "p99": 2.000250031253907,
+              "stddev": 0.00023935950113703315,
+              "variance": 5.7292970784569375e-8
+            },
+            "cpu_seconds": {
+              "n": 4,
+              "mean": 0.041006999999999995,
+              "min": 0.034602,
+              "max": 0.045344999999999996,
+              "median": 0.042040499999999995,
+              "p95": 0.045344999999999996,
+              "p99": 0.045344999999999996,
+              "stddev": 0.005272476521205822,
+              "variance": 0.000027799008666666654
+            },
+            "cpu_cores_avg": {
+              "n": 4,
+              "mean": 0.004133370138938724,
+              "min": 0.0034877532506803754,
+              "max": 0.004633660331085224,
+              "median": 0.004206033486994649,
+              "p95": 0.004633660331085224,
+              "p99": 0.004633660331085224,
+              "stddev": 0.0005499635057467843,
+              "variance": 3.0245985765329325e-7
+            },
+            "working_set_avg_bytes": {
+              "n": 4,
+              "mean": 244564292.08826944,
+              "min": 238058520.97560975,
+              "max": 249457489.1707317,
+              "median": 245370579.10336816,
+              "p95": 249457489.1707317,
+              "p99": 249457489.1707317,
+              "stddev": 4933585.7715289835,
+              "variance": 24340268565033.234
+            },
+            "working_set_peak_bytes": {
+              "n": 4,
+              "mean": 247180288,
+              "min": 240848896,
+              "max": 251940864,
+              "median": 247965696,
+              "p95": 251940864,
+              "p99": 251940864,
+              "stddev": 4766294.432560372,
+              "variance": 22717562617856
+            },
+            "data_received_bytes_per_s": {
+              "n": 4,
+              "mean": 1658.185727050781,
+              "min": 1640.574559233038,
+              "max": 1690.1328262863638,
+              "median": 1651.0177613418616,
+              "p95": 1690.1328262863638,
+              "p99": 1690.1328262863638,
+              "stddev": 23.122656780738414,
+              "variance": 534.6572565998282
+            },
+            "connection_errors": {
+              "n": 4,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            }
+          }
+        }
+      },
+      "comparisons": [
+        {
+          "a": "node-minimal-sse",
+          "b": "php-minimal-sse",
+          "cell_a": "node-minimal-sse",
+          "cell_b": "php-minimal-sse",
+          "measures": {
+            "latency_mean_ms": {
+              "n_pairs": 4,
+              "n_pairs_nonzero": 4,
+              "n_pairs_zero_diff": 0,
+              "conclusive": true,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 10,
+                "w_minus": 0,
+                "z": null,
+                "p": 0.125,
+                "method": "exakt"
+              },
+              "cliffs_delta": 1,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": 1,
+              "median_diff": 0.18823529411764706,
+              "median_diff_ci95": [
+                0.05882352941176472,
+                0.21764705882352953
+              ],
+              "bootstrap": {
+                "resamples": 2000,
+                "seed": 3720055245
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  4,
+                  5,
+                  6
+                ],
+                "dropped_run_indices": [
+                  3
+                ],
+                "a": [
+                  1.1058823529411765,
+                  1.0941176470588236,
+                  1.0823529411764705,
+                  1.1411764705882352
+                ],
+                "b": [
+                  0.888235294117647,
+                  0.9,
+                  1.0235294117647058,
+                  0.9588235294117647
+                ]
+              }
+            },
+            "cpu_seconds": {
+              "n_pairs": 4,
+              "n_pairs_nonzero": 4,
+              "n_pairs_zero_diff": 0,
+              "conclusive": true,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 0,
+                "w_minus": 10,
+                "z": null,
+                "p": 0.125,
+                "method": "exakt"
+              },
+              "cliffs_delta": -0.875,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": -1,
+              "median_diff": -0.018081,
+              "median_diff_ci95": [
+                -0.027847999999999998,
+                -0.004045999999999994
+              ],
+              "bootstrap": {
+                "resamples": 2000,
+                "seed": 1065609518
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  4,
+                  5,
+                  6
+                ],
+                "dropped_run_indices": [
+                  3
+                ],
+                "a": [
+                  0.017465,
+                  0.021192,
+                  0.034722,
+                  0.022593
+                ],
+                "b": [
+                  0.045313,
+                  0.034602,
+                  0.038768,
+                  0.045344999999999996
+                ]
+              }
+            },
+            "working_set_peak_bytes": {
+              "n_pairs": 4,
+              "n_pairs_nonzero": 4,
+              "n_pairs_zero_diff": 0,
+              "conclusive": true,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 0,
+                "w_minus": 10,
+                "z": null,
+                "p": 0.125,
+                "method": "exakt"
+              },
+              "cliffs_delta": -1,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": -1,
+              "median_diff": -225656832,
+              "median_diff_ci95": [
+                -229486592,
+                -220807168
+              ],
+              "bootstrap": {
+                "resamples": 2000,
+                "seed": 1211639308
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  4,
+                  5,
+                  6
+                ],
+                "dropped_run_indices": [
+                  3
+                ],
+                "a": [
+                  20041728,
+                  22462464,
+                  22155264,
+                  22454272
+                ],
+                "b": [
+                  240848896,
+                  246521856,
+                  249409536,
+                  251940864
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "interim": [],
+  "saturation": null
+}

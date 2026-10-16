@@ -1,0 +1,29 @@
+{
+  "name": "v1-ws-framework",
+  "phase": "main",
+  "configs": [
+    "node-express-ws",
+    "php-laravel-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 8,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 2
+    },
+    {
+      "name": "medium",
+      "vus": 50,
+      "holdSeconds": 8,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 2
+    }
+  ],
+  "warmupRuns": 1,
+  "minPairs": 2,
+  "bootstrap": {
+    "resamples": 2000
+  }
+}

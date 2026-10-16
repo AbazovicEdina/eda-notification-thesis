@@ -1,0 +1,36 @@
+{
+  "name": "v4-saturation-ws-minimal",
+  "phase": "saturation",
+  "configs": [
+    "node-minimal-ws",
+    "php-minimal-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "rate-0010",
+      "vus": 20,
+      "holdSeconds": 8,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 10
+    },
+    {
+      "name": "rate-0100",
+      "vus": 20,
+      "holdSeconds": 8,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 100
+    },
+    {
+      "name": "rate-0500",
+      "vus": 20,
+      "holdSeconds": 8,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 500
+    }
+  ],
+  "warmupRuns": 1,
+  "saturation": {
+    "minDeliveryRatio": 0.99,
+    "maxP95LatencyMs": 1000
+  }
+}

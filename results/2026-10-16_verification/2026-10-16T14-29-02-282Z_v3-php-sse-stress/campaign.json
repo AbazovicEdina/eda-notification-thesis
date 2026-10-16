@@ -1,0 +1,22 @@
+{
+  "name": "v3-php-sse-stress",
+  "phase": "main",
+  "configs": [
+    "php-minimal-sse",
+    "php-laravel-sse"
+  ],
+  "scenarios": [
+    {
+      "name": "stress",
+      "vus": 500,
+      "holdSeconds": 20,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "minPairs": 2,
+  "bootstrap": {
+    "resamples": 2000
+  }
+}
