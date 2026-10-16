@@ -1,0 +1,46 @@
+# Einheitliche Reverse-Proxy-Konfiguration vor ALLEN VIER Konfigurationen
+# (PHP/SSE, PHP/WS, Node/SSE, Node/WS) — siehe DECISIONS.md 5.6: PHP braucht
+# Nginx zwingend (FPM), Node nicht; ohne diese Vereinheitlichung hätte nur
+# PHP einen zusätzlichen Hop. Jede Messung läuft gegen genau eine SUT
+# (DECISIONS.md 5.6.3); SUT_HOST/SUT_PORT wählen sie aus (.env oder
+# `docker compose run -e`).
+#
+# $sut_upstream statt eines statischen `upstream {}`-Blocks: Der Wert wird
+# über eine Variable erst pro Request aufgelöst (Docker-Resolver 127.0.0.11).
+# Ein statischer Upstream würde Nginx beim Start scheitern lassen, sobald die
+# drei anderen SUT-Container gestoppt sind — genau der Normalfall hier.
+resolver 127.0.0.11 valid=10s;
+
+server {
+    listen 80;
+
+    set $sut_upstream http://${SUT_HOST}:${SUT_PORT};
+
+    location /healthz {
+        proxy_pass $sut_upstream;
+    }
+
+    # SSE — proxy_buffering MUSS aus sein: sonst hält Nginx Events zurück,
+    # bis der interne Puffer voll ist, und die k6-Latenzmessung misst
+    # Nginx-Pufferung statt tatsächliche Zustellung an den Client.
+    location /sse {
+        proxy_pass $sut_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        # Weit über dem Event-Intervall (Default 60s würde ruhige
+        # SSE-Verbindungen sonst vorzeitig kappen).
+        proxy_read_timeout ${NGINX_PROXY_READ_TIMEOUT}s;
+    }
+
+    # WebSocket — Upgrade-Header sind Pflicht, sonst bleibt es ein normaler
+    # HTTP-Request und der Handshake schlägt fehl.
+    location /ws {
+        proxy_pass $sut_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout ${NGINX_PROXY_READ_TIMEOUT}s;
+    }
+}
