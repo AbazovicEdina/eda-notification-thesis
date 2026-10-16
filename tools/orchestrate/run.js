@@ -1,227 +1,965 @@
 #!/usr/bin/env node
-// Test-Orchestrierung für Mehrfachdurchläufe + Auswertung (Prompt Teil 2,
-// Aufgabe 4). Convenience-Tool, KEIN Prototyp-Code — läuft bewusst lokal
-// mit Node statt in Docker, weil es selbst `docker compose` steuert
-// (nginx-Ziel umschalten, k6-Läufe starten). Das ist eine bewusste Ausnahme
-// vom "alles in Docker"-Prinzip aus DECISIONS.md Abschnitt 2, das sich auf
-// die Prototypen/Messungen selbst bezieht, nicht auf dieses Steuer-Skript.
+// Orchestrierung der Messkampagnen (DECISIONS.md 5.6–5.9, 5.16, 5.17).
 //
-// Aufruf: node run.js campaign.json
+// Eine Kampagne vergleicht Messzellen aus cells.json im alternierenden
+// Design A, B, A, B über eine oder mehrere Laststufen. Pro Lauf entsteht
+// eine vollständige JSON-Datei (k6-Ergebnis, Zustellung, Ressourcen,
+// Kontext), dazu ein fortlaufendes Kampagnen-Log (JSON Lines) und am Ende
+// eine Kampagnen-Auswertung (aggregate.json). Die Holm-Korrektur über alle
+// Kampagnen hinweg erfolgt getrennt in evaluate.js (DECISIONS.md 5.15).
 //
-// campaign.json (siehe campaign.example.json):
-//   script         k6-Skript unter k6/scripts/, z.B. "sse-feasibility.js"
-//   metric         Name der k6-Trend-Metrik, die ausgewertet wird
-//                  (z.B. "sse_event_latency_ms" oder "ws_event_latency_ms")
-//   configs        Liste der zu vergleichenden Konfigurationen:
-//                  [{ name, host, port }, ...] — host/port sind
-//                  SUT_HOST/SUT_PORT für den Front-Proxy (infra/nginx)
-//   runsPerConfig  100–1000, siehe DECISIONS.md/README
-//   warmupRuns     erste N Durchläufe pro Konfiguration von der Auswertung
-//                  ausgeschlossen (JIT/OPcache-Warmup, Connection-Pooling,
-//                  OS-Filesystem-Cache — siehe README)
-//   vus, holdSeconds  an k6 durchgereicht (K6_VUS, K6_HOLD_SECONDS)
-//   pauseMinMs, pauseMaxMs  Pause zwischen Durchläufen, gleichverteilt
+// Aufruf: node tools/orchestrate/run.js <kampagne.json>
+// Kampagnenformat: README.md und campaign.example.json in diesem Ordner.
+//
+// Das Skript läuft direkt mit Node auf dem steuernden Rechner (nicht in
+// Docker), weil es selbst `docker compose` aufruft: für die SUT-Seite lokal
+// oder im Zwei-Rechner-Aufbau per ssh auf dem Raspberry Pi
+// (DECISIONS.md 5.14), für k6 und den Event-Simulator immer lokal.
 
-import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { readFileSync, writeFileSync, appendFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, comparePaired } from './stats.js';
+import { pairByRunIndex } from './pairing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const RESULTS_DIR = path.join(REPO_ROOT, 'results');
+const SUMMARY_TREND_STATS = 'avg,min,med,max,p(90),p(95),p(99)';
 
-function run(cmd, args, extraEnv = {}) {
-  const result = spawnSync(cmd, args, {
-    cwd: REPO_ROOT,
-    env: { ...process.env, ...extraEnv },
-    encoding: 'utf-8',
+// Dienste ohne Zellbezug, die während jeder Kampagne laufen dürfen. Alle
+// übrigen laufenden Dienste werden vor Kampagnenbeginn gestoppt
+// (DECISIONS.md 5.6.3).
+const INFRA_SERVICES = new Set(['redis', 'nginx', 'resource-sampler', 'event-simulator']);
+const PHASES = new Set(['pilot', 'main', 'saturation']);
+
+// Messgrößen mit statistischem Vergleich je Kampagne (Familien in plan.json).
+const TESTED_MEASURES = ['latency_mean_ms', 'cpu_seconds', 'working_set_peak_bytes'];
+// Messgrößen, für die pro Konfiguration deskriptive Kennzahlen entstehen.
+const DESCRIBED_MEASURES = [
+  'latency_mean_ms', 'latency_median_ms', 'latency_p95_ms', 'latency_p99_ms', 'latency_max_ms',
+  'delivery_ratio', 'events_lost', 'delivered_events_per_s', 'source_rate_eps',
+  'cpu_seconds', 'cpu_cores_avg', 'working_set_avg_bytes', 'working_set_peak_bytes',
+  'data_received_bytes_per_s', 'connection_errors',
+];
+
+class CampaignError extends Error {}
+
+// ---------------------------------------------------------------------------
+// Prozesse
+// ---------------------------------------------------------------------------
+
+function exec(cmd, args, { env = {}, timeoutMs = 0 } = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, { cwd: REPO_ROOT, env: { ...process.env, ...env }, windowsHide: true });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d) => { stdout += d; });
+    child.stderr.on('data', (d) => { stderr += d; });
+    const timer = timeoutMs ? setTimeout(() => child.kill(), timeoutMs) : null;
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      resolve({ status: -1, stdout, stderr: `${stderr}${err}` });
+    });
+    child.on('close', (status) => {
+      clearTimeout(timer);
+      resolve({ status, stdout, stderr });
+    });
+    child.stdin.end();
   });
-  return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
 
-function compose(args, extraEnv = {}) {
-  return run('docker', ['compose', ...args], extraEnv);
-}
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const shQuote = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 
-// Aufgabe 4, letzter Punkt: vor JEDEM Lauf prüfen, ob k6/x/sse aktiv ist —
-// schützt vor genau dem stillen Versionskonflikt aus DECISIONS.md Abschnitt 3
-// (z.B. nach einem Image-Rebuild, der den Versions-Pin verliert).
-function preflightK6Version() {
-  const { status, stdout, stderr } = compose(['--profile', 'load', 'run', '--rm', 'k6', 'version']);
-  if (status !== 0 || !stdout.includes('k6/x/sse')) {
-    console.error('ABBRUCH: k6-Image hat die erwartete xk6-sse-Extension nicht aktiv.');
-    console.error('Siehe DECISIONS.md Abschnitt 3 — vermutlich hat ein Image-Rebuild den');
-    console.error('Versions-Pin in k6/Dockerfile verloren (k6 v1.2.1 + xk6-sse v0.1.12).');
-    console.error('--- k6 version Ausgabe ---');
-    console.error(stdout, stderr);
-    process.exit(1);
+// SUT-Seite (Redis, Front-Nginx, Zellen, Sampler) lokal oder per ssh;
+// Lastseite (k6, Event-Simulator) immer lokal.
+function createSides(sut = {}) {
+  const remote = Boolean(sut.ssh);
+  if (remote && !sut.repoDir) throw new CampaignError('sut.ssh gesetzt, aber sut.repoDir fehlt');
+  const sshArgs = (remoteCmd) => ['-T', '-o', 'BatchMode=yes', sut.ssh, remoteCmd];
+
+  function invocation(args, env = {}) {
+    if (!remote) return { cmd: 'docker', args, env };
+    const envPart = Object.entries(env).map(([k, v]) => `${k}=${shQuote(v)}`).join(' ');
+    const cd = args[0] === 'compose' ? `cd ${shQuote(sut.repoDir)} && ` : '';
+    const remoteCmd = `${cd}${envPart ? `env ${envPart} ` : ''}docker ${args.map(shQuote).join(' ')}`;
+    return { cmd: 'ssh', args: sshArgs(remoteCmd), env: {} };
   }
-  return stdout.trim();
-}
 
-function switchSut(config) {
-  const { status, stderr } = compose(['up', '-d', '--force-recreate', 'nginx'], {
-    SUT_HOST: config.host,
-    SUT_PORT: String(config.port),
-  });
-  if (status !== 0) {
-    console.error(`ABBRUCH: nginx konnte nicht auf ${config.name} (${config.host}:${config.port}) umgeschaltet werden.`);
-    console.error(stderr);
-    process.exit(1);
-  }
-  // Kurz auf Nginx warten, statt eine feste Sleep-Zeit zu raten.
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const { status: healthStatus } = compose(['exec', '-T', 'nginx', 'wget', '-qO-', '--timeout=1', 'http://127.0.0.1/healthz']);
-    if (healthStatus === 0) return;
-    sleepSync(200);
-  }
-  console.error(`ABBRUCH: nginx antwortet nach Umschalten auf ${config.name} nicht auf /healthz.`);
-  process.exit(1);
-}
-
-function randomPause(minMs, maxMs) {
-  return minMs + Math.random() * (maxMs - minMs);
-}
-
-function sleepSync(ms) {
-  const { Atomics, SharedArrayBuffer, Int32Array } = globalThis;
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function percentile(sortedAsc, p) {
-  if (sortedAsc.length === 0) return null;
-  const idx = Math.min(sortedAsc.length - 1, Math.ceil((p / 100) * sortedAsc.length) - 1);
-  return sortedAsc[Math.max(0, idx)];
-}
-
-function stats(values) {
-  const sorted = [...values].filter((v) => v != null).sort((a, b) => a - b);
   return {
-    n: sorted.length,
-    median: percentile(sorted, 50),
-    p99: percentile(sorted, 99),
-    max: sorted[sorted.length - 1] ?? null,
-  };
-}
-
-function runOnce({ config, script, metric, vus, holdSeconds, k6VersionInfo, runIndexForConfig }) {
-  const tmpName = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
-  const { status, stderr } = compose(
-    ['--profile', 'load', 'run', '--rm', 'k6', 'run', `--summary-export=/results/${tmpName}`, `scripts/${script}`],
-    { K6_TARGET_BASE_URL: 'http://nginx', K6_VUS: String(vus), K6_HOLD_SECONDS: String(holdSeconds) }
-  );
-
-  const tmpPath = path.join(RESULTS_DIR, tmpName);
-  if (status !== 0 || !existsSync(tmpPath)) {
-    console.error(`Warnung: k6-Lauf für ${config.name} (Run ${runIndexForConfig}) fehlgeschlagen, wird übersprungen.`);
-    console.error(stderr);
-    return null;
-  }
-
-  const summary = JSON.parse(readFileSync(tmpPath, 'utf-8'));
-  unlinkSync(tmpPath);
-
-  const metricSummary = summary.metrics?.[metric];
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const finalName = `${timestamp}_${config.name}_${script.replace(/\.js$/, '')}_run${String(runIndexForConfig).padStart(4, '0')}.json`;
-  const finalPath = path.join(RESULTS_DIR, finalName);
-
-  const enriched = {
-    _meta: {
-      config: config.name,
-      script,
-      run_index_for_config: runIndexForConfig,
-      k6_version_info: k6VersionInfo,
-      recorded_at: new Date().toISOString(),
+    remote,
+    sutCompose(args, env = {}, opts = {}) {
+      const inv = invocation(['compose', ...args], env);
+      return exec(inv.cmd, inv.args, { ...opts, env: inv.env });
     },
-    summary,
-  };
-  writeFileSync(finalPath, JSON.stringify(enriched, null, 2));
-
-  return {
-    file: finalName,
-    avg: metricSummary?.avg ?? null,
-    p95: metricSummary?.['p(95)'] ?? null,
-    max: metricSummary?.max ?? null,
+    sutDocker(args) {
+      const inv = invocation(args);
+      return exec(inv.cmd, inv.args, { env: inv.env });
+    },
+    sutSpawnCompose(args) {
+      const inv = invocation(['compose', ...args]);
+      return spawn(inv.cmd, inv.args, { cwd: REPO_ROOT, env: { ...process.env, ...inv.env }, windowsHide: true });
+    },
+    async sutGit() {
+      if (!remote) return gitState();
+      const r = await exec('ssh', sshArgs(`cd ${shQuote(sut.repoDir)} && git rev-parse HEAD && git status --porcelain`));
+      if (r.status !== 0) throw new CampaignError(`Git-Stand auf der SUT-Seite nicht lesbar: ${r.stderr.trim()}`);
+      const [head, ...dirty] = r.stdout.split(/\r?\n/).filter(Boolean);
+      return { commit: head.trim(), dirty_files: dirty.length };
+    },
+    loadCompose(args, env = {}, opts = {}) {
+      return exec('docker', ['compose', ...args], { ...opts, env });
+    },
   };
 }
 
-function main() {
-  const campaignPath = process.argv[2];
-  if (!campaignPath) {
-    console.error('Aufruf: node run.js <campaign.json>');
-    process.exit(1);
-  }
-  const campaign = JSON.parse(readFileSync(path.resolve(campaignPath), 'utf-8'));
-  const {
-    script, metric, configs, runsPerConfig,
-    warmupRuns = 5, vus = 50, holdSeconds = 60,
-    pauseMinMs = 100, pauseMaxMs = 500,
-  } = campaign;
+async function gitState() {
+  const head = await exec('git', ['rev-parse', 'HEAD']);
+  const status = await exec('git', ['status', '--porcelain']);
+  return { commit: head.stdout.trim() || null, dirty_files: status.stdout.split(/\r?\n/).filter(Boolean).length };
+}
 
-  if (!configs || configs.length < 2) {
-    console.error('campaign.json braucht mindestens 2 Konfigurationen (alternierendes A/B-Design).');
-    process.exit(1);
-  }
+// ---------------------------------------------------------------------------
+// Kampagne laden
+// ---------------------------------------------------------------------------
 
-  mkdirSync(RESULTS_DIR, { recursive: true });
+function readJson(file) {
+  return JSON.parse(readFileSync(file, 'utf-8'));
+}
 
-  console.log(`Preflight: prüfe k6/xk6-sse-Version ...`);
-  const k6VersionInfo = preflightK6Version();
-  console.log(k6VersionInfo);
+function readEnvFileValue(file, key) {
+  const full = path.resolve(REPO_ROOT, file);
+  if (!existsSync(full)) return null;
+  const m = readFileSync(full, 'utf-8').match(new RegExp(`^${key}=(.*)$`, 'm'));
+  return m ? m[1].trim().replace(/^"(.*)"$/, '$1') : null;
+}
 
-  // Alternierendes Design (A, B, A, B, ...) statt blockweise: schützt vor
-  // Zeit-Drift-Effekten (z.B. steigende Last auf dem Host über die Zeit,
-  // thermisches Throttling), die sonst systematisch nur eine Konfiguration
-  // träfen, wenn sie komplett am Stück gemessen würde.
-  const perConfigRunCount = configs.map(() => 0);
-  const perConfigResults = configs.map(() => []);
-  const totalIterations = runsPerConfig * configs.length;
-  let currentConfigIdx = -1;
-
-  for (let i = 0; i < totalIterations; i++) {
-    const configIdx = i % configs.length;
-    const config = configs[configIdx];
-    perConfigRunCount[configIdx] += 1;
-    const runIndexForConfig = perConfigRunCount[configIdx];
-
-    if (configIdx !== currentConfigIdx) {
-      console.log(`--> Umschalten auf ${config.name} (${config.host}:${config.port})`);
-      switchSut(config);
-      currentConfigIdx = configIdx;
+// Konfiguration = Zelle aus cells.json, optional mit eigenem Namen und
+// eigenem script/metric/env (DECISIONS.md 5.9). Vorrang: Konfiguration >
+// Kampagne > Zellen-Standard.
+function resolveConfigs(campaign, cells) {
+  return (campaign.configs ?? []).map((entry) => {
+    const spec = typeof entry === 'string' ? { cell: entry } : entry;
+    const cell = cells[spec.cell];
+    if (!cell) throw new CampaignError(`Unbekannte Zelle "${spec.cell}" (siehe cells.json)`);
+    const env = { ...(cell.env ?? {}), ...(spec.env ?? {}) };
+    const envFromFile = { ...(cell.envFromFile ?? {}), ...(spec.envFromFile ?? {}) };
+    for (const [key, src] of Object.entries(envFromFile)) {
+      const value = process.env[key] ?? readEnvFileValue(src.file, src.key);
+      if (!value) throw new CampaignError(`${key} fehlt: weder als Umgebungsvariable gesetzt noch ${src.key} in ${src.file}`);
+      env[key] = value;
     }
-
-    console.log(`[${i + 1}/${totalIterations}] ${config.name} Run ${runIndexForConfig}/${runsPerConfig}${runIndexForConfig <= warmupRuns ? ' (Warm-up)' : ''}`);
-    preflightK6Version(); // vor JEDEM Lauf, siehe Aufgabe 4
-    const result = runOnce({ config, script, metric, vus, holdSeconds, k6VersionInfo, runIndexForConfig });
-    if (result && runIndexForConfig > warmupRuns) {
-      perConfigResults[configIdx].push(result);
-    }
-
-    if (i < totalIterations - 1) {
-      sleepSync(randomPause(pauseMinMs, pauseMaxMs));
-    }
-  }
-
-  const aggregate = { script, metric, warmupRuns, runsPerConfig, generated_at: new Date().toISOString(), configs: {} };
-  configs.forEach((config, idx) => {
-    const results = perConfigResults[idx];
-    aggregate.configs[config.name] = {
-      runs_used: results.length,
-      per_run_avg: stats(results.map((r) => r.avg)),
-      per_run_p95: stats(results.map((r) => r.p95)),
-      per_run_max: stats(results.map((r) => r.max)),
+    return {
+      name: spec.name ?? spec.cell,
+      cell: spec.cell,
+      language: cell.language,
+      variant: cell.variant,
+      transport: cell.transport,
+      services: cell.services,
+      frontHost: cell.frontHost,
+      frontPort: cell.frontPort,
+      script: spec.script ?? campaign.script ?? cell.script,
+      metric: spec.metric ?? campaign.metric ?? cell.metric,
+      metricPrefix: spec.metricPrefix ?? cell.metricPrefix,
+      env,
     };
   });
-
-  const aggregateFile = path.join(
-    RESULTS_DIR,
-    `${new Date().toISOString().replace(/[:.]/g, '-')}_aggregate_${script.replace(/\.js$/, '')}.json`
-  );
-  writeFileSync(aggregateFile, JSON.stringify(aggregate, null, 2));
-  console.log(`\nFertig. Aggregierte Auswertung: ${aggregateFile}`);
-  console.log(JSON.stringify(aggregate, null, 2));
 }
 
-main();
+function resolveScenarios(campaign) {
+  const list = campaign.scenarios ?? [{
+    name: campaign.scenarioName ?? 'default',
+    vus: campaign.vus,
+    holdSeconds: campaign.holdSeconds,
+    runsPerConfig: campaign.runsPerConfig,
+  }];
+  return list.map((s) => {
+    for (const key of ['name', 'vus', 'holdSeconds', 'runsPerConfig']) {
+      if (s[key] == null) throw new CampaignError(`Laststufe ohne "${key}": ${JSON.stringify(s)}`);
+    }
+    return { ...s, eventRatePerSecond: s.eventRatePerSecond ?? campaign.eventRatePerSecond ?? 1 };
+  });
+}
+
+function resolveSettings(campaign) {
+  const phase = campaign.phase ?? 'main';
+  if (!PHASES.has(phase)) throw new CampaignError(`phase muss pilot, main oder saturation sein, nicht "${phase}"`);
+  return {
+    name: campaign.name ?? 'kampagne',
+    phase,
+    warmupRuns: campaign.warmupRuns ?? 5,
+    pauseMinMs: campaign.pauseMinMs ?? 100,
+    pauseMaxMs: campaign.pauseMaxMs ?? 500,
+    reportEvery: campaign.reportEvery ?? 0,
+    maxFailureRate: campaign.maxFailureRate ?? 0.05,
+    minPairs: campaign.minPairs ?? 10,
+    bootstrapSeed: campaign.bootstrap?.seed ?? 20261016,
+    bootstrapResamples: campaign.bootstrap?.resamples ?? 10000,
+    resourceIntervalMs: campaign.resourceSampleIntervalMs ?? 250,
+    simulatorSettleMs: campaign.simulatorSettleMs ?? 2000,
+    saturation: {
+      minDeliveryRatio: campaign.saturation?.minDeliveryRatio ?? 0.99,
+      maxP95LatencyMs: campaign.saturation?.maxP95LatencyMs ?? 1000,
+    },
+    sut: {
+      ssh: campaign.sut?.ssh ?? null,
+      repoDir: campaign.sut?.repoDir ?? null,
+      pi: campaign.sut?.pi ?? false,
+      targetBaseUrl: campaign.sut?.targetBaseUrl ?? 'http://nginx',
+      redisHost: campaign.sut?.redisHost ?? null,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Vorabprüfungen und Kontext
+// ---------------------------------------------------------------------------
+
+async function k6Version(sides) {
+  const r = await sides.loadCompose(['--profile', 'load', 'run', '--rm', '--no-deps', 'k6', 'version']);
+  if (r.status !== 0 || !r.stdout.includes('k6/x/sse')) {
+    throw new CampaignError(
+      'k6-Image ohne aktive xk6-sse-Extension (DECISIONS.md Abschnitt 3: Versions-Pin in k6/Dockerfile prüfen).\n'
+      + `${r.stdout}${r.stderr}`
+    );
+  }
+  return r.stdout.trim();
+}
+
+async function samplerInfo(sides) {
+  const r = await sides.sutCompose(['--profile', 'tools', 'exec', '-T', 'resource-sampler', 'node', 'sampler.js', 'info']);
+  if (r.status !== 0) throw new CampaignError(`resource-sampler info fehlgeschlagen: ${r.stderr.trim() || r.stdout.trim()}`);
+  return JSON.parse(r.stdout.trim().split(/\r?\n/).pop());
+}
+
+function throttleBits(value) {
+  if (value == null) return null;
+  const n = Number.parseInt(String(value), 16);
+  return Number.isNaN(n) ? null : n;
+}
+
+// Raspberry-Pi-Firmware: Bits 0–3 = aktuell Unterspannung / Takt begrenzt /
+// gedrosselt / Temperaturgrenze; Bits 16–19 = dasselbe "seit dem Booten".
+// Ein Lauf gilt als gedrosselt, wenn zu Beginn oder am Ende eine aktuelle
+// Drosselung anliegt oder während des Laufs ein "seit dem Booten"-Bit neu
+// gesetzt wurde.
+function throttledDuring(start, end) {
+  const s = throttleBits(start);
+  const e = throttleBits(end);
+  if (s == null || e == null) return false;
+  return ((s | e) & 0xF) !== 0 || ((e & ~s) & 0xF0000) !== 0;
+}
+
+function checkHost(info, settings, log) {
+  const problems = [];
+  const warnings = [];
+  if (!info.cgroup_v2) problems.push('cgroup v2 nicht verfügbar — Ressourcenmessung und Limits nicht möglich');
+  if (!info.memory_controller) problems.push('memory-cgroup-Controller fehlt — Speicherlimits wären wirkungslos (infra/pi/README.md, Boot-Parameter)');
+  const bits = throttleBits(info.throttled);
+  const target = settings.sut.pi ? problems : warnings;
+  if (info.cpu_governor != null && info.cpu_governor !== 'performance') target.push(`CPU-Governor "${info.cpu_governor}" statt "performance"`);
+  if (info.swap_total_bytes) target.push(`Swap aktiv (${info.swap_total_bytes} Bytes) — verzerrt Speicher- und Latenzmessung`);
+  if (bits != null && (bits & 0xF) !== 0) target.push(`Host aktuell gedrosselt (get_throttled=${info.throttled})`);
+  for (const w of warnings) {
+    console.warn(`Hinweis: ${w}`);
+    log('preflight_warning', { message: w });
+  }
+  if (problems.length) throw new CampaignError(`Vorabprüfung fehlgeschlagen:\n- ${problems.join('\n- ')}`);
+}
+
+function parseComposePs(stdout) {
+  const text = stdout.trim();
+  if (!text) return [];
+  if (text.startsWith('[')) return JSON.parse(text);
+  return text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+}
+
+async function containerIds(sides, services) {
+  const r = await sides.sutCompose(['ps', '--format', 'json', ...services]);
+  const ids = {};
+  for (const row of parseComposePs(r.stdout)) {
+    if (row.State === 'running') ids[row.Service] = row.ID;
+  }
+  return ids;
+}
+
+async function inspectContainers(sides, ids) {
+  if (ids.length === 0) return [];
+  const r = await sides.sutDocker(['inspect', '--format', '{{json .}}', ...ids]);
+  return r.stdout.split(/\r?\n/).filter(Boolean).map((line) => {
+    const c = JSON.parse(line);
+    // Tatsächlich wirksame Limits des laufenden Containers (nicht die
+    // Compose-Datei), damit das Log belegt, womit gemessen wurde.
+    return {
+      id: c.Id,
+      name: c.Name?.replace(/^\//, ''),
+      service: c.Config?.Labels?.['com.docker.compose.service'],
+      image: c.Config?.Image,
+      image_id: c.Image,
+      status: c.State?.Status,
+      oom_killed: c.State?.OOMKilled ?? false,
+      started_at: c.State?.StartedAt,
+      limits: {
+        cpus: c.HostConfig?.NanoCpus ? c.HostConfig.NanoCpus / 1e9 : null,
+        memory_bytes: c.HostConfig?.Memory || null,
+        memory_swap_bytes: c.HostConfig?.MemorySwap || null,
+        cgroup_parent: c.HostConfig?.CgroupParent || null,
+        nofile: c.HostConfig?.Ulimits?.find((u) => u.Name === 'nofile')?.Soft ?? null,
+      },
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Container-Lebenszyklus
+// ---------------------------------------------------------------------------
+
+async function prepareSut(sides, configs, log) {
+  const campaignServices = [...new Set(configs.flatMap((c) => c.services))];
+
+  const running = await sides.sutCompose(['ps', '--services', '--status', 'running']);
+  const foreign = running.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+    .filter((s) => !INFRA_SERVICES.has(s) && !campaignServices.includes(s));
+  if (foreign.length) {
+    console.log(`Stoppe Dienste außerhalb der Kampagne: ${foreign.join(', ')}`);
+    const r = await sides.sutCompose(['stop', ...foreign]);
+    if (r.status !== 0) throw new CampaignError(`Stoppen fehlgeschlagen: ${r.stderr.trim()}`);
+    log('services_stopped', { services: foreign });
+  }
+
+  const first = configs[0];
+  const steps = [
+    [['up', '-d', 'redis'], {}],
+    [['--profile', 'tools', 'up', '-d', 'resource-sampler'], {}],
+    [['up', '-d', ...campaignServices], {}],
+    [['up', '-d', '--no-deps', 'nginx'], { SUT_HOST: first.frontHost, SUT_PORT: String(first.frontPort) }],
+  ];
+  for (const [args, env] of steps) {
+    const r = await sides.sutCompose(args, env, { timeoutMs: 600000 });
+    if (r.status !== 0) throw new CampaignError(`docker compose ${args.join(' ')} fehlgeschlagen:\n${r.stderr.trim()}`);
+  }
+  log('services_started', { services: campaignServices });
+  return campaignServices;
+}
+
+async function switchFront(sides, config) {
+  const r = await sides.sutCompose(
+    ['up', '-d', '--force-recreate', '--no-deps', 'nginx'],
+    { SUT_HOST: config.frontHost, SUT_PORT: String(config.frontPort) }
+  );
+  if (r.status !== 0) throw new CampaignError(`Front-Nginx ließ sich nicht auf ${config.name} umschalten:\n${r.stderr.trim()}`);
+  // Erreichbarkeit: jede HTTP-Antwort der Zelle zählt (WS-Server antworten
+  // auf einfache GET-Anfragen z. B. mit 4xx); nur 502/503/504 bedeuten,
+  // dass Nginx die Zelle nicht erreicht.
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const h = await sides.sutCompose(['exec', '-T', 'nginx', 'sh', '-c', 'wget -S -O /dev/null -T 2 http://127.0.0.1/healthz 2>&1 || true']);
+    const m = h.stdout.match(/HTTP\/1\.[01] (\d{3})/);
+    if (m && !['502', '503', '504'].includes(m[1])) return;
+    await sleep(250);
+  }
+  throw new CampaignError(`Front-Nginx erreicht ${config.name} (${config.frontHost}:${config.frontPort}) nicht`);
+}
+
+async function startSimulator(sides, settings, rate, log) {
+  const env = { SIMULATOR_RATE: String(rate) };
+  if (settings.sut.redisHost) env.SIMULATOR_REDIS_HOST = settings.sut.redisHost;
+  const args = ['--profile', 'tools', 'up', '-d', '--force-recreate'];
+  if (sides.remote) args.push('--no-deps');
+  args.push('event-simulator');
+  const r = await sides.loadCompose(args, env);
+  if (r.status !== 0) throw new CampaignError(`Event-Simulator ließ sich nicht starten:\n${r.stderr.trim()}`);
+  log('simulator_started', { rate_per_second: rate });
+  await sleep(settings.simulatorSettleMs);
+}
+
+async function stopSimulator(sides, log) {
+  await sides.loadCompose(['--profile', 'tools', 'stop', 'event-simulator']);
+  log('simulator_stopped');
+}
+
+// ---------------------------------------------------------------------------
+// Ressourcen-Sampler (tools/resource-sampler)
+// ---------------------------------------------------------------------------
+
+function startSampler(sides, cellContainers, intervalMs) {
+  const args = ['--profile', 'tools', 'exec', '-T', 'resource-sampler', 'node', 'sampler.js', 'measure', '--interval-ms', String(intervalMs)];
+  for (const [cell, ids] of Object.entries(cellContainers)) args.push('--cell', `${cell}=${ids.join(',')}`);
+  const child = sides.sutSpawnCompose(args);
+
+  const lines = [];
+  let buffer = '';
+  let stderr = '';
+  let exited = false;
+  child.stdout.on('data', (d) => {
+    buffer += d;
+    let idx;
+    while ((idx = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (line) lines.push(line);
+    }
+  });
+  child.stderr.on('data', (d) => { stderr += d; });
+  child.on('close', () => { exited = true; });
+  child.on('error', (err) => { stderr += String(err); exited = true; });
+
+  async function nextMessage(timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      if (lines.length) return JSON.parse(lines.shift());
+      if (exited) {
+        if (buffer.trim()) return JSON.parse(buffer.trim());
+        throw new Error(`Sampler beendet ohne Ergebnis: ${stderr.trim()}`);
+      }
+      if (Date.now() > deadline) throw new Error('Sampler antwortet nicht (Timeout)');
+      await sleep(50);
+    }
+  }
+
+  return {
+    async ready() {
+      const msg = await nextMessage(30000);
+      if (!msg.ready) throw new Error(msg.error ?? 'Sampler nicht bereit');
+      return msg;
+    },
+    async stop() {
+      child.stdin.end();
+      const msg = await nextMessage(30000);
+      if (msg.error) throw new Error(msg.error);
+      return msg;
+    },
+    kill() {
+      try { child.kill(); } catch { /* bereits beendet */ }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Ein Lauf
+// ---------------------------------------------------------------------------
+
+function extractMeasures(summary, config, resources) {
+  const m = summary?.metrics ?? {};
+  const p = config.metricPrefix;
+  const lat = m[config.metric] ?? {};
+  const count = (name) => (m[name]?.count ?? null);
+  const expected = count(`${p}_events_expected`);
+  const unique = count(`${p}_events_unique`);
+  const cell = resources?.cells?.[config.cell] ?? {};
+  return {
+    latency_mean_ms: lat.avg ?? null,
+    latency_min_ms: lat.min ?? null,
+    latency_median_ms: lat.med ?? null,
+    latency_p90_ms: lat['p(90)'] ?? null,
+    latency_p95_ms: lat['p(95)'] ?? null,
+    latency_p99_ms: lat['p(99)'] ?? null,
+    latency_max_ms: lat.max ?? null,
+    events_received: count(`${p}_events_received`),
+    events_unique: unique,
+    events_expected: expected,
+    events_lost: count(`${p}_events_lost`),
+    events_duplicate: count(`${p}_events_duplicate`),
+    delivery_ratio: expected ? unique / expected : null,
+    delivered_events_per_s: m[`${p}_events_received`]?.rate ?? null,
+    source_rate_eps: m[`${p}_source_rate_eps`]?.med ?? null,
+    connection_errors: count(`${p}_connection_errors`) ?? 0,
+    checks_passed: m.checks?.passes ?? null,
+    checks_failed: m.checks?.fails ?? null,
+    data_received_bytes: m.data_received?.count ?? null,
+    data_received_bytes_per_s: m.data_received?.rate ?? null,
+    data_sent_bytes: m.data_sent?.count ?? null,
+    data_sent_bytes_per_s: m.data_sent?.rate ?? null,
+    connection_duration_avg_ms: (m.ws_session_duration ?? m.iteration_duration)?.avg ?? null,
+    cpu_seconds: cell.cpu_seconds ?? null,
+    cpu_cores_avg: cell.cpu_cores_avg ?? null,
+    working_set_avg_bytes: cell.working_set_avg_bytes ?? null,
+    working_set_peak_bytes: cell.working_set_peak_bytes ?? null,
+    mem_avg_bytes: cell.mem_avg_bytes ?? null,
+    mem_peak_bytes: cell.mem_peak_bytes ?? null,
+  };
+}
+
+async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
+  const { sides, settings, campaignDir, campaignDirName, log } = ctx;
+  const runId = `${scenario.name}_${config.name}_run${String(runIndex).padStart(4, '0')}`;
+  const record = {
+    schema: 'eda-thesis/run/1',
+    run: {
+      id: runId,
+      config: config.name,
+      cell: config.cell,
+      scenario: scenario.name,
+      run_index: runIndex,
+      warmup: isWarmup,
+      valid: false,
+      invalid_reason: null,
+      started_at: null,
+      ended_at: null,
+    },
+    load: {
+      vus: scenario.vus,
+      hold_seconds: scenario.holdSeconds,
+      event_rate_nominal_per_s: scenario.eventRatePerSecond,
+      script: config.script,
+      metric: config.metric,
+      target_base_url: settings.sut.targetBaseUrl,
+      // Nur die Namen zusätzlicher Variablen, nie deren Werte (z. B. App-Keys).
+      extra_env_keys: Object.keys(config.env),
+    },
+    measures: null,
+    resources: null,
+    containers: null,
+    context: ctx.context,
+    k6_summary: null,
+  };
+  const invalid = (reason) => {
+    if (!record.run.invalid_reason) record.run.invalid_reason = reason;
+  };
+
+  await switchFront(sides, config);
+  await k6Version(sides);
+
+  const ids = await containerIds(sides, config.services);
+  const missing = config.services.filter((s) => !ids[s]);
+  let sampler = null;
+  if (missing.length) {
+    invalid(`container_not_running:${missing.join(',')}`);
+  } else {
+    sampler = startSampler(sides, { [config.cell]: config.services.map((s) => ids[s]) }, settings.resourceIntervalMs);
+    try {
+      const ready = await sampler.ready();
+      if (settings.sut.pi) {
+        const slice = `eda_${config.cell.replace(/-/g, '_')}.slice`;
+        const outside = Object.values(ready.cgroups).filter((c) => !c.dir.includes(slice));
+        if (outside.length) {
+          sampler.kill();
+          throw new CampaignError(`Container von ${config.cell} liegen nicht im cgroup-Topf ${slice} (docker-compose.pi.yml aktiv?)`);
+        }
+      }
+    } catch (err) {
+      if (err instanceof CampaignError) throw err;
+      sampler.kill();
+      sampler = null;
+      invalid(`resource_sampler:${err.message}`);
+    }
+  }
+
+  const tmpRel = `${campaignDirName}/runs/.tmp-${runId}.json`;
+  const tmpPath = path.join(RESULTS_DIR, tmpRel);
+  const k6Env = {
+    K6_TARGET_BASE_URL: settings.sut.targetBaseUrl,
+    K6_VUS: String(scenario.vus),
+    K6_HOLD_SECONDS: String(scenario.holdSeconds),
+    ...config.env,
+  };
+  const k6Args = ['--profile', 'load', 'run', '--rm', '--no-deps'];
+  for (const [k, v] of Object.entries(k6Env)) k6Args.push('-e', `${k}=${v}`);
+  k6Args.push('k6', 'run', '--quiet', `--summary-export=/results/${tmpRel}`, `--summary-trend-stats=${SUMMARY_TREND_STATS}`, `scripts/${config.script}`);
+
+  record.run.started_at = new Date().toISOString();
+  const k6 = await sides.loadCompose(k6Args, {}, { timeoutMs: (scenario.holdSeconds + 180) * 1000 });
+  record.run.ended_at = new Date().toISOString();
+
+  if (sampler) {
+    try {
+      record.resources = await sampler.stop();
+    } catch (err) {
+      sampler.kill();
+      invalid(`resource_sampler:${err.message}`);
+    }
+  }
+
+  if (k6.status !== 0) invalid(`k6_exit_${k6.status}`);
+  if (existsSync(tmpPath)) {
+    record.k6_summary = readJson(tmpPath);
+    unlinkSync(tmpPath);
+  } else {
+    invalid('no_k6_summary');
+  }
+  record.measures = extractMeasures(record.k6_summary, config, record.resources);
+  if (!record.measures.events_unique) invalid('no_events_received');
+  if (record.measures.latency_mean_ms == null) invalid('no_latency_metric');
+
+  record.containers = await inspectContainers(sides, Object.values(ids));
+  const failed = record.containers.filter((c) => c.status !== 'running' || c.oom_killed);
+  if (failed.length) invalid(`sut_container_failed:${failed.map((c) => `${c.service}${c.oom_killed ? '(OOM)' : ''}`).join(',')}`);
+
+  if (record.resources && throttledDuring(record.resources.host.throttled_start, record.resources.host.throttled_end)) {
+    invalid('host_throttled');
+  }
+
+  record.run.valid = record.run.invalid_reason == null;
+  writeFileSync(path.join(campaignDir, 'runs', `${runId}.json`), JSON.stringify(record, null, 2));
+
+  log('run_finished', {
+    run: runId,
+    valid: record.run.valid,
+    invalid_reason: record.run.invalid_reason,
+    warmup: isWarmup,
+    latency_mean_ms: record.measures.latency_mean_ms,
+    delivery_ratio: record.measures.delivery_ratio,
+    cpu_seconds: record.measures.cpu_seconds,
+    k6_stderr_tail: record.run.valid ? undefined : k6.stderr.trim().split(/\r?\n/).slice(-5).join('\n'),
+  });
+
+  return {
+    run_index: runIndex,
+    warmup: isWarmup,
+    valid: record.run.valid,
+    invalid_reason: record.run.invalid_reason,
+    measures: record.measures,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Auswertung einer Kampagne
+// ---------------------------------------------------------------------------
+
+// Startwert pro Vergleich aus dem Kampagnen-Seed und einem Label (FNV-1a),
+// damit Vergleiche unabhängige, aber reproduzierbare Resamples erhalten.
+function hashSeed(base, label) {
+  let h = 0x811c9dc5;
+  for (const ch of label) {
+    h ^= ch.codePointAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (base ^ h) >>> 0;
+}
+
+function compareConfigs(runsA, runsB, measure, { seed, resamples, minPairs }) {
+  const pairs = pairByRunIndex(runsA, runsB, (r) => r.measures?.[measure]);
+  const result = pairs.a.length > 0
+    ? comparePaired(pairs.a, pairs.b, { resamples, seed, minPairs })
+    : { n_pairs: 0, n_pairs_nonzero: 0, conclusive: false };
+  return {
+    ...result,
+    pairs: { run_indices: pairs.indices, dropped_run_indices: pairs.dropped, a: pairs.a, b: pairs.b },
+  };
+}
+
+function countReasons(runs) {
+  const reasons = {};
+  for (const r of runs) {
+    if (!r.valid) reasons[r.invalid_reason] = (reasons[r.invalid_reason] ?? 0) + 1;
+  }
+  return reasons;
+}
+
+function aggregateScenario(scenario, configs, comparisons, results, settings) {
+  const agg = {
+    vus: scenario.vus,
+    hold_seconds: scenario.holdSeconds,
+    event_rate_nominal_per_s: scenario.eventRatePerSecond,
+    runs_per_config: scenario.runsPerConfig,
+    warmup_runs: settings.warmupRuns,
+    configs: {},
+    comparisons: [],
+  };
+  for (const config of configs) {
+    const all = results[config.name];
+    const measured = all.filter((r) => !r.warmup);
+    const valid = measured.filter((r) => r.valid);
+    agg.configs[config.name] = {
+      cell: config.cell,
+      runs_measured: measured.length,
+      runs_valid: valid.length,
+      runs_invalid: measured.length - valid.length,
+      invalid_reasons: countReasons(measured),
+      warmup_invalid: all.filter((r) => r.warmup && !r.valid).length,
+      describe: Object.fromEntries(DESCRIBED_MEASURES.map((m) => [m, describe(valid.map((r) => r.measures?.[m]))])),
+    };
+  }
+  if (settings.phase !== 'saturation') {
+    for (const [nameA, nameB] of comparisons) {
+      const runsA = results[nameA].filter((r) => !r.warmup);
+      const runsB = results[nameB].filter((r) => !r.warmup);
+      const entry = {
+        a: nameA,
+        b: nameB,
+        cell_a: configs.find((c) => c.name === nameA).cell,
+        cell_b: configs.find((c) => c.name === nameB).cell,
+        measures: {},
+      };
+      for (const measure of TESTED_MEASURES) {
+        entry.measures[measure] = compareConfigs(runsA, runsB, measure, {
+          seed: hashSeed(settings.bootstrapSeed, `${scenario.name}|${nameA}|${nameB}|${measure}`),
+          resamples: settings.bootstrapResamples,
+          minPairs: settings.minPairs,
+        });
+      }
+      agg.comparisons.push(entry);
+    }
+  }
+  return agg;
+}
+
+// Sättigung (DECISIONS.md 5.17): höchste Rate, bis zu der eine
+// Konfiguration auf JEDER Stufe im Median mindestens minDeliveryRatio
+// zustellt und im Median eine p95-Latenz von höchstens maxP95LatencyMs hält.
+function saturationSummary(scenarios, configs, scenarioAggs, criteria) {
+  const byRate = [...scenarios].sort((x, y) => x.eventRatePerSecond - y.eventRatePerSecond);
+  const summary = { criteria, configs: {} };
+  for (const config of configs) {
+    const steps = byRate.filter((s) => scenarioAggs[s.name]).map((s) => {
+      const d = scenarioAggs[s.name].configs[config.name].describe;
+      const delivery = d.delivery_ratio.median;
+      const p95 = d.latency_p95_ms.median;
+      const pass = delivery != null && p95 != null && delivery >= criteria.minDeliveryRatio && p95 <= criteria.maxP95LatencyMs;
+      return {
+        scenario: s.name,
+        rate_per_s: s.eventRatePerSecond,
+        delivery_ratio_median: delivery,
+        latency_p95_median_ms: p95,
+        cpu_cores_avg_median: d.cpu_cores_avg.median,
+        pass,
+      };
+    });
+    let maxSustainable = null;
+    for (const step of steps) {
+      if (!step.pass) break;
+      maxSustainable = step.rate_per_s;
+    }
+    summary.configs[config.name] = { steps, max_sustainable_rate_per_s: maxSustainable };
+  }
+  return summary;
+}
+
+// Zwischenstand der Latenz-Vergleiche (DECISIONS.md 5.9): dient im Pilot
+// der Wahl der Wiederholungszahl, in der Hauptkampagne nur der Kontrolle —
+// kein Abbruchkriterium.
+function interimReport(scenario, comparisons, results, settings, runIndex) {
+  const entries = [];
+  for (const [nameA, nameB] of comparisons) {
+    const cmp = compareConfigs(
+      results[nameA].filter((r) => !r.warmup),
+      results[nameB].filter((r) => !r.warmup),
+      'latency_mean_ms',
+      { seed: hashSeed(settings.bootstrapSeed, `interim|${scenario.name}|${nameA}|${nameB}`), resamples: 2000, minPairs: settings.minPairs }
+    );
+    if (cmp.n_pairs < 2) continue;
+    const entry = {
+      scenario: scenario.name,
+      comparison: `${nameA} vs. ${nameB}`,
+      after_run_index: runIndex,
+      n_pairs: cmp.n_pairs,
+      median_diff_ms: cmp.median_diff,
+      median_diff_ci95: cmp.median_diff_ci95,
+      ci_width_ms: cmp.median_diff_ci95[1] - cmp.median_diff_ci95[0],
+      cliffs_delta: cmp.cliffs_delta,
+      cliffs_magnitude: cmp.cliffs_magnitude,
+      p_unadjusted: cmp.wilcoxon.p,
+    };
+    entries.push(entry);
+    console.log(`   Zwischenstand ${entry.comparison}: n=${entry.n_pairs}, Median-Diff ${entry.median_diff_ms?.toFixed(3)} ms `
+      + `[${entry.median_diff_ci95[0]?.toFixed(3)}, ${entry.median_diff_ci95[1]?.toFixed(3)}], δ=${entry.cliffs_delta.toFixed(3)} (${entry.cliffs_magnitude})`);
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
+// Ablauf
+// ---------------------------------------------------------------------------
+
+async function runScenario(ctx, scenario, configs, comparisons, interim) {
+  const { settings, sides, log } = ctx;
+  console.log(`\n=== Laststufe "${scenario.name}": ${scenario.vus} Clients, ${scenario.holdSeconds} s, `
+    + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration ===`);
+  log('scenario_started', { scenario });
+  await startSimulator(sides, settings, scenario.eventRatePerSecond, log);
+
+  const results = Object.fromEntries(configs.map((c) => [c.name, []]));
+  const measuredRuns = Math.max(0, scenario.runsPerConfig - settings.warmupRuns);
+  const allowedFailures = Math.max(1, Math.floor(settings.maxFailureRate * measuredRuns));
+  ctx.partialResults = results;
+
+  for (let runIndex = 1; runIndex <= scenario.runsPerConfig; runIndex++) {
+    for (const config of configs) {
+      if (ctx.interrupted) throw new CampaignError('Abbruch auf Anforderung (Strg-C)');
+      const isWarmup = runIndex <= settings.warmupRuns;
+      process.stdout.write(`[${scenario.name}] ${config.name} Lauf ${runIndex}/${scenario.runsPerConfig}${isWarmup ? ' (Warm-up)' : ''} … `);
+      const result = await runOnce(ctx, { config, scenario, runIndex, isWarmup });
+      results[config.name].push(result);
+      console.log(result.valid
+        ? `ok (Latenz-Mittel ${result.measures.latency_mean_ms?.toFixed(3)} ms, Zustellung ${(100 * (result.measures.delivery_ratio ?? 0)).toFixed(2)} %)`
+        : `UNGÜLTIG: ${result.invalid_reason}`);
+
+      const failures = results[config.name].filter((r) => !r.warmup && !r.valid).length;
+      if (failures > allowedFailures) {
+        throw new CampaignError(
+          `${config.name}: ${failures} ungültige Läufe in "${scenario.name}" — erlaubt sind ${allowedFailures} `
+          + `(maxFailureRate ${settings.maxFailureRate}). Die Ergebnisse dieser Laststufe sind nicht belastbar.`
+        );
+      }
+      await sleep(settings.pauseMinMs + Math.random() * (settings.pauseMaxMs - settings.pauseMinMs));
+    }
+
+    if (settings.reportEvery && runIndex > settings.warmupRuns && (runIndex - settings.warmupRuns) % settings.reportEvery === 0) {
+      const entries = interimReport(scenario, comparisons, results, settings, runIndex);
+      interim.push(...entries);
+      if (entries.length) log('interim_report', { entries });
+    }
+  }
+  return results;
+}
+
+function printSummary(aggregate) {
+  for (const [name, s] of Object.entries(aggregate.scenarios)) {
+    console.log(`\n${name}:`);
+    for (const [cfg, c] of Object.entries(s.configs)) {
+      const lat = c.describe.latency_mean_ms;
+      const cpu = c.describe.cpu_seconds;
+      console.log(`  ${cfg}: ${c.runs_valid}/${c.runs_measured} gültig, Latenz-Mittel (Median über Läufe) ${lat.median?.toFixed(3)} ms, `
+        + `CPU ${cpu.median?.toFixed(3)} s, Zustellung ${((c.describe.delivery_ratio.median ?? 0) * 100).toFixed(2)} %`);
+    }
+    for (const cmp of s.comparisons) {
+      const l = cmp.measures.latency_mean_ms;
+      if (!l.wilcoxon) continue;
+      console.log(`  ${cmp.a} vs. ${cmp.b}: n=${l.n_pairs}${l.conclusive ? '' : ' (nicht aussagekräftig)'}, Median-Diff ${l.median_diff?.toFixed(3)} ms `
+        + `[${l.median_diff_ci95[0]?.toFixed(3)}, ${l.median_diff_ci95[1]?.toFixed(3)}], δ=${l.cliffs_delta.toFixed(3)} (${l.cliffs_magnitude}), `
+        + `p (unkorrigiert) = ${l.wilcoxon.p.toPrecision(3)}`);
+    }
+  }
+  if (aggregate.saturation) {
+    console.log('\nSättigung (höchste nachhaltige Rate):');
+    for (const [cfg, s] of Object.entries(aggregate.saturation.configs)) {
+      console.log(`  ${cfg}: ${s.max_sustainable_rate_per_s ?? '— (bereits die niedrigste Stufe nicht erfüllt)'} Events/s`);
+    }
+  }
+}
+
+async function main() {
+  const campaignPath = process.argv[2];
+  if (!campaignPath) {
+    console.error('Aufruf: node tools/orchestrate/run.js <kampagne.json>');
+    process.exit(1);
+  }
+  const campaign = readJson(path.resolve(campaignPath));
+  const cells = readJson(path.join(__dirname, 'cells.json'));
+  const settings = resolveSettings(campaign);
+  const configs = resolveConfigs(campaign, cells);
+  const scenarios = resolveScenarios(campaign);
+  if (configs.length < 2) throw new CampaignError('Eine Kampagne braucht mindestens 2 Konfigurationen (alternierendes Design).');
+  const names = new Set(configs.map((c) => c.name));
+  if (names.size !== configs.length) throw new CampaignError('Konfigurationsnamen müssen eindeutig sein.');
+  const comparisons = campaign.comparisons
+    ?? configs.flatMap((a, i) => configs.slice(i + 1).map((b) => [a.name, b.name]));
+  for (const [a, b] of comparisons) {
+    if (!names.has(a) || !names.has(b)) throw new CampaignError(`Vergleich ${a} vs. ${b}: unbekannte Konfiguration`);
+  }
+  if (settings.phase === 'saturation' && new Set(scenarios.map((s) => s.vus)).size !== 1) {
+    throw new CampaignError('Sättigungskampagnen variieren nur die Event-Rate; alle Laststufen brauchen dieselbe Clientzahl.');
+  }
+
+  const startedAt = new Date();
+  const campaignDirName = `${startedAt.toISOString().replace(/[:.]/g, '-')}_${settings.name}`;
+  const campaignDir = path.join(RESULTS_DIR, campaignDirName);
+  mkdirSync(path.join(campaignDir, 'runs'), { recursive: true });
+  writeFileSync(path.join(campaignDir, 'campaign.json'), JSON.stringify(campaign, null, 2));
+  const logFile = path.join(campaignDir, 'campaign.log.jsonl');
+  const log = (event, data = {}) => appendFileSync(logFile, `${JSON.stringify({ t: new Date().toISOString(), event, ...data })}\n`);
+
+  const sides = createSides(settings.sut);
+  const ctx = { sides, settings, campaignDir, campaignDirName, log, context: null, interrupted: false, partialResults: null };
+  process.on('SIGINT', () => {
+    if (ctx.interrupted) process.exit(130);
+    ctx.interrupted = true;
+    console.log('\nAbbruch angefordert — die Kampagne endet nach dem laufenden Lauf (erneut Strg-C: sofort).');
+  });
+
+  console.log(`Kampagne "${settings.name}" (${settings.phase}) -> ${path.relative(REPO_ROOT, campaignDir)}`);
+  log('campaign_started', { name: settings.name, phase: settings.phase, configs: configs.map((c) => c.name), scenarios: scenarios.map((s) => s.name) });
+
+  const aggregate = {
+    schema: 'eda-thesis/aggregate/1',
+    name: settings.name,
+    phase: settings.phase,
+    campaign_dir: campaignDirName,
+    started_at: startedAt.toISOString(),
+    finished_at: null,
+    aborted: false,
+    abort_reason: null,
+    settings,
+    configs: configs.map(({ env, ...rest }) => ({ ...rest, extra_env_keys: Object.keys(env) })),
+    comparisons,
+    tested_measures: TESTED_MEASURES,
+    note: 'p-Werte hier unkorrigiert; Holm-Korrektur über alle Kampagnen in evaluate.js (DECISIONS.md 5.15).',
+    context: null,
+    scenarios: {},
+    interim: [],
+    saturation: null,
+  };
+
+  let currentScenario = null;
+  try {
+    const loadGit = await gitState();
+    const sutGit = await sides.sutGit();
+    if (sides.remote && loadGit.commit !== sutGit.commit) {
+      throw new CampaignError(`Code-Stand verschieden: Lastgenerator ${loadGit.commit}, SUT-Seite ${sutGit.commit}`);
+    }
+    console.log('Vorabprüfung: k6-Extension …');
+    const k6 = await k6Version(sides);
+    console.log('Container vorbereiten …');
+    const services = await prepareSut(sides, configs, log);
+    const hostInfo = await samplerInfo(sides);
+    checkHost(hostInfo, settings, log);
+    const containers = await inspectContainers(sides, Object.values(await containerIds(sides, services)));
+
+    // Kampagnendatei relativ zum Repository; liegt sie außerhalb, nur der
+    // Dateiname (keine lokalen Pfade im Protokoll). Der Inhalt steht ohnehin
+    // vollständig in campaign.json des Ergebnisverzeichnisses.
+    const relCampaign = path.relative(REPO_ROOT, path.resolve(campaignPath));
+    const campaignFile = relCampaign.startsWith('..') || path.isAbsolute(relCampaign) ? path.basename(campaignPath) : relCampaign;
+    ctx.context = {
+      campaign: { name: settings.name, phase: settings.phase, dir: campaignDirName, file: campaignFile },
+      topology: sides.remote ? 'zwei Rechner (SUT-Seite per ssh)' : 'ein Rechner',
+      git: { load: loadGit, sut: sutGit },
+      k6_version: k6,
+      sut_host: hostInfo,
+      containers: Object.fromEntries(containers.map((c) => [c.service, { image: c.image, image_id: c.image_id, limits: c.limits }])),
+      orchestrator: { node: process.version, platform: process.platform },
+    };
+    aggregate.context = ctx.context;
+    log('context', ctx.context);
+
+    for (const scenario of scenarios) {
+      currentScenario = scenario;
+      const results = await runScenario(ctx, scenario, configs, comparisons, aggregate.interim);
+      aggregate.scenarios[scenario.name] = aggregateScenario(scenario, configs, comparisons, results, settings);
+      log('scenario_finished', { scenario: scenario.name });
+      currentScenario = null;
+    }
+  } catch (err) {
+    aggregate.aborted = true;
+    aggregate.abort_reason = err.message;
+    log('campaign_aborted', { reason: err.message });
+    console.error(`\nABBRUCH: ${err.message}`);
+    if (!(err instanceof CampaignError)) console.error(err.stack);
+    // Bereits gemessene Läufe der abgebrochenen Laststufe bleiben sichtbar,
+    // gelten aber nicht als vollständige Laststufe.
+    if (currentScenario && ctx.partialResults) {
+      aggregate.scenarios[currentScenario.name] = {
+        ...aggregateScenario(currentScenario, configs, comparisons, ctx.partialResults, settings),
+        incomplete: true,
+      };
+    }
+  } finally {
+    await stopSimulator(sides, log).catch(() => {});
+  }
+
+  if (settings.phase === 'saturation' && Object.keys(aggregate.scenarios).length) {
+    aggregate.saturation = saturationSummary(scenarios, configs, aggregate.scenarios, settings.saturation);
+  }
+  aggregate.finished_at = new Date().toISOString();
+  writeFileSync(path.join(campaignDir, 'aggregate.json'), JSON.stringify(aggregate, null, 2));
+  log('campaign_finished', { aborted: aggregate.aborted });
+  console.log(`\nAuswertung: ${path.relative(REPO_ROOT, path.join(campaignDir, 'aggregate.json'))}`);
+  printSummary(aggregate);
+  process.exit(aggregate.aborted ? 2 : 0);
+}
+
+main().catch((err) => {
+  console.error(err instanceof CampaignError ? `ABBRUCH: ${err.message}` : err);
+  process.exit(1);
+});

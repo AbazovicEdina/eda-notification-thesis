@@ -1,0 +1,22 @@
+{
+  "_comment": "Wie campaign.example.json, aber im Zwei-Rechner-Aufbau: der Orchestrator läuft auf dem Lastgenerator und steuert die SUT-Seite per ssh auf dem Pi (infra/pi/README.md). Adressen und Pfad anpassen.",
+  "name": "c04-node-express-ws-vs-php-laravel-ws",
+  "phase": "main",
+  "configs": ["node-express-ws", "php-laravel-ws"],
+  "scenarios": [
+    { "name": "baseline", "vus": 10, "holdSeconds": 60, "runsPerConfig": 100, "eventRatePerSecond": 1 },
+    { "name": "medium", "vus": 50, "holdSeconds": 60, "runsPerConfig": 60, "eventRatePerSecond": 1 },
+    { "name": "stress", "vus": 500, "holdSeconds": 60, "runsPerConfig": 30, "eventRatePerSecond": 1 }
+  ],
+  "warmupRuns": 5,
+  "maxFailureRate": 0.05,
+  "minPairs": 10,
+  "bootstrap": { "seed": 20261016, "resamples": 10000 },
+  "sut": {
+    "ssh": "pi@192.168.0.50",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.0.50:8080",
+    "redisHost": "192.168.0.50"
+  }
+}

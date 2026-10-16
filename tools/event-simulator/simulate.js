@@ -2,7 +2,7 @@
 // Hardware aus Lokato für die Lasttests. Setzt den Zeitstempel `ts` beim
 // Publish (DECISIONS.md 5.4: das ist der Start der Ende-zu-Ende-Messung).
 // Zwei Modi:
-//   pubsub (Standard) — publiziert direkt auf EVENT_CHANNEL, das alle vier
+//   pubsub (Standard) — publiziert direkt auf EVENT_CHANNEL, das alle
 //                        SSE/WS-Prototypen abonnieren.
 //   queue             — legt Jobs in die BullMQ-Queue "scan-events", zum
 //                        Testen des Queue-Grundgerüsts (node-express/queue,
@@ -37,18 +37,30 @@ async function runQueue() {
   await queue.close();
 }
 
+// Takt nach absolutem Zeitplan (Start + seq · Intervall) statt "senden, dann
+// volles Intervall warten": Letzteres addiert die Publish-Dauer zu jedem
+// Intervall, die tatsächliche Rate läge systematisch unter RATE_PER_SECOND
+// (DECISIONS.md 5.17). Gerät der Prozess in Verzug, wird ohne Pause
+// nachgeholt statt die Rate still zu senken.
 async function publishLoop(publish) {
   let seq = 0;
   let stop = false;
   process.on('SIGINT', () => { stop = true; });
   process.on('SIGTERM', () => { stop = true; });
 
+  const startedAt = performance.now();
+  console.log(`event-simulator: sende ${RATE_PER_SECOND} Events/s (Modus: ${MODE}, Kanal/Queue: ${CHANNEL})`);
   while (!stop && (COUNT === 0 || seq < COUNT)) {
     seq += 1;
     await publish(seq);
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    const nextAt = startedAt + seq * intervalMs;
+    const waitMs = nextAt - performance.now();
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
   }
-  console.log(`event-simulator: ${seq} Events gesendet (Modus: ${MODE}, Kanal/Queue: ${CHANNEL})`);
+  const elapsedS = (performance.now() - startedAt) / 1000;
+  console.log(`event-simulator: ${seq} Events in ${elapsedS.toFixed(1)}s gesendet (${(seq / elapsedS).toFixed(2)}/s)`);
 }
 
 (MODE === 'queue' ? runQueue() : runPubsub()).catch((err) => {

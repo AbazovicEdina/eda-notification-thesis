@@ -1,6 +1,8 @@
-# Portable Basis — gilt unverändert auf jeder Umgebung (lokal wie FH-Server).
-# Umgebungsspezifisches (Host-Ports etc.) gehört in docker-compose.override.yml,
-# alle Parameter in die .env. Hier nichts hartcodieren.
+# Portable Basis — gilt unverändert auf jeder Umgebung (lokal wie auf dem
+# Raspberry-Pi-Testserver). Umgebungsspezifisches gehört in eine
+# Ergänzungsdatei (lokal: docker-compose.override.yml; Pi:
+# docker-compose.pi.yml, siehe infra/pi/README.md), alle Parameter in die
+# .env. Hier nichts hartcodieren.
 
 # Höheres File-Descriptor-Limit für alle Container, die viele gleichzeitige
 # SSE/WS-Verbindungen halten (README, Abschnitt "OS-Level-Limits"): jede
@@ -18,10 +20,20 @@ x-high-nofile: &high-nofile
 # Host-Ressourcen sich ein Stack per Default nimmt, statt wie effizient er
 # sie nutzt. `cpus`/`mem_limit` (nicht `deploy.resources.limits`!) wirken
 # unter reinem `docker compose up` — `deploy.*` greift nur im Swarm-Modus.
-# Platzhalterwerte, bis die FH-Server-Hardware bekannt ist (DECISIONS.md 6).
+# Speicher bewusst großzügig (2g): RAM ist eine gemessene Größe, keine
+# Obergrenze, die einzelne Zellen per OOM-Kill aus dem Vergleich wirft
+# (DECISIONS.md 5.10). Endwert erst mit bekanntem Pi-Modell.
+# Auf dem Pi begrenzt zusätzlich ein gemeinsamer cgroup-Topf pro ZELLE
+# (docker-compose.pi.yml, DECISIONS.md 5.6.2) — die Limits hier gelten pro
+# Container und reichen allein nicht, weil PHP-Zellen aus zwei Containern
+# bestehen.
+# memswap_limit = mem_limit: kein zusätzlicher Swap für den Container (Docker
+# erlaubt sonst Swap in Höhe des RAM-Limits; ausgelagerte Seiten verzerren
+# Latenz- und Speichermessung).
 x-sut-resources: &sut-resources
   cpus: "${SUT_CPU_LIMIT:-2}"
-  mem_limit: "${SUT_MEM_LIMIT:-512m}"
+  mem_limit: "${SUT_MEM_LIMIT:-2g}"
+  memswap_limit: "${SUT_MEM_LIMIT:-2g}"
 
 services:
   # Event-Backbone für die Prototypen (siehe DECISIONS.md 5.4): BullMQ
@@ -43,13 +55,16 @@ services:
       EVENT_INTERVAL_MS: ${SSE_EVENT_INTERVAL_MS:-1000}
 
   # Simulierter Scan-Event-Generator (ersetzt MQTT/RFID-Hardware aus Lokato).
-  # Startet nicht bei `up`, sondern per: docker compose --profile tools run --rm event-simulator
+  # Startet nicht bei `up`; tools/orchestrate startet ihn pro Laststufe mit
+  # der dort festgelegten Rate. Manuell: docker compose --profile tools run --rm event-simulator
+  # SIMULATOR_REDIS_HOST: auf dem separaten Lastgenerator die Adresse des
+  # Pi (infra/pi/README.md), lokal der Compose-Service `redis`.
   event-simulator:
     build: ./tools/event-simulator
     environment:
       MODE: ${SIMULATOR_MODE:-pubsub}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_HOST: ${SIMULATOR_REDIS_HOST:-redis}
+      REDIS_PORT: ${SIMULATOR_REDIS_PORT:-6379}
       EVENT_CHANNEL: ${EVENT_CHANNEL:-scan-events}
       RATE_PER_SECOND: ${SIMULATOR_RATE:-1}
       COUNT: ${SIMULATOR_COUNT:-0}
@@ -58,8 +73,7 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
-  # Isolierter Redis-Pub/Sub-Baseline-Test (Prompt Teil 2, Aufgabe 10) —
-  # tools/redis-baseline/README.md.
+  # Isolierter Redis-Pub/Sub-Test ohne Prototyp — tools/redis-baseline/README.md.
   redis-baseline:
     build: ./tools/redis-baseline
     environment:
@@ -90,6 +104,18 @@ services:
       - ./k6:/k6:ro
       - ./results:/results
 
+  # Ressourcen-Messung pro Lauf (DECISIONS.md 5.16): liest CPU-Zeit und
+  # Speicher direkt aus den cgroup-Dateien der SUT-Container (exakt, kaum
+  # Eigenlast — statt `docker stats`). `cgroup: host` macht die cgroup-
+  # Hierarchie des Hosts sichtbar (nur lesend). Läuft auf der SUT-Seite;
+  # tools/orchestrate startet und befragt ihn, siehe tools/resource-sampler.
+  resource-sampler:
+    build: ./tools/resource-sampler
+    image: eda-thesis-resource-sampler:latest
+    cgroup: host
+    init: true
+    profiles: ["tools"]
+
   # Einheitlicher Reverse-Proxy vor der jeweils aktiven SUT (DECISIONS.md 5.6).
   # SUT_HOST/SUT_PORT wählen die Konfiguration; siehe infra/nginx/templates/.
   nginx:
@@ -105,7 +131,7 @@ services:
 
   # --- Node-Minimalvariante: reines http-Modul / ws-Library, kein Framework
   # Zwei Services (ein Redis-Subscriber pro Prozess, DECISIONS.md 5.4);
-  # nur der jeweils gemessene läuft (DECISIONS.md 5.6.3).
+  # nur die Zellen der laufenden Kampagne laufen (DECISIONS.md 5.6.3).
   node-minimal-sse:
     <<: [*high-nofile, *sut-resources]
     build: ./prototypes/node-minimal
@@ -132,15 +158,17 @@ services:
     profiles: ["node-minimal"]
 
   # --- PHP-Minimalvariante: reines PHP, kein Framework -------------------
-  # Zwei Container, weil PHP-FPM nur FastCGI spricht (kein HTTP): die
+  # SSE: zwei Container, weil PHP-FPM nur FastCGI spricht (kein HTTP): die
   # lokale Nginx-Brücke übersetzt HTTP -> FastCGI. Das ist Teil des
   # FPM-Laufzeitmodells selbst (DECISIONS.md 5.5), keine zusätzliche, durch
   # den Testaufbau eingeführte Verzögerung — siehe nginx-bridge.conf.
-  # WS gibt es hier nicht: Reverb (php-laravel) übernimmt WS auch für die
-  # Minimalvariante, da Reverb zwingend Laravel voraussetzt (DECISIONS.md 5.5).
+  # WS: eigener Dauerprozess mit Ratchet/ReactPHP (DECISIONS.md 5.5), kein
+  # FPM nötig — braucht deshalb keine Nginx-Brücke, ws.php spricht HTTP/WS
+  # direkt (wie node-minimal-ws).
   php-minimal-fpm:
     <<: [*high-nofile, *sut-resources]
     build: ./prototypes/php-minimal
+    image: eda-thesis-php-minimal:latest
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -157,6 +185,20 @@ services:
       - ./prototypes/php-minimal/nginx-bridge.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - php-minimal-fpm
+    profiles: ["php-minimal"]
+
+  php-minimal-ws:
+    <<: [*high-nofile, *sut-resources]
+    image: eda-thesis-php-minimal:latest
+    command: ["php", "ws.php"]
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      EVENT_CHANNEL: ${EVENT_CHANNEL:-scan-events}
+      PORT: 8080
+    depends_on:
+      redis:
+        condition: service_healthy
     profiles: ["php-minimal"]
 
   # --- Laravel + Reverb: SSE via FPM (wie oben), WS via Reverb -----------
@@ -209,9 +251,9 @@ services:
         condition: service_healthy
     profiles: ["php-laravel"]
 
-  # Laravel-Queue-Grundgerüst (Prompt Teil 2, Aufgabe 7) — siehe
+  # Laravel-Queue-Grundgerüst für die vollständige Lokato-Pipeline — siehe
   # app/Jobs/ProcessScanEvent.php; getrennt von SSE/WS, siehe dortige
-  # Kommentare. Nicht Teil der gemessenen SUT-Profile.
+  # Kommentare. Nicht Teil der gemessenen Zellen.
   php-laravel-queue-worker:
     image: eda-thesis-php-laravel:latest
     command: ["php", "artisan", "queue:work", "redis", "--queue=scan-events"]
@@ -251,8 +293,8 @@ services:
         condition: service_healthy
     profiles: ["node-express"]
 
-  # BullMQ-Grundgerüst (Prompt Teil 2, Aufgabe 7) — siehe queue/README.md;
-  # nicht Teil der gemessenen SUT-Profile.
+  # BullMQ-Grundgerüst für die vollständige Lokato-Pipeline — siehe
+  # prototypes/node-express/queue/README.md; nicht Teil der gemessenen Zellen.
   node-express-worker:
     image: eda-thesis-node-express:latest
     command: ["node", "queue/worker.js"]

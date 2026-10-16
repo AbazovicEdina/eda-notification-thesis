@@ -1,14 +1,19 @@
 {
-  "script": "sse-feasibility.js",
-  "metric": "sse_event_latency_ms",
-  "configs": [
-    { "name": "node-minimal", "host": "node-minimal-sse", "port": 8080 },
-    { "name": "php-minimal", "host": "php-minimal-nginx", "port": 8080 }
+  "_comment": "Hauptkampagne für Vergleich Nr. 4 aus plan.json (lokaler Ein-Rechner-Aufbau). Wiederholungszahlen sind Platzhalter, bis der Pilot auf dem Pi sie festlegt (DECISIONS.md 5.9). Für den Pilot: phase = pilot, reportEvery setzen.",
+  "name": "c04-node-express-ws-vs-php-laravel-ws",
+  "phase": "main",
+  "configs": ["node-express-ws", "php-laravel-ws"],
+  "scenarios": [
+    { "name": "baseline", "vus": 10, "holdSeconds": 60, "runsPerConfig": 100, "eventRatePerSecond": 1 },
+    { "name": "medium", "vus": 50, "holdSeconds": 60, "runsPerConfig": 60, "eventRatePerSecond": 1 },
+    { "name": "stress", "vus": 500, "holdSeconds": 60, "runsPerConfig": 30, "eventRatePerSecond": 1 }
   ],
-  "runsPerConfig": 100,
   "warmupRuns": 5,
-  "vus": 50,
-  "holdSeconds": 60,
   "pauseMinMs": 100,
-  "pauseMaxMs": 500
+  "pauseMaxMs": 500,
+  "reportEvery": 0,
+  "maxFailureRate": 0.05,
+  "minPairs": 10,
+  "bootstrap": { "seed": 20261016, "resamples": 10000 },
+  "resourceSampleIntervalMs": 250
 }

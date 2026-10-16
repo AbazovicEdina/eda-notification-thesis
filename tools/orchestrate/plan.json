@@ -1,0 +1,20 @@
+{
+  "_comment": "Vorab festgelegter Auswerteplan (DECISIONS.md 5.8/5.15) — VOR der Datenerhebung fixiert. evaluate.js prüft Kampagnen-Ergebnisse gegen diesen Plan und wendet die Holm-Korrektur je Familie über alle hier geplanten Tests an (fehlende Tests zählen mit p = 1, damit die Korrektur nicht durch Weglassen milder wird).",
+  "alpha": 0.05,
+  "scenarios": ["baseline", "medium", "stress"],
+  "comparisons": [
+    { "id": 1, "a": "node-minimal-sse", "b": "php-minimal-sse", "question": "Sprache (SSE, ohne Framework)" },
+    { "id": 2, "a": "node-minimal-ws", "b": "php-minimal-ws", "question": "Sprache (WS, ohne Framework)" },
+    { "id": 3, "a": "node-express-sse", "b": "php-laravel-sse", "question": "Sprache (SSE, mit Framework)" },
+    { "id": 4, "a": "node-express-ws", "b": "php-laravel-ws", "question": "Sprache (WS, mit Framework)" },
+    { "id": 5, "a": "node-minimal-sse", "b": "node-express-sse", "question": "Framework-Overhead (Node, SSE)" },
+    { "id": 6, "a": "node-minimal-ws", "b": "node-express-ws", "question": "Framework-Overhead (Node, WS)" },
+    { "id": 7, "a": "php-minimal-sse", "b": "php-laravel-sse", "question": "Framework-Overhead (PHP, SSE)" },
+    { "id": 8, "a": "php-minimal-ws", "b": "php-laravel-ws", "question": "Framework-Overhead (PHP, WS)" }
+  ],
+  "families": [
+    { "measure": "latency_mean_ms", "role": "primär", "description": "Mittelwert der Event-Latenz pro Lauf (DECISIONS.md 5.8)" },
+    { "measure": "cpu_seconds", "role": "sekundär", "description": "CPU-Zeit der Zelle pro Lauf (cgroup usage_usec, DECISIONS.md 5.16)" },
+    { "measure": "working_set_peak_bytes", "role": "sekundär", "description": "Spitze des Speicher-Working-Sets der Zelle pro Lauf (DECISIONS.md 5.16)" }
+  ]
+}

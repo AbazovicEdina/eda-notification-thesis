@@ -1,0 +1,50 @@
+# Ergänzung für den Raspberry-Pi-Testserver (DECISIONS.md 5.6.2, 5.14).
+# Aktivierung über COMPOSE_FILE in der .env des Pi (siehe .env.example),
+# Einrichtung des Pi: infra/pi/README.md.
+#
+# 1. Front-Nginx und Redis werden im LAN veröffentlicht, weil k6 und der
+#    Event-Simulator auf einem separaten Lastgenerator laufen. Redis hat
+#    keine Authentifizierung: nur in einem isolierten Messnetz betreiben,
+#    bei Bedarf PI_BIND_ADDRESS auf die Adresse der Messnetz-Schnittstelle
+#    setzen.
+# 2. Jede Messzelle läuft in ihrem eigenen cgroup-Topf (systemd-Slice
+#    eda_<zelle>.slice). CPU- und Speicherbudget gelten damit für die
+#    gesamte Zelle — bei PHP also für FPM und Nginx-Brücke bzw. Reverb und
+#    Listener gemeinsam — statt pro Container. Die Slices legt
+#    infra/pi/setup-slices.sh an; die Zuordnung Dienst -> Zelle entspricht
+#    tools/orchestrate/cells.json.
+
+services:
+  nginx:
+    ports:
+      - "${PI_BIND_ADDRESS:-0.0.0.0}:${PI_FRONT_PORT:-8080}:80"
+
+  redis:
+    ports:
+      - "${PI_BIND_ADDRESS:-0.0.0.0}:${PI_REDIS_PORT:-6379}:6379"
+
+  node-minimal-sse:
+    cgroup_parent: eda_node_minimal_sse.slice
+  node-minimal-ws:
+    cgroup_parent: eda_node_minimal_ws.slice
+
+  node-express-sse:
+    cgroup_parent: eda_node_express_sse.slice
+  node-express-ws:
+    cgroup_parent: eda_node_express_ws.slice
+
+  php-minimal-fpm:
+    cgroup_parent: eda_php_minimal_sse.slice
+  php-minimal-nginx:
+    cgroup_parent: eda_php_minimal_sse.slice
+  php-minimal-ws:
+    cgroup_parent: eda_php_minimal_ws.slice
+
+  php-laravel-fpm:
+    cgroup_parent: eda_php_laravel_sse.slice
+  php-laravel-nginx:
+    cgroup_parent: eda_php_laravel_sse.slice
+  php-laravel-reverb:
+    cgroup_parent: eda_php_laravel_ws.slice
+  php-laravel-listener:
+    cgroup_parent: eda_php_laravel_ws.slice
