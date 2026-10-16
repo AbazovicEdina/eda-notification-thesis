@@ -363,7 +363,8 @@ Bekannte Risiken auf dem Pi und ihre Behandlung:
 | Container-Logs und Ergebnisse füllen über Wochen den Datenträger | Log-Rotation in `docker-compose.yml`; `status.js` warnt unter 10 % freiem Platz auf beiden Geräten |
 | automatische Updates ändern mitten in der Messung Docker oder Kernel | automatische Updates abgeschaltet; Versionen in jedem Lauf protokolliert |
 | Stromausfall oder Absturz | Kampagnen pro Laststufe, Fortsetzen über `schedule.js`; optional USV |
-| Abbruch oder Stillstand bleibt im unbeaufsichtigten Betrieb tagelang unbemerkt | `tools/orchestrate/status.js` (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz) als stündlicher cron-Job; optionale Benachrichtigung über `NOTIFY_URL` bei Warnungen, abgebrochenen Kampagnen und am Ende des Zeitplans. Die Nachrichten enthalten keine Messwerte, Adressen oder Schlüssel || ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
+| Abbruch oder Stillstand bleibt im unbeaufsichtigten Betrieb tagelang unbemerkt | `tools/orchestrate/status.js` (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz) als stündlicher cron-Job; optionale Benachrichtigung über `NOTIFY_URL` bei Warnungen, abgebrochenen Kampagnen und am Ende des Zeitplans. Die Nachrichten enthalten keine Messwerte, Adressen oder Schlüssel |
+| ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
 
 Stand: Der Zwei-Rechner-Aufbau ist implementiert, aber noch nicht auf Pi-Hardware erprobt (Abschnitt 6).
 

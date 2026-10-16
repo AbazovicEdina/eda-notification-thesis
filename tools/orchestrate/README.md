@@ -79,18 +79,24 @@ Jede erzeugte Kampagne umfasst genau einen Vergleich und eine Laststufe (bei `sc
 | Speicherplatz des Ergebnisverzeichnisses | weniger als 10 % frei |
 | Testserver direkt per ssh (`--sut`) | nicht erreichbar, aktuell gedrosselt, über 75 °C, Docker-Datenträger unter 10 % frei |
 
-Ist die Umgebungsvariable `NOTIFY_URL` gesetzt, sendet `schedule.js` eine Nachricht bei jeder abgebrochenen Kampagne oder Kontrollmessung und am Ende des Zeitplans; `status.js --notify` sendet die Warnungen. Gesendet wird ein HTTP-POST mit reinem Text und dem Titel im Header `Title`, passend zum Dienst ntfy (App für Android und iOS):
+Ist `NOTIFY_URL` gesetzt, sendet `schedule.js` eine Nachricht bei jeder abgebrochenen Kampagne oder Kontrollmessung und am Ende des Zeitplans; `status.js --notify` sendet die Warnungen. Gesendet wird ein HTTP-POST mit reinem Text und dem Titel im Header `Title`, passend zum Dienst ntfy (App für Android und iOS, dort das Thema abonnieren).
+
+`NOTIFY_URL` wird in der `.env` des Rechners eingetragen, auf dem `schedule.js` und `status.js` laufen (Vorlage in `.env.example`). Eine gleichnamige Umgebungsvariable hat Vorrang. Damit gilt der Wert auch für cron-Jobs und systemd-Dienste.
 
 ```bash
-export NOTIFY_URL=https://ntfy.sh/<schwer-zu-erratender-name>
+NOTIFY_URL=https://ntfy.sh/<thema>
 ```
 
-Ein öffentliches ntfy-Thema kann jeder mitlesen, der den Namen kennt. Die Nachrichten enthalten daher nur Kampagnennamen, Zähler und Statusmeldungen, keine Messwerte, Adressen oder Schlüssel. Ein Fehler beim Senden wird gemeldet, unterbricht die Messung aber nicht.
+Ein öffentliches ntfy-Thema kann jeder mitlesen, der den Namen kennt. Die Nachrichten enthalten daher nur Kampagnennamen, Zähler und Statusmeldungen, keine Messwerte, Adressen oder Schlüssel. Ein Fehler beim Senden wird gemeldet, unterbricht die Messung aber nicht. Testnachricht:
+
+```bash
+node --input-type=module -e "import { notify } from './tools/orchestrate/notify.js'; console.log(await notify('EDA: Testnachricht', 'Benachrichtigung eingerichtet.'))"
+```
 
 Stündliche Prüfung per cron auf dem Lastgenerator (`crontab -e`):
 
 ```cron
-0 * * * * cd /pfad/zum/repo && NOTIFY_URL=https://ntfy.sh/<name> node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json --notify >> "$HOME/eda-status.log" 2>&1
+0 * * * * cd /pfad/zum/repo && node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json --notify >> "$HOME/eda-status.log" 2>&1
 ```
 
 Das Protokoll liegt bewusst außerhalb von `results/`, damit es nicht versehentlich in das Repository gelangt.

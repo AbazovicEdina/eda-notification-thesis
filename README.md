@@ -184,8 +184,6 @@ Description=EDA Notification Thesis — Messkampagne
 [Service]
 Type=simple
 WorkingDirectory=%h/eda-notification-thesis
-# optional, Benachrichtigung bei Abbrüchen und am Ende (tools/orchestrate/README.md)
-Environment=NOTIFY_URL=https://ntfy.sh/<schwer-zu-erratender-name>
 ExecStart=/usr/bin/node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 Restart=no
 
@@ -202,7 +200,7 @@ loginctl enable-linger $USER   # sonst endet der Dienst beim Abmelden
 
 Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet; bereits gemessene Läufe bleiben erhalten, die Kampagne wird beim nächsten Start des Zeitplans wiederholt.
 
-**Überwachung:** `node tools/orchestrate/status.js --schedule <schedule.json> --sut sut.pi.json` zeigt Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung und Speicherplatz. Als stündlicher cron-Job mit `--notify` meldet es Auffälligkeiten aufs Handy, `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans (beides über `NOTIFY_URL`, siehe [tools/orchestrate/README.md](tools/orchestrate/README.md)).
+**Überwachung:** `node tools/orchestrate/status.js --schedule <schedule.json> --sut sut.pi.json` zeigt Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung und Speicherplatz. Als stündlicher cron-Job mit `--notify` meldet es Auffälligkeiten aufs Handy, `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans (beides über `NOTIFY_URL` in der `.env`, siehe [tools/orchestrate/README.md](tools/orchestrate/README.md)).
 
 ## Ergebnisse
 
