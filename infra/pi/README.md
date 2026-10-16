@@ -24,79 +24,64 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Send
 
 ## Einrichtung des Pi
 
-1. **Betriebssystem:** Raspberry Pi OS Lite (64 Bit) auf der SSD. Prüfen mit `uname -m`, erwartet wird `aarch64`.
+1. **Betriebssystem:** Raspberry Pi OS Lite (64 Bit) auf der SSD, ssh aktiviert.
 
-2. **Automatische Updates abschalten**, damit sich Docker oder der Kernel nicht mitten in der Messphase ändern:
+2. **Docker** nach der offiziellen Anleitung für Debian installieren (docs.docker.com, „Install Docker Engine on Debian"), einschließlich Compose-Plugin.
 
-   ```bash
-   sudo systemctl disable --now unattended-upgrades apt-daily.timer apt-daily-upgrade.timer
-   ```
+3. **Repository** klonen und auf denselben Commit wie auf dem Lastgenerator auschecken. Der Orchestrator bricht ab, wenn die Stände abweichen.
 
-   Nicht vorhandene Units meldet `systemctl` als Fehler; das ist unkritisch.
+4. **Schlüsseldatei** `prototypes/php-laravel/.env` vom Entwicklungsrechner kopieren (z. B. per `scp`). Die Datei enthält Schlüssel und ist nicht im Repository.
 
-3. **Speicher-cgroup aktivieren.** Ohne den memory-Controller ignoriert Docker alle Speicherlimits stillschweigend:
+5. **Einrichtungsskript** im Repository ausführen:
 
    ```bash
-   cat /sys/fs/cgroup/cgroup.controllers
+   sudo bash infra/pi/setup.sh
    ```
 
-   Fehlt `memory` in der Ausgabe, wird `cgroup_enable=memory cgroup_memory=1` an die bestehende Zeile in `/boot/firmware/cmdline.txt` angehängt (keine neue Zeile) und neu gestartet.
+   Das Skript führt die unten beschriebenen Einzelschritte aus, überspringt bereits erledigte und sichert geänderte Systemdateien (`<datei>.bak-<zeitstempel>`). Am Ende steht eine Zusammenfassung mit den Kategorien „ok", „geändert" und „offen". Exit-Code 2 bedeutet, dass ein Neustart nötig ist (memory-cgroup). In diesem Fall `sudo reboot` und das Skript erneut ausführen, bis es mit Exit-Code 0 endet. Nach der Aufnahme in die Gruppe `docker` ist eine erneute Anmeldung nötig.
 
-4. **Swap abschalten.** Ausgelagerter Speicher verzerrt Latenz- und Speichermessung:
+6. **Limits** `SUT_CPU_LIMIT` und `SUT_MEM_LIMIT` in `.env` auf die endgültigen Werte setzen. Nach jeder Änderung `sudo bash infra/pi/setup-slices.sh` ausführen, damit die cgroup-Töpfe dieselben Werte erhalten.
+
+7. **Images bauen:**
 
    ```bash
-   swapon --show
-   sudo dphys-swapfile swapoff && sudo systemctl disable dphys-swapfile
+   docker compose --profile node-minimal --profile node-express --profile node-express-queue --profile php-minimal --profile php-laravel --profile php-laravel-queue --profile tools build
    ```
 
-   Je nach OS-Version ist statt `dphys-swapfile` ein anderer Swap-Dienst aktiv (z. B. zram). Entscheidend ist, dass `swapon --show` danach keine Ausgabe mehr liefert.
-
-5. **CPU-Governor fest auf „performance":**
+8. **Kontrolle:**
 
    ```bash
-   sudo cp infra/pi/cpu-performance.service /etc/systemd/system/
-   sudo systemctl enable --now cpu-performance.service
-   cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor   # performance
+   docker compose --profile tools up -d resource-sampler
+   docker compose --profile tools exec resource-sampler node sampler.js info
    ```
 
-6. **Docker** nach der offiziellen Anleitung für Debian installieren (docs.docker.com, „Install Docker Engine on Debian"). Den Benutzer der Gruppe `docker` hinzufügen, damit der Orchestrator ohne `sudo` arbeiten kann.
+   Erwartet werden `"memory_controller":true`, `"cpu_governor":"performance"`, `"swap_total_bytes":0` und `"throttled":"0x0"`. `docker_disk_free_bytes` zeigt den freien Platz des Datenträgers, auf dem Docker liegt.
 
-7. **Repository** auf denselben Commit wie auf dem Lastgenerator auschecken. Der Orchestrator bricht ab, wenn die Stände abweichen.
-
-8. **Konfiguration:**
-   - `.env` aus `.env.example` anlegen und die Zeile `COMPOSE_FILE=docker-compose.yml:docker-compose.pi.yml` einkommentieren. Damit wird `docker-compose.pi.yml` bei jedem `docker compose`-Aufruf mitgeladen.
-   - `SUT_CPU_LIMIT` und `SUT_MEM_LIMIT` auf die endgültigen Werte setzen.
-   - `prototypes/php-laravel/.env` vom Entwicklungsrechner kopieren (z. B. per `scp`). Die Datei enthält Schlüssel und ist nicht im Repository.
-
-9. **cgroup-Töpfe der Zellen anlegen** (nach jeder Änderung der Limits erneut ausführen):
+9. **Belastungstest (24 h)** vor dem Pilot: zeigt, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen.
 
    ```bash
-   sudo bash infra/pi/setup-slices.sh
+   sudo apt install stress-ng
+   bash infra/pi/burn-in.sh 24
    ```
 
-10. **Images bauen:**
+   Das Skript protokolliert jede Minute Temperatur, Takt und Drosselstatus nach `results/<zeitstempel>_burn-in.csv` und meldet am Ende Höchsttemperatur und ob eine Drosselung aufgetreten ist. Tritt eine Drosselung auf, ist die Kühlung zu verbessern, bevor gemessen wird.
 
-    ```bash
-    docker compose --profile node-minimal --profile node-express --profile node-express-queue --profile php-minimal --profile php-laravel --profile php-laravel-queue --profile tools build
-    ```
+### Was setup.sh einrichtet
 
-11. **Kontrolle:**
+| Schritt | Zweck | Manuelle Entsprechung |
+|---|---|---|
+| Architektur prüfen | 64-Bit-System erforderlich | `uname -m` liefert `aarch64` |
+| automatische Updates abschalten | Docker und Kernel dürfen sich in der Messphase nicht ändern | `systemctl disable --now unattended-upgrades apt-daily.timer apt-daily-upgrade.timer` |
+| Swap abschalten | ausgelagerter Speicher verzerrt Latenz- und Speichermessung | `dphys-swapfile` bzw. `zramswap` abschalten, systemd-Swap-Units (z. B. zram) maskieren, `swapoff -a`; `swapon --show` liefert danach keine Ausgabe |
+| CPU-Governor `performance` | feste Taktfrequenz statt lastabhängiger Anpassung | `cpu-performance.service` nach `/etc/systemd/system/` kopieren und aktivieren |
+| memory-cgroup aktivieren | ohne den memory-Controller ignoriert Docker alle Speicherlimits | `cgroup_enable=memory cgroup_memory=1` an die bestehende Zeile in `/boot/firmware/cmdline.txt` anhängen, Neustart |
+| Docker prüfen | Docker und Compose-Plugin vorhanden, Benutzer in der Gruppe `docker` (Orchestrator ohne `sudo`) | `usermod -aG docker <benutzer>` |
+| `.env` anlegen | `COMPOSE_FILE=docker-compose.yml:docker-compose.pi.yml` lädt die Pi-Ergänzung bei jedem `docker compose`-Aufruf | `.env.example` kopieren, Zeile einkommentieren |
+| Schlüsseldatei prüfen | `APP_KEY` und `REVERB_APP_KEY` gesetzt; Werte werden nicht ausgegeben | — |
+| cgroup-Töpfe anlegen | gemeinsames Budget je Zelle (DECISIONS.md 5.6.2) | `sudo bash infra/pi/setup-slices.sh` |
+| stress-ng prüfen | Voraussetzung des Belastungstests | `sudo apt install stress-ng` |
 
-    ```bash
-    docker compose --profile tools up -d resource-sampler
-    docker compose --profile tools exec resource-sampler node sampler.js info
-    ```
-
-    Erwartet werden `"memory_controller":true`, `"cpu_governor":"performance"`, `"swap_total_bytes":0` und `"throttled":"0x0"`.
-
-12. **Belastungstest (24 h)** vor dem Pilot: zeigt, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen.
-
-    ```bash
-    sudo apt install stress-ng
-    bash infra/pi/burn-in.sh 24
-    ```
-
-    Das Skript protokolliert jede Minute Temperatur, Takt und Drosselstatus nach `results/<zeitstempel>_burn-in.csv` und meldet am Ende Höchsttemperatur und ob eine Drosselung aufgetreten ist. Tritt eine Drosselung auf, ist die Kühlung zu verbessern, bevor gemessen wird.
+Docker installiert das Skript bewusst nicht selbst, damit die Installation der offiziellen Anleitung folgt und deren Version nachvollziehbar bleibt.
 
 ## Einrichtung des Lastgenerators
 
@@ -133,14 +118,35 @@ Den Block `sut` in eine eigene Datei schreiben, z. B. `sut.pi.json`:
 | `targetBaseUrl` | Front-Nginx des Pi aus Sicht von k6 |
 | `redisHost` | Redis des Pi aus Sicht der Ereignisquellen |
 
+**Probelauf** vor dem Pilot, mit eigenem Namensraum, damit die echten Kampagnen später nicht als erledigt gelten (tools/orchestrate/README.md, Abschnitt zu Probeläufen):
+
+```bash
+node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=3,medium=3,stress=3 --hold 10 --warmup 1 --comparisons 1,4 --prefix smoke- --sut sut.pi.json --out campaigns/smoke
+node tools/orchestrate/schedule.js campaigns/smoke/schedule.json
+node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut sut.pi.json --hours 2
+```
+
+Danach die erste Lauf-Datei prüfen: `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
+
 Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen: DECISIONS.md 5.9):
 
 ```bash
+node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --sut sut.pi.json --out campaigns/pilot
 node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --sut sut.pi.json --out campaigns/block1
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 ```
 
 Für den mehrwöchigen Betrieb empfiehlt sich `tmux` oder ein systemd-User-Dienst auf dem Lastgenerator (README.md im Wurzelverzeichnis, Abschnitt zu langen Messkampagnen). Ein erneuter Start des Zeitplans setzt an der nächsten unvollständigen Kampagne fort.
+
+## Überwachung im Dauerbetrieb
+
+`tools/orchestrate/status.js` fasst den Zustand zusammen: Fortschritt des Zeitplans, laufende Kampagne, ungültige Läufe und ihre Gründe, Höchsttemperatur, Auslastung des Lastgenerators, Verlauf der Kontrollmessung, freier Speicherplatz auf beiden Geräten. Mit `--sut` fragt es den Pi zusätzlich direkt ab (Temperatur, Drosselstatus, Governor, Docker-Datenträger).
+
+```bash
+node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json
+```
+
+Für unbeaufsichtigte Phasen empfiehlt sich die Benachrichtigung über `NOTIFY_URL` (z. B. ein ntfy-Thema mit schwer zu erratendem Namen): `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans, ein stündlicher cron-Job mit `status.js --notify` meldet Warnungen wie fehlende Aktivität, Drosselung, hohe Temperatur oder knappen Speicherplatz. Einrichtung und Schwellenwerte: tools/orchestrate/README.md, Abschnitt zu Überwachung und Benachrichtigung.
 
 ## Automatische Prüfungen
 
@@ -158,4 +164,4 @@ Pro Lauf werden Temperatur (Beginn, Ende, Maximum), Drosselstatus und die Auslas
 
 ## Stand
 
-Der Zwei-Rechner-Aufbau (ssh-Steuerung, veröffentlichte Ports, cgroup-Slices, Drosselprüfung, Auslastung des Lastgenerators) ist implementiert, aber noch nicht auf realer Pi-Hardware erprobt. Vor dem Pilot wird eine kurze Probekampagne empfohlen (wenige Läufe, kurze Haltezeit), mit Kontrolle der ersten Lauf-Dateien: `resources.containers.*.cgroup` muss den Slice-Namen enthalten, `context.sut_host.model` das Pi-Modell nennen, `loadgen.host.cpu` Werte des Lastgenerators enthalten.
+Der Zwei-Rechner-Aufbau (ssh-Steuerung, veröffentlichte Ports, cgroup-Slices, Drosselprüfung, Auslastung des Lastgenerators), `setup.sh` und die direkte Abfrage des Pi durch `status.js` sind implementiert, aber noch nicht auf realer Pi-Hardware erprobt. `setup.sh` ist nur syntaktisch geprüft (`bash -n`), da es systemd und die Pi-Firmware voraussetzt. Der Probelauf (Abschnitt „Kampagnen starten") ist daher vor dem Pilot verbindlich.

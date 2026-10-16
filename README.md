@@ -46,9 +46,9 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 │   └── scripts/               #   sse-feasibility.js (SSE), ws-skeleton.js (WS), ws-reverb.js (Reverb)
 ├── infra/
 │   ├── nginx/                 #   Front-Nginx: templates/http (Proxy), templates/fastcgi (PHP-FPM)
-│   └── pi/                    #   Einrichtung des Pi, cgroup-Slices, CPU-Governor, Belastungstest
+│   └── pi/                    #   Einrichtungsskript des Pi, cgroup-Slices, CPU-Governor, Belastungstest
 ├── tools/                     # Werkzeuge, nicht Teil der Prototypen
-│   ├── orchestrate/           #   Kampagnen, Zeitplan, Statistik, Gesamtauswertung
+│   ├── orchestrate/           #   Kampagnen, Zeitplan, Statusbericht, Statistik, Gesamtauswertung
 │   ├── resource-sampler/      #   CPU und Speicher pro Lauf aus cgroup v2, Auslastung des Lastgenerators
 │   ├── event-simulator/       #   Lokato-Scan-Events mit fester Rate (Pub/Sub oder BullMQ)
 │   ├── redis-baseline/        #   isolierter Redis-Pub/Sub-Test ohne Prototyp
@@ -96,6 +96,7 @@ Gemessen wird in Phasen (DECISIONS.md 5.9): Belastungstest, Pilot, Hauptmessung 
 ```bash
 node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
+node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json
 node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
 ```
 
@@ -183,6 +184,8 @@ Description=EDA Notification Thesis — Messkampagne
 [Service]
 Type=simple
 WorkingDirectory=%h/eda-notification-thesis
+# optional, Benachrichtigung bei Abbrüchen und am Ende (tools/orchestrate/README.md)
+Environment=NOTIFY_URL=https://ntfy.sh/<schwer-zu-erratender-name>
 ExecStart=/usr/bin/node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 Restart=no
 
@@ -198,6 +201,8 @@ loginctl enable-linger $USER   # sonst endet der Dienst beim Abmelden
 ```
 
 Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet; bereits gemessene Läufe bleiben erhalten, die Kampagne wird beim nächsten Start des Zeitplans wiederholt.
+
+**Überwachung:** `node tools/orchestrate/status.js --schedule <schedule.json> --sut sut.pi.json` zeigt Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung und Speicherplatz. Als stündlicher cron-Job mit `--notify` meldet es Auffälligkeiten aufs Handy, `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans (beides über `NOTIFY_URL`, siehe [tools/orchestrate/README.md](tools/orchestrate/README.md)).
 
 ## Ergebnisse
 

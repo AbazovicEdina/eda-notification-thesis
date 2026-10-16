@@ -283,7 +283,7 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 | 6. Sättigungstest (`phase: saturation`) | höchste nachhaltige Event-Rate je Zelle (5.17) | beschreibend |
 | laufend: Kontrollmessung (`phase: control`) | einmal täglich feste Zelle (node-minimal/SSE), feste Last; macht Drift über die Wochen sichtbar | beschreibend |
 
-`tools/orchestrate/plan-campaigns.js` erzeugt die Kampagnen einer Phase aus `plan.json`; `tools/orchestrate/schedule.js` arbeitet sie in zufälliger, reproduzierbarer Reihenfolge ab, schiebt die Kontrollmessung ein und setzt nach einem Abbruch an der nächsten unvollständigen Kampagne fort.
+`tools/orchestrate/plan-campaigns.js` erzeugt die Kampagnen einer Phase aus `plan.json`, für den Pilot mit einer Auswahl der Vergleiche (`--comparisons`); `tools/orchestrate/schedule.js` arbeitet sie in zufälliger, reproduzierbarer Reihenfolge ab, schiebt die Kontrollmessung ein und setzt nach einem Abbruch an der nächsten unvollständigen Kampagne fort. Da `schedule.js` erledigte Kampagnen am Namen erkennt, erhalten Probeläufe ein eigenes Namenspräfix (`--prefix smoke-`); andernfalls würde ein Probelauf die gleichnamige Kampagne der echten Phase als erledigt markieren.
 
 **Warum Replikation statt mehr Wiederholungen.** Die Genauigkeit einer Schätzung wächst nur mit der Wurzel der Anzahl: Von 100 auf 400 Paare halbiert sich die Breite des Konfidenzintervalls, von 100 auf 1 000 wird sie nur etwa dreimal schmaler. Sehr große Zahlen machen zudem praktisch bedeutungslose Unterschiede signifikant. Die verfügbare Messzeit wird deshalb in eine vollständige Wiederholung der Hauptmessung (Stabilität der Ergebnisse über die Zeit), eine feinere Skalierungsreihe und eine tägliche Kontrollmessung investiert. Die Messzeit von drei bis vier Wochen ist ausdrücklich gedeckt (Rücksprache mit der Autorin am 2026-10-16).
 
@@ -354,15 +354,16 @@ Bekannte Risiken auf dem Pi und ihre Behandlung:
 
 | Risiko | Behandlung |
 |---|---|
-| memory-cgroup unter Raspberry Pi OS ggf. deaktiviert, Speicherlimits dann wirkungslos | Boot-Parameter (`infra/pi/README.md`); die Vorabprüfung bricht ab, wenn der Controller fehlt |
+| fehlerhafte oder unvollständige Einrichtung des Pi | Einrichtungsskript `infra/pi/setup.sh` (wiederholbar, mit Zusammenfassung offener Punkte); Vorabprüfung jeder Kampagne; Probelauf mit eigenem Namenspräfix vor dem Pilot |
+| memory-cgroup unter Raspberry Pi OS ggf. deaktiviert, Speicherlimits dann wirkungslos | Boot-Parameter (`infra/pi/setup.sh`); die Vorabprüfung bricht ab, wenn der Controller fehlt |
 | thermische Drosselung bei Dauerlast | aktive Kühlung; 24-h-Belastungstest vor dem Pilot; Temperatur und Drosselstatus pro Lauf protokolliert; gedrosselte Läufe sind ungültig |
 | Taktanpassung (CPU-Governor) erzeugt Rauschen | Governor fest auf `performance` (`infra/pi/cpu-performance.service`), Vorabprüfung |
 | Swap verzerrt Speicher- und Latenzmessung | Swap abgeschaltet, Vorabprüfung |
 | Ausfall der SD-Karte bei wochenlangem Schreiben | SSD |
-| Container-Logs füllen über Wochen den Datenträger | Log-Rotation in `docker-compose.yml` |
+| Container-Logs und Ergebnisse füllen über Wochen den Datenträger | Log-Rotation in `docker-compose.yml`; `status.js` warnt unter 10 % freiem Platz auf beiden Geräten |
 | automatische Updates ändern mitten in der Messung Docker oder Kernel | automatische Updates abgeschaltet; Versionen in jedem Lauf protokolliert |
 | Stromausfall oder Absturz | Kampagnen pro Laststufe, Fortsetzen über `schedule.js`; optional USV |
-| ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
+| Abbruch oder Stillstand bleibt im unbeaufsichtigten Betrieb tagelang unbemerkt | `tools/orchestrate/status.js` (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz) als stündlicher cron-Job; optionale Benachrichtigung über `NOTIFY_URL` bei Warnungen, abgebrochenen Kampagnen und am Ende des Zeitplans. Die Nachrichten enthalten keine Messwerte, Adressen oder Schlüssel || ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
 
 Stand: Der Zwei-Rechner-Aufbau ist implementiert, aber noch nicht auf Pi-Hardware erprobt (Abschnitt 6).
 
@@ -537,3 +538,4 @@ Die Testlast bildet Lokato an zentralen Stellen nach und vereinfacht an anderen.
 | 2026-10-16 | Abstimmung mit dem Betreuer: Nginx (5.1), HTTP/1.1 (5.2), Redis (5.4), PHP-FPM (5.5), gleiches Budget (5.6), Raspberry Pi (5.14), deskriptive Kennzahlen (5.8), JSON-Protokoll (5.16). Gepaarter Wilcoxon-Test ersetzt Mann-Whitney-U, Holm ersetzt Bonferroni. Ratchet-WebSocket-Server für php-minimal ergänzt. |
 | 2026-10-16 | Erste Überprüfung des Messaufbaus (zwölf Befunde): Skript und Messgröße pro Zelle (5.9), Reverb hinter dem Front-Nginx (5.6.1), Speicherlimit 2 GiB (5.10), paarweise Kampagnen (5.6.3), Paarbildung über die Laufnummer und Mittelwert pro Lauf (5.8), Durchsatz und Zustellung (5.17), Budget pro Zelle (5.6.2), Messprotokoll mit Ressourcenmessung (5.16), Pi mit separatem Lastgenerator (5.14), Holm je Messgröße, Pilot vor den Hauptkampagnen (5.8, 5.9). Frühere Prüfberichte: REVIEW.md, METHODOLOGY-REVIEW.md (historisch). |
 | 2026-10-16 | Zweite Überprüfung (Bewertung als Bachelorarbeit, neun Befunde): Produktionsbetrieb (5.5), Einschwingzeit und Verbindungsaufbau (5.9), Redis im Ressourcenvergleich (5.6.2, 5.8), Messphasen mit Replikation, Skalierungsreihe und Kontrollmessung (5.9), Queue-Achse mit Vergleichen 9–11 (5.15, 5.19), Hypothesen (5.18), verwandte Arbeiten (LITERATUR.md), ein Nginx pro Zelle ohne Brücke (5.6.1), Grenzen der Testlast (5.21), Abweichungen von der Standardkonfiguration (5.20). |
+| 2026-10-16 | Betrieb: Pilot-Kampagnen und Namenspräfix für Probeläufe in `plan-campaigns.js` (5.9), Statusbericht und Benachrichtigung für den Dauerbetrieb, Einrichtungsskript für den Pi (5.14). |
