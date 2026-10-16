@@ -1,25 +1,19 @@
 # monitor
 
-Loggt `docker stats` (CPU/Memory) während eines Testlaufs in eine CSV-Datei
-unter `results/` (Prompt Teil 2, Aufgabe 5). Convenience-Tool, kein
-Prototyp — läuft lokal mit Node, gleiche Begründung wie
-`tools/orchestrate` (siehe dessen README).
+Protokolliert `docker stats` (CPU, Speicher, Netz, Block-I/O) als CSV-Datei unter `results/`. Das Werkzeug dient der manuellen Beobachtung, z. B. bei der Fehlersuche. Für Messungen erfasst `tools/resource-sampler` CPU und Speicher pro Lauf, exakter und mit geringerer Eigenlast (DECISIONS.md 5.16).
+
+Das Werkzeug läuft direkt mit Node.js, weil es die Docker-CLI aufruft.
 
 ```bash
-# Container-Namen: docker compose ps (Spalte NAME), z.B. eda-thesis-node-minimal-sse-1
+# Containernamen: docker compose ps (Spalte NAME)
 node tools/monitor/monitor.js eda-thesis-node-minimal-sse-1
 ```
 
-Mehrere Container gleichzeitig (kommagetrennt), eigenes Intervall/Ziel:
+Mehrere Container (kommagetrennt), eigenes Intervall und Ziel:
 
 ```bash
 node tools/monitor/monitor.js eda-thesis-php-minimal-fpm-1,eda-thesis-php-minimal-nginx-1 \
-  --interval-ms=2000 --out=results/mein-lauf.csv
+  --interval-ms=2000 --out=results/beobachtung.csv
 ```
 
-Läuft bis Strg-C oder bis der überwachte Container verschwindet — parallel
-zu einem k6-Lauf bzw. `tools/orchestrate` in einem zweiten Terminal starten.
-
-Hinweis: `docker stats --no-stream` braucht selbst ~1–3 Sekunden pro
-Aufruf (Docker muss einmal über ein Sample-Fenster mitteln); `--interval-ms`
-ist deshalb ein Mindestabstand, kein exaktes Taktintervall.
+Das Werkzeug läuft bis Strg-C oder bis ein überwachter Container nicht mehr existiert. `docker stats --no-stream` benötigt selbst ein bis drei Sekunden pro Aufruf; `--interval-ms` ist daher ein Mindestabstand, kein exakter Takt.

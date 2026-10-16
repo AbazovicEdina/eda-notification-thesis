@@ -9,7 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Redis;
 
-// Grundgerüst für die volle Lokato-Pipeline (Prompt Teil 2, Aufgabe 7) —
+// Grundgerüst für die vollständige Lokato-Pipeline —
 // absichtlich getrennt vom /sse-Endpunkt und scan:listen: Die gemessenen
 // SSE/WS-Pfade laufen über direktes Pub/Sub (DECISIONS.md 5.4), damit der
 // Vergleich php-minimal vs. php-laravel ausschließlich Framework-Overhead

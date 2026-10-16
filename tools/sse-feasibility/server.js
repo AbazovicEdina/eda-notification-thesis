@@ -1,5 +1,5 @@
-// Minimaler SSE-Endpunkt für die xk6-sse-Machbarkeitsprüfung — Wegwerf-Tool,
-// NICHT Teil der Prototypen. Sendet pro Verbindung alle EVENT_INTERVAL_MS ein
+// Minimaler SSE-Endpunkt für die xk6-sse-Machbarkeitsprüfung (DECISIONS.md
+// Abschnitt 3) — Hilfswerkzeug, NICHT Teil der Prototypen. Sendet pro Verbindung alle EVENT_INTERVAL_MS ein
 // Event mit Server-Zeitstempel, damit k6 die Zustell-Latenz messen kann.
 const http = require('http');
 

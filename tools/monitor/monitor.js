@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Ressourcen-Monitoring während eines Testlaufs (Prompt Teil 2, Aufgabe 5).
-// Convenience-Tool, kein Prototyp — läuft lokal mit Node, weil es `docker
-// stats` (Docker-CLI, nicht Docker-Compose-spezifisch) im Sekundentakt
-// abfragt; dieselbe bewusste Ausnahme vom "alles in Docker"-Prinzip wie
-// tools/orchestrate (siehe dessen README).
+// Manuelle Beobachtung von CPU und Speicher per `docker stats` (CSV).
+// Für Messungen erfasst tools/resource-sampler die Ressourcen pro Lauf
+// exakter und mit geringerer Eigenlast (DECISIONS.md 5.16). Läuft direkt
+// mit Node, weil es die Docker-CLI aufruft (Ausnahme vom Grundsatz
+// "alles in Docker", DECISIONS.md Abschnitt 2).
 //
 // Aufruf:
 //   node monitor.js <container1,container2,...> [--interval-ms=1000] [--out=path.csv]

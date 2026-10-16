@@ -1,8 +1,8 @@
 // Isolierter Redis-Pub/Sub-Durchsatztest — OHNE jede Anwendungslogik
 // (kein PHP, kein Node-Prototyp, kein Nginx). Zweck: bei einer späteren
 // Grenze in den echten Messungen unterscheiden können, ob sie von Redis
-// selbst kommt oder vom jeweiligen Anwendungs-Stack (Prompt Teil 2,
-// Aufgabe 10). CLIENTS simuliert die Anzahl gleichzeitiger SSE/WS-Clients
+// selbst kommt oder vom jeweiligen Anwendungs-Stack.
+// CLIENTS simuliert die Anzahl gleichzeitiger SSE/WS-Clients
 // als direkte Redis-Subscriber; ein separater Publisher sendet im
 // EVENT_INTERVAL_MS-Takt, wie tools/event-simulator.
 import { createClient } from 'redis';
