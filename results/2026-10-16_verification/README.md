@@ -1,4 +1,6 @@
-# Funktionsprüfung des Messaufbaus (2026-10-16)
+# Funktionsprüfung des Messaufbaus (2026-10-16, erste Runde)
+
+> Stand vor der zweiten Überprüfung: Diese Läufe entstanden noch im Entwicklungsbetrieb, mit Nginx-Brücke vor PHP-FPM und ohne Einschwingzeit. Den aktuellen Aufbau prüft `results/2026-10-16_verification-2/`.
 
 Kurze lokale Kampagnen (Docker Desktop unter Windows 11/WSL2, 16 Kerne) zur Prüfung des überarbeiteten Messaufbaus. Die Läufe sind bewusst kurz (wenige Wiederholungen, 8–20 s Haltezeit) und **keine Messergebnisse der Arbeit**. Sie belegen die in DECISIONS.md genannten Prüfungen; absolute Werte sind nicht auf den Raspberry Pi übertragbar.
 

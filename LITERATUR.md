@@ -1,6 +1,171 @@
-# Literatur zu den methodischen Entscheidungen
+# Literatur
 
-Quellen, auf die sich `DECISIONS.md` bezieht, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Angaben, die nicht direkt an einer Verlags- oder Primärquelle bestätigt werden konnten, sind mit **„vor Abgabe prüfen"** gekennzeichnet.
+Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Angaben, die nicht direkt an einer Verlags- oder Primärquelle bestätigt werden konnten, sind mit **„vor Abgabe prüfen"** gekennzeichnet. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
+
+---
+
+## Verwandte Arbeiten
+
+### Einordnung und Forschungslücke (Entwurf)
+
+Die verwandten Arbeiten lassen sich drei Linien zuordnen:
+
+1. **Nebenläufigkeitsmodelle von Servern:** Prozess- bzw. Thread-pro-Verbindung gegenüber ereignisgesteuerter Verarbeitung (Lauer & Needham 1979; Welsh et al. 2001; von Behren et al. 2003; Pariag et al. 2007). Diese Arbeiten liefern die theoretische Grundlage für den Vergleich von PHP-FPM (Worker pro Verbindung) und Node.js (Event Loop). Sie untersuchen Webserver mit kurzen Anfragen, nicht langlebige Push-Verbindungen.
+2. **PHP gegenüber Node.js:** Bestehende Vergleiche (z. B. Lei, Ma & Tan 2014) messen klassische Anfrage-Antwort-Lasten. Node.js wird dort als ereignisgesteuerte Plattform für ein- und ausgabelastige Anwendungen beschrieben (Tilkov & Vinoski 2010).
+3. **Echtzeit im Web:** WebSockets sind verbreitet, Polling ist aber weiterhin häufiger (Murley et al. 2021). Eine begutachtete Studie, die SSE und WebSocket unter kontrollierten Bedingungen gegenüberstellt, wurde in der Websuche (2026-10-16) nicht gefunden; die verfügbaren Vergleiche sind Blog- und Herstellerbeiträge.
+
+**Lücke (vorläufig, durch Recherche in IEEE Xplore, ACM Digital Library und Google Scholar zu bestätigen):** Ein kontrollierter Vergleich von PHP und Node.js bei der Zustellung von Server-Push-Nachrichten über langlebige Verbindungen (SSE und WebSocket), bei dem das Nebenläufigkeitsmodell am stärksten ins Gewicht fällt, getrennt nach Sprache, Framework und Queue, mit vorab festgelegtem Auswerteplan, liegt in dieser Form nicht vor.
+
+### Lauer & Needham (1979) — Dualität von Nachrichten- und Prozedurmodell
+
+Hugh C. Lauer, Roger M. Needham. „On the Duality of Operating System Structures." *ACM SIGOPS Operating Systems Review*, 13(2), 3–19, 1979 (Erstvorstellung 1978). DOI: vor Abgabe prüfen.
+
+Inhalt laut Zusammenfassungen: Betriebssysteme lassen sich in nachrichtenorientierte (wenige Prozesse, expliziter Nachrichtenaustausch) und prozedurorientierte Systeme einteilen; beide Modelle sind zueinander dual, keines ist grundsätzlich überlegen.
+
+Bezug: theoretischer Ausgangspunkt der Debatte „Threads gegen Events", in die sich der Vergleich PHP-FPM gegen Node.js einordnet.
+
+```bibtex
+@article{lauer1979duality,
+  author  = {Lauer, Hugh C. and Needham, Roger M.},
+  title   = {On the Duality of Operating System Structures},
+  journal = {ACM SIGOPS Operating Systems Review},
+  volume  = {13},
+  number  = {2},
+  pages   = {3--19},
+  year    = {1979}
+}
+```
+
+### Welsh, Culler & Brewer (2001) — SEDA
+
+Matt Welsh, David Culler, Eric Brewer. „SEDA: An Architecture for Well-Conditioned, Scalable Internet Services." In *Proceedings of the 18th ACM Symposium on Operating Systems Principles (SOSP)*, 230–243, 2001. DOI: 10.1145/502034.502057.
+
+Inhalt: Architektur für Internetdienste unter hoher Nebenläufigkeit, die Anfragen in ereignisgesteuerte Stufen mit Warteschlangen zerlegt.
+
+Bezug: Ereignis- und Warteschlangen-Modell als Grundlage für ereignisgesteuerte Server und für die Queue-Achse der Arbeit.
+
+```bibtex
+@inproceedings{welsh2001seda,
+  author    = {Welsh, Matt and Culler, David and Brewer, Eric},
+  title     = {{SEDA}: An Architecture for Well-Conditioned, Scalable Internet Services},
+  booktitle = {Proceedings of the 18th ACM Symposium on Operating Systems Principles (SOSP)},
+  pages     = {230--243},
+  year      = {2001},
+  doi       = {10.1145/502034.502057}
+}
+```
+
+### von Behren, Condit & Brewer (2003) — Gegenposition zu ereignisgesteuerten Servern
+
+Rob von Behren, Jeremy Condit, Eric Brewer. „Why Events Are A Bad Idea (for High-Concurrency Servers)." In *Proceedings of HotOS IX*, USENIX, 2003.
+
+Inhalt laut Abstract: Threads können bei hoher Nebenläufigkeit mit Events gleichziehen und führen zu einfacherem Code; Schwächen von Threads liegen in einzelnen Implementierungen, nicht im Modell.
+
+Bezug: Gegenposition, die in der Diskussion verhindert, das Ergebnis vorschnell als „Events sind grundsätzlich besser" zu verallgemeinern.
+
+```bibtex
+@inproceedings{vonbehren2003events,
+  author    = {von Behren, Rob and Condit, Jeremy and Brewer, Eric},
+  title     = {Why Events Are A Bad Idea (for High-Concurrency Servers)},
+  booktitle = {Proceedings of the 9th Workshop on Hot Topics in Operating Systems (HotOS IX)},
+  publisher = {USENIX},
+  year      = {2003}
+}
+```
+
+### Pariag et al. (2007) — Vergleich von Webserver-Architekturen
+
+David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. „Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI: vor Abgabe prüfen.
+
+Inhalt laut Zusammenfassung: Vergleich eines ereignisgesteuerten, eines Thread-pro-Verbindung- und eines Pipeline-Servers; die ereignisgesteuerte und die Pipeline-Variante erzielten rund 18 % höheren Durchsatz als die Thread-Variante.
+
+Bezug: empirischer Vergleich der Nebenläufigkeitsmodelle unter kontrollierten Bedingungen, allerdings für kurze HTTP-Anfragen statt langlebiger Push-Verbindungen.
+
+```bibtex
+@inproceedings{pariag2007comparing,
+  author    = {Pariag, David and Brecht, Tim and Harji, Ashif and Buhr, Peter and Shukla, Amol and Cheriton, David R.},
+  title     = {Comparing the Performance of Web Server Architectures},
+  booktitle = {Proceedings of the 2nd ACM SIGOPS/EuroSys European Conference on Computer Systems},
+  pages     = {231--243},
+  year      = {2007}
+}
+```
+
+### Tilkov & Vinoski (2010) — Node.js
+
+Stefan Tilkov, Steve Vinoski. „Node.js: Using JavaScript to Build High-Performance Network Programs." *IEEE Internet Computing*, 14(6), 80–83, 2010. IEEE-Xplore-Dokument 5617064; DOI vor Abgabe prüfen.
+
+Inhalt laut Abstract: Node.js als Plattform für nebenläufige Netzwerkprogramme mit asynchroner Ein- und Ausgabe und ereignisgesteuertem Modell statt Multithreading.
+
+Bezug: Einordnung von Node.js als Vertreter des ereignisgesteuerten Modells.
+
+```bibtex
+@article{tilkov2010nodejs,
+  author  = {Tilkov, Stefan and Vinoski, Steve},
+  title   = {Node.js: Using {JavaScript} to Build High-Performance Network Programs},
+  journal = {IEEE Internet Computing},
+  volume  = {14},
+  number  = {6},
+  pages   = {80--83},
+  year    = {2010}
+}
+```
+
+### Lei, Ma & Tan (2014) — PHP, Python und Node.js im Vergleich
+
+Kai Lei, Yining Ma, Zhi Tan. „Performance Comparison and Evaluation of Web Development Technologies in PHP, Python, and Node.js." In *Proceedings of the 2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)*, 661–668, 2014. DOI: 10.1109/CSE.2014.142 (aus Kopien der Erstseite; vor Abgabe in IEEE Xplore prüfen).
+
+Inhalt laut Schlussfolgerung: Node.js sei leichtgewichtig und effizient und eigne sich für ein- und ausgabelastige Anwendungen; PHP eher für kleine und mittlere Anwendungen.
+
+Bezug und Abgrenzung: direktester Vorläufer des Sprachvergleichs; misst jedoch Anfrage-Antwort-Lasten, nicht Server-Push über langlebige Verbindungen, und trennt nicht nach Framework.
+
+```bibtex
+@inproceedings{lei2014performance,
+  author    = {Lei, Kai and Ma, Yining and Tan, Zhi},
+  title     = {Performance Comparison and Evaluation of Web Development Technologies in {PHP}, {Python}, and {Node.js}},
+  booktitle = {2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)},
+  pages     = {661--668},
+  year      = {2014},
+  doi       = {10.1109/CSE.2014.142}
+}
+```
+
+### Murley et al. (2021) — Verbreitung von WebSockets
+
+Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. „WebSocket Adoption and the Landscape of the Real-Time Web." In *Proceedings of the Web Conference 2021 (WWW '21)*, 1192–1203, 2021. DOI: 10.1145/3442381.3450063.
+
+Inhalt laut Abstract: Auswertung der eine Million meistbesuchten Websites; Polling ist deutlich häufiger als WebSockets, deren Verbreitung zuletzt stagniert; empfohlene Sicherheitspraktiken werden oft nicht eingehalten.
+
+Bezug: Einordnung der Relevanz von Echtzeitkommunikation im Web; belegt, dass Push-Techniken in der Praxis nicht selbstverständlich sind.
+
+```bibtex
+@inproceedings{murley2021websocket,
+  author    = {Murley, Paul and Ma, Zane and Mason, Joshua and Bailey, Michael and Kharraz, Amin},
+  title     = {{WebSocket} Adoption and the Landscape of the Real-Time Web},
+  booktitle = {Proceedings of the Web Conference 2021 (WWW '21)},
+  pages     = {1192--1203},
+  year      = {2021},
+  doi       = {10.1145/3442381.3450063}
+}
+```
+
+### Hohpe & Woolf (2003) — Enterprise Integration Patterns
+
+Gregor Hohpe, Bobby Woolf. *Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions*. Addison-Wesley, 2003. ISBN 978-0-321-20068-6.
+
+Inhalt: Katalog von Mustern für nachrichtenbasierte Integration, darunter Nachrichtenkanäle wie Publish-Subscribe.
+
+Bezug: Begriffe und Grundlagen für Redis Pub/Sub und die Queues im Grundlagenkapitel.
+
+```bibtex
+@book{hohpe2003eip,
+  author    = {Hohpe, Gregor and Woolf, Bobby},
+  title     = {Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions},
+  publisher = {Addison-Wesley},
+  year      = {2003},
+  isbn      = {978-0-321-20068-6}
+}
+```
 
 ---
 
@@ -102,6 +267,25 @@ Verwendung: Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein A
 }
 ```
 
+### Kerr (1998) — Hypothesen vor den Ergebnissen festlegen
+
+Norbert L. Kerr. „HARKing: Hypothesizing After the Results are Known." *Personality and Social Psychology Review*, 2(3), 196–217, 1998. DOI: 10.1207/s15327957pspr0203_4.
+
+Verwendung: Begründung, die Hypothesen H1–H8 vor der Datenerhebung festzulegen (DECISIONS.md 5.18). HARKing bezeichnet das Darstellen einer nachträglich aus den Ergebnissen abgeleiteten Hypothese, als sei sie vorab formuliert gewesen.
+
+```bibtex
+@article{kerr1998harking,
+  author  = {Kerr, Norbert L.},
+  title   = {{HARKing}: Hypothesizing After the Results are Known},
+  journal = {Personality and Social Psychology Review},
+  volume  = {2},
+  number  = {3},
+  pages   = {196--217},
+  year    = {1998},
+  doi     = {10.1207/s15327957pspr0203_4}
+}
+```
+
 ## Effektstärke
 
 ### Cliff (1993) — Cliff's Delta
@@ -186,7 +370,7 @@ Verwendung: Abgrenzung, nicht Quelle der verwendeten Schwellen. Das Maß A₁₂
 
 Sture Holm. „A Simple Sequentially Rejective Multiple Test Procedure." *Scandinavian Journal of Statistics*, 6(2), 65–70, 1979.
 
-Verwendung: Korrektur je Testfamilie über 24 geplante Tests (8 Vergleiche × 3 Laststufen; DECISIONS.md 5.8, 5.15). Kontrolliert die familienweise Fehlerrate bei beliebiger Abhängigkeit der Tests und ist trennschärfer als die Bonferroni-Korrektur. Implementierung: `holmCorrection` in `tools/orchestrate/stats.js`.
+Verwendung: Korrektur je Testfamilie über 33 geplante Tests (11 Vergleiche × 3 Laststufen; DECISIONS.md 5.8, 5.15). Kontrolliert die familienweise Fehlerrate bei beliebiger Abhängigkeit der Tests und ist trennschärfer als die Bonferroni-Korrektur. Implementierung: `holmCorrection` in `tools/orchestrate/stats.js`.
 
 ```bibtex
 @article{holm1979simple,
@@ -447,6 +631,10 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 
 | DECISIONS.md | Entscheidung | Quelle(n) |
 | ------------ | ------------ | --------- |
+| Verwandte Arbeiten | Nebenläufigkeitsmodelle von Servern | Lauer & Needham (1979); Welsh et al. (2001); von Behren et al. (2003); Pariag et al. (2007) |
+| Verwandte Arbeiten | PHP und Node.js | Tilkov & Vinoski (2010); Lei, Ma & Tan (2014) |
+| Verwandte Arbeiten | Echtzeit im Web, Messaging | Murley et al. (2021); Hohpe & Woolf (2003) |
+| 5.18 | Hypothesen vorab festlegen | Kerr (1998) |
 | 5.8 | Analyseeinheit k6-Lauf | Hurlbert (1984) |
 | 5.8 | Mittelwert pro Lauf als Testgröße | Widrow & Kollár (2008) |
 | 5.8 | Wilcoxon-Vorzeichen-Rang-Test (gepaart) | Wilcoxon (1945); Arcuri & Briand (2014) |

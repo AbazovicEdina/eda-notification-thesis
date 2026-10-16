@@ -12,7 +12,7 @@ node tools/monitor/monitor.js eda-thesis-node-minimal-sse-1
 Mehrere Container (kommagetrennt), eigenes Intervall und Ziel:
 
 ```bash
-node tools/monitor/monitor.js eda-thesis-php-minimal-fpm-1,eda-thesis-php-minimal-nginx-1 \
+node tools/monitor/monitor.js eda-thesis-php-laravel-reverb-1,eda-thesis-php-laravel-listener-1 \
   --interval-ms=2000 --out=results/beobachtung.csv
 ```
 
