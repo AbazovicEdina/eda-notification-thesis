@@ -21,7 +21,8 @@ Die Werte werden pro Container, pro Gruppe (`--cell`, z. B. die Zelle und Redis)
 ```bash
 docker compose --profile tools up -d resource-sampler
 
-# Host-Kontext (Modell, Kernel, Kerne, RAM, Swap, cgroup-Controller, Governor, Temperatur, Drosselstatus)
+# Host-Kontext (Modell, Kernel, Kerne, RAM, Swap, cgroup-Controller, Governor, Temperatur, Drosselstatus,
+# freier Platz des Datenträgers, auf dem Docker liegt)
 docker compose --profile tools exec resource-sampler node sampler.js info
 
 # Messung: läuft, bis die Standardeingabe endet; gibt dann eine JSON-Zeile aus
@@ -32,6 +33,8 @@ docker compose --profile tools exec -T resource-sampler node sampler.js measure 
 ```
 
 `measure` gibt nach dem Auflösen der cgroups eine Zeile `{"ready":true,...}` aus und nach Ende der Standardeingabe die Zusammenfassung. Container-IDs liefert `docker compose ps --format json <dienst>`.
+
+`info` meldet in `docker_disk_free_bytes` und `docker_disk_total_bytes` den Datenträger des Container-Dateisystems. Das ist der Datenträger, auf dem Docker Images, Container und Container-Logs ablegt. `tools/orchestrate/status.js` warnt, wenn dort weniger als 10 % frei sind.
 
 ## Abgrenzung zu tools/monitor
 

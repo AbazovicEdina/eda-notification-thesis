@@ -6,7 +6,9 @@
 //   - tägliche Kontrollmessung: vor einer Kampagne, wenn die letzte
 //     vollständige Kontrollmessung älter als everyHours ist;
 //   - Fortsetzen nach Abbruch: Kampagnen mit vollständiger, nicht
-//     abgebrochener aggregate.json gleichen Namens werden übersprungen.
+//     abgebrochener aggregate.json gleichen Namens werden übersprungen;
+//   - optionale Benachrichtigung (NOTIFY_URL, notify.js) bei abgebrochenen
+//     Kampagnen und am Ende des Zeitplans.
 //
 // Aufruf: node tools/orchestrate/schedule.js <schedule.json>
 // schedule.json (erzeugt von plan-campaigns.js):
@@ -18,6 +20,7 @@ import { readFileSync, readdirSync, existsSync, appendFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRng } from './stats.js';
+import { notify } from './notify.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -107,18 +110,26 @@ async function main() {
         log('control_started', { campaign: controlName, last });
         const code = await runCampaign(controlFile);
         log('control_finished', { campaign: controlName, exit_code: code });
+        if (code !== 0) await notify(`EDA: Kontrollmessung abgebrochen`, `${controlName} endete mit Code ${code} (Zeitplan ${schedule.name}).`);
         if (interrupted) break;
       }
     }
     log('campaign_started', { campaign: name });
     const code = await runCampaign(file);
     log('campaign_finished', { campaign: name, exit_code: code });
-    if (code !== 0) console.log(`Kampagne ${name} endete mit Code ${code}; der Zeitplan fährt fort (erneuter Start wiederholt sie).`);
+    if (code !== 0) {
+      console.log(`Kampagne ${name} endete mit Code ${code}; der Zeitplan fährt fort (erneuter Start wiederholt sie).`);
+      await notify('EDA: Kampagne abgebrochen', `${name} endete mit Code ${code}. Zeitplan ${schedule.name} läuft weiter; Details in results/*_${name}/campaign.log.jsonl.`);
+    }
   }
 
   const done = completedCampaigns();
   const open = order.map(campaignName).filter((n) => !done.has(n));
   log('schedule_finished', { interrupted, open });
+  await notify(
+    open.length ? 'EDA: Zeitplan beendet, Kampagnen offen' : 'EDA: Zeitplan vollständig',
+    open.length ? `${schedule.name}: ${open.length} Kampagne(n) offen${interrupted ? ' (abgebrochen)' : ''}.` : `${schedule.name}: alle ${order.length} Kampagnen vollständig.`
+  );
   console.log(open.length
     ? `\nOffen: ${open.length} Kampagne(n) — erneuter Aufruf setzt dort fort: ${open.join(', ')}`
     : '\nAlle Kampagnen des Zeitplans sind vollständig.');

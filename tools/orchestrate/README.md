@@ -5,8 +5,10 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | Datei | Aufgabe |
 | --- | --- |
 | `run.js` | führt eine Kampagne aus und schreibt Lauf-Protokolle, Ereignisprotokoll und Kampagnenauswertung |
-| `plan-campaigns.js` | erzeugt die Kampagnen einer Phase (Hauptmessung, Skalierung, Sättigung) aus `plan.json` und `cells.json`, dazu eine `schedule.json` |
-| `schedule.js` | arbeitet einen Zeitplan unbeaufsichtigt ab: zufällige Reihenfolge, tägliche Kontrollmessung, Fortsetzen nach Abbruch |
+| `plan-campaigns.js` | erzeugt die Kampagnen einer Phase (Pilot, Hauptmessung, Skalierung, Sättigung) aus `plan.json` und `cells.json`, dazu eine `schedule.json` |
+| `schedule.js` | arbeitet einen Zeitplan unbeaufsichtigt ab: zufällige Reihenfolge, tägliche Kontrollmessung, Fortsetzen nach Abbruch, optionale Benachrichtigung |
+| `status.js` | Statusbericht für den Dauerbetrieb: Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz; optional mit Benachrichtigung |
+| `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `evaluate.js` | Gesamtauswertung der Hauptkampagnen: Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2), Hypothesen |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
@@ -18,13 +20,20 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 ## Verwendung
 
 ```bash
-# Phase planen (Beispiel: Hauptmessung Block 1 mit Wiederholungszahlen aus dem Pilot)
+# Phase planen
+node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --out campaigns/pilot
 node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
 node tools/orchestrate/plan-campaigns.js scaling --steps 10,50,100,250,500,750,1000 --runs 3 --out campaigns/scaling
 node tools/orchestrate/plan-campaigns.js saturation --clients 50 --rates 10,50,100,200,500 --runs 6 --out campaigns/saturation
 
+# Probelauf mit eigenem Namensraum (siehe unten)
+node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=3,medium=3,stress=3 --hold 10 --warmup 1 --comparisons 1 --prefix smoke- --out campaigns/smoke
+
 # Zeitplan abarbeiten (erneuter Aufruf setzt nach einem Abbruch fort)
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
+
+# Statusbericht während des Dauerbetriebs
+node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json
 
 # einzelne Kampagne
 node tools/orchestrate/run.js <kampagne.json>
@@ -36,7 +45,55 @@ node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
 node --test "tools/orchestrate/test/*.test.js"
 ```
 
-`plan-campaigns.js` akzeptiert außerdem `--hold` (Haltezeit, Standard 60 s), `--settle` (Einschwingzeit, Standard 10 s), `--warmup`, `--sut <datei>` (sut-Block für den Zwei-Rechner-Aufbau, siehe unten) und `--control <zelle>` (Zelle der täglichen Kontrollmessung, Standard `node-minimal-sse`).
+Optionen von `plan-campaigns.js`:
+
+| Option | Phasen | Bedeutung |
+| --- | --- | --- |
+| `--runs` | alle | Wiederholungen je Konfiguration ohne Warm-up; bei `pilot` und `main` je Laststufe (`baseline=…,medium=…,stress=…`) |
+| `--block` | `main` | 1 = konfirmatorisch, 2 = Replikation |
+| `--comparisons` | `pilot`, `main` | Auswahl der Vergleiche aus `plan.json` (Standard: alle elf) |
+| `--control` | `pilot`, `main` | Zelle der täglichen Kontrollmessung (Standard `node-minimal-sse`) |
+| `--report-every` | `pilot` | Zwischenauswertung alle n Läufe (Standard 10) |
+| `--cells` | `scaling`, `saturation` | Auswahl der Zellen (Standard: alle zehn) |
+| `--steps`, `--clients`, `--rates` | `scaling`, `saturation` | Clientzahlen bzw. feste Clientzahl und Event-Raten |
+| `--prefix` | alle | Präfix aller Kampagnennamen, z. B. `smoke-` |
+| `--hold`, `--settle`, `--warmup` | alle | Haltezeit (Standard 60 s), Einschwingzeit (Standard 10 s), Warm-up-Läufe (Standard 5 bei `pilot` und `main`, sonst 1) |
+| `--sut` | alle | Datei mit dem sut-Block für den Zwei-Rechner-Aufbau (siehe unten) |
+| `--seed` | alle | Startwert der zufälligen Reihenfolge in `schedule.js` (Standard 20261016) |
+
+Jede erzeugte Kampagne umfasst genau einen Vergleich und eine Laststufe (bei `scaling` und `saturation` eine Zelle mit allen Stufen). Bei einem Abbruch geht dadurch höchstens eine Laststufe verloren.
+
+**Namensraum von Probeläufen:** `schedule.js` erkennt erledigte Kampagnen am Namen. Ein Probelauf mit denselben Namen wie die echte Phase (z. B. `b1-c01-baseline`) würde diese beim späteren Start als erledigt überspringen lassen. Probeläufe erhalten deshalb ein Präfix (`--prefix smoke-`). Dasselbe gilt für die Kontrollmessung, die als `smoke-control-<zelle>` angelegt wird.
+
+## Überwachung und Benachrichtigung
+
+`status.js` fasst den Zustand des Dauerbetriebs zusammen und endet mit Exit-Code 1, sobald eine Warnung vorliegt:
+
+| Prüfung | Warnung bei |
+| --- | --- |
+| Fortschritt des Zeitplans (`--schedule`) | mehr als 20 min ohne Aktivität, obwohl Kampagnen offen sind |
+| ungültige Läufe im Zeitfenster (`--hours`, Standard 24) | Anteil über 5 % in Pilot-, Haupt- und Kontrollkampagnen; jede Drosselung |
+| Temperatur des Testservers (aus den Lauf-Protokollen) | über 75 °C |
+| Auslastung des Lastgenerators (Zwei-Rechner-Aufbau) | im Mittel eines Laufs über 80 % |
+| Kontrollmessung | Median der Latenz weicht um mehr als 20 % vom ersten Wert ab |
+| Speicherplatz des Ergebnisverzeichnisses | weniger als 10 % frei |
+| Testserver direkt per ssh (`--sut`) | nicht erreichbar, aktuell gedrosselt, über 75 °C, Docker-Datenträger unter 10 % frei |
+
+Ist die Umgebungsvariable `NOTIFY_URL` gesetzt, sendet `schedule.js` eine Nachricht bei jeder abgebrochenen Kampagne oder Kontrollmessung und am Ende des Zeitplans; `status.js --notify` sendet die Warnungen. Gesendet wird ein HTTP-POST mit reinem Text und dem Titel im Header `Title`, passend zum Dienst ntfy (App für Android und iOS):
+
+```bash
+export NOTIFY_URL=https://ntfy.sh/<schwer-zu-erratender-name>
+```
+
+Ein öffentliches ntfy-Thema kann jeder mitlesen, der den Namen kennt. Die Nachrichten enthalten daher nur Kampagnennamen, Zähler und Statusmeldungen, keine Messwerte, Adressen oder Schlüssel. Ein Fehler beim Senden wird gemeldet, unterbricht die Messung aber nicht.
+
+Stündliche Prüfung per cron auf dem Lastgenerator (`crontab -e`):
+
+```cron
+0 * * * * cd /pfad/zum/repo && NOTIFY_URL=https://ntfy.sh/<name> node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json --notify >> "$HOME/eda-status.log" 2>&1
+```
+
+Das Protokoll liegt bewusst außerhalb von `results/`, damit es nicht versehentlich in das Repository gelangt.
 
 ## Phasen
 

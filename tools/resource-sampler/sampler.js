@@ -7,7 +7,8 @@
 //
 //   node sampler.js info
 //     Host-Kontext als eine JSON-Zeile (Modell, Kernel, Kerne, RAM, Swap,
-//     cgroup-Controller, CPU-Governor, Temperatur, Drosselstatus).
+//     cgroup-Controller, CPU-Governor, Temperatur, Drosselstatus, freier
+//     Platz des Docker-Datenträgers).
 //
 //   node sampler.js measure [--cell <zelle>=<containerId>[,<containerId>...]]... [--host-cpu] [--interval-ms 250]
 //     Gibt nach dem Auflösen der cgroups eine Zeile {"ready":true,...} aus,
@@ -24,7 +25,7 @@
 //            mit --host-cpu zusätzlich die CPU-Auslastung des ganzen Hosts
 //            (Mittel und höchster Wert je Abtastintervall) — auf dem
 //            Lastgenerator der Nachweis, dass k6 nicht der Engpass war.
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statfsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -69,9 +70,22 @@ function meminfo() {
   return { total: get('MemTotal'), swapTotal: get('SwapTotal') };
 }
 
+// Freier Platz des Datenträgers, auf dem Docker seine Daten ablegt (das
+// Wurzeldateisystem des Containers liegt dort). Dient der Überwachung im
+// Dauerbetrieb (tools/orchestrate/status.js).
+function dockerDisk() {
+  try {
+    const s = statfsSync('/');
+    return { free_bytes: s.bavail * s.bsize, total_bytes: s.blocks * s.bsize };
+  } catch {
+    return null;
+  }
+}
+
 function info() {
   const controllers = (readText(path.join(CGROUP_ROOT, 'cgroup.controllers')) ?? '').split(/\s+/).filter(Boolean);
   const mem = meminfo();
+  const disk = dockerDisk();
   return {
     model: readFirst(['/proc/device-tree/model', '/sys/firmware/devicetree/base/model']),
     kernel: readText('/proc/sys/kernel/osrelease'),
@@ -86,6 +100,8 @@ function info() {
     cpu_freq_khz: Number(readText('/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq')) || null,
     temp_c: tempC(),
     throttled: throttled(),
+    docker_disk_free_bytes: disk?.free_bytes ?? null,
+    docker_disk_total_bytes: disk?.total_bytes ?? null,
     sampled_at: new Date().toISOString(),
   };
 }
