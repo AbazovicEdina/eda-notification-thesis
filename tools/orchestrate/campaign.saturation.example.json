@@ -1,16 +1,16 @@
 {
-  "_comment": "Sättigungstest (DECISIONS.md 5.17): feste Clientzahl, steigende Event-Rate, wenige Wiederholungen, nur deskriptive Auswertung. Ratenstufen sind Platzhalter, bis der Pilot auf dem Pi zeigt, wo die Grenzen liegen.",
-  "name": "s01-ws-minimal",
+  "_comment": "Sättigungstest einer Zelle (DECISIONS.md 5.17): feste Clientzahl, steigende Event-Rate, wenige Wiederholungen, nur beschreibende Auswertung. plan-campaigns.js saturation erzeugt solche Kampagnen für alle Zellen. Ratenstufen sind Platzhalter, bis der Pilot auf dem Pi zeigt, wo die Grenzen liegen.",
+  "name": "saturation-php-minimal-ws",
   "phase": "saturation",
-  "configs": ["node-minimal-ws", "php-minimal-ws"],
+  "configs": ["php-minimal-ws"],
   "scenarios": [
-    { "name": "rate-0010", "vus": 50, "holdSeconds": 30, "runsPerConfig": 6, "eventRatePerSecond": 10 },
-    { "name": "rate-0050", "vus": 50, "holdSeconds": 30, "runsPerConfig": 6, "eventRatePerSecond": 50 },
-    { "name": "rate-0100", "vus": 50, "holdSeconds": 30, "runsPerConfig": 6, "eventRatePerSecond": 100 },
-    { "name": "rate-0200", "vus": 50, "holdSeconds": 30, "runsPerConfig": 6, "eventRatePerSecond": 200 },
-    { "name": "rate-0500", "vus": 50, "holdSeconds": 30, "runsPerConfig": 6, "eventRatePerSecond": 500 }
+    { "name": "rate-0010", "vus": 50, "holdSeconds": 60, "runsPerConfig": 7, "eventRatePerSecond": 10 },
+    { "name": "rate-0050", "vus": 50, "holdSeconds": 60, "runsPerConfig": 7, "eventRatePerSecond": 50 },
+    { "name": "rate-0100", "vus": 50, "holdSeconds": 60, "runsPerConfig": 7, "eventRatePerSecond": 100 },
+    { "name": "rate-0200", "vus": 50, "holdSeconds": 60, "runsPerConfig": 7, "eventRatePerSecond": 200 },
+    { "name": "rate-0500", "vus": 50, "holdSeconds": 60, "runsPerConfig": 7, "eventRatePerSecond": 500 }
   ],
   "warmupRuns": 1,
-  "maxFailureRate": 0.2,
+  "settleSeconds": 10,
   "saturation": { "minDeliveryRatio": 0.99, "maxP95LatencyMs": 1000 }
 }

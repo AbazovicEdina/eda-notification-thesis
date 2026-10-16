@@ -1,52 +1,83 @@
 {
-  "_comment": "Die acht Messzellen (DECISIONS.md 5.7/5.15) — einzige Quelle der Wahrheit für tools/orchestrate. services = alle Container der Zelle (werden gestartet, gemessen und auf dem Pi in einen gemeinsamen cgroup-Topf gelegt, docker-compose.pi.yml); frontHost/frontPort = Ziel des Front-Nginx; script/metric/env = k6-Messung. Eine Kampagne kann script/metric/env pro Konfiguration überschreiben.",
+  "_comment": "Die Messzellen (DECISIONS.md 5.7, 5.19) — einzige Quelle der Wahrheit für tools/orchestrate. services = alle Container der Zelle (werden gestartet, gemessen und auf dem Pi in einen gemeinsamen cgroup-Topf gelegt, docker-compose.pi.yml); front = Ziel und Modus des Front-Nginx (http: Reverse-Proxy, fastcgi: direkt zu PHP-FPM); producer = Ereignisquelle (pubsub: Event-Simulator auf scan-events, bullmq: BullMQ-Jobs, laravel: Laravel-Jobs); script/metric/env = k6-Messung. Eine Kampagne kann script/metric/env pro Konfiguration überschreiben.",
   "node-minimal-sse": {
-    "language": "node", "variant": "minimal", "transport": "sse",
+    "language": "node", "variant": "minimal", "transport": "sse", "queue": false,
     "services": ["node-minimal-sse"],
-    "frontHost": "node-minimal-sse", "frontPort": 8080,
+    "front": { "mode": "http", "host": "node-minimal-sse", "port": 8080 },
+    "producer": "pubsub",
     "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
   },
   "node-minimal-ws": {
-    "language": "node", "variant": "minimal", "transport": "ws",
+    "language": "node", "variant": "minimal", "transport": "ws", "queue": false,
     "services": ["node-minimal-ws"],
-    "frontHost": "node-minimal-ws", "frontPort": 8080,
+    "front": { "mode": "http", "host": "node-minimal-ws", "port": 8080 },
+    "producer": "pubsub",
     "script": "ws-skeleton.js", "metric": "ws_event_latency_ms", "metricPrefix": "ws"
   },
   "node-express-sse": {
-    "language": "node", "variant": "framework", "transport": "sse",
+    "language": "node", "variant": "framework", "transport": "sse", "queue": false,
     "services": ["node-express-sse"],
-    "frontHost": "node-express-sse", "frontPort": 8080,
+    "front": { "mode": "http", "host": "node-express-sse", "port": 8080 },
+    "producer": "pubsub",
     "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
   },
   "node-express-ws": {
-    "language": "node", "variant": "framework", "transport": "ws",
+    "language": "node", "variant": "framework", "transport": "ws", "queue": false,
     "services": ["node-express-ws"],
-    "frontHost": "node-express-ws", "frontPort": 8080,
+    "front": { "mode": "http", "host": "node-express-ws", "port": 8080 },
+    "producer": "pubsub",
     "script": "ws-skeleton.js", "metric": "ws_event_latency_ms", "metricPrefix": "ws"
   },
   "php-minimal-sse": {
-    "language": "php", "variant": "minimal", "transport": "sse",
-    "services": ["php-minimal-fpm", "php-minimal-nginx"],
-    "frontHost": "php-minimal-nginx", "frontPort": 8080,
+    "language": "php", "variant": "minimal", "transport": "sse", "queue": false,
+    "services": ["php-minimal-fpm"],
+    "front": {
+      "mode": "fastcgi", "host": "php-minimal-fpm", "port": 9000,
+      "script": "/var/www/sse.php", "scriptName": "/sse.php", "root": "/var/www"
+    },
+    "producer": "pubsub",
     "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
   },
   "php-minimal-ws": {
-    "language": "php", "variant": "minimal", "transport": "ws",
+    "language": "php", "variant": "minimal", "transport": "ws", "queue": false,
     "services": ["php-minimal-ws"],
-    "frontHost": "php-minimal-ws", "frontPort": 8080,
+    "front": { "mode": "http", "host": "php-minimal-ws", "port": 8080 },
+    "producer": "pubsub",
     "script": "ws-skeleton.js", "metric": "ws_event_latency_ms", "metricPrefix": "ws"
   },
   "php-laravel-sse": {
-    "language": "php", "variant": "framework", "transport": "sse",
-    "services": ["php-laravel-fpm", "php-laravel-nginx"],
-    "frontHost": "php-laravel-nginx", "frontPort": 8080,
+    "language": "php", "variant": "framework", "transport": "sse", "queue": false,
+    "services": ["php-laravel-fpm"],
+    "front": {
+      "mode": "fastcgi", "host": "php-laravel-fpm", "port": 9000,
+      "script": "/var/www/public/index.php", "scriptName": "/index.php", "root": "/var/www/public"
+    },
+    "producer": "pubsub",
     "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
   },
   "php-laravel-ws": {
-    "language": "php", "variant": "framework", "transport": "ws",
+    "language": "php", "variant": "framework", "transport": "ws", "queue": false,
     "services": ["php-laravel-reverb", "php-laravel-listener"],
-    "frontHost": "php-laravel-reverb", "frontPort": 8080,
+    "front": { "mode": "http", "host": "php-laravel-reverb", "port": 8080 },
+    "producer": "pubsub",
     "script": "ws-reverb.js", "metric": "ws_event_latency_ms", "metricPrefix": "ws",
     "envFromFile": { "K6_REVERB_APP_KEY": { "file": "prototypes/php-laravel/.env", "key": "REVERB_APP_KEY" } }
+  },
+  "node-express-sse-queue": {
+    "language": "node", "variant": "framework", "transport": "sse", "queue": true,
+    "services": ["node-express-sse-queue", "node-express-worker"],
+    "front": { "mode": "http", "host": "node-express-sse-queue", "port": 8080 },
+    "producer": "bullmq",
+    "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
+  },
+  "php-laravel-sse-queue": {
+    "language": "php", "variant": "framework", "transport": "sse", "queue": true,
+    "services": ["php-laravel-fpm-queue", "php-laravel-queue-worker"],
+    "front": {
+      "mode": "fastcgi", "host": "php-laravel-fpm-queue", "port": 9000,
+      "script": "/var/www/public/index.php", "scriptName": "/index.php", "root": "/var/www/public"
+    },
+    "producer": "laravel",
+    "script": "sse-feasibility.js", "metric": "sse_event_latency_ms", "metricPrefix": "sse"
   }
 }

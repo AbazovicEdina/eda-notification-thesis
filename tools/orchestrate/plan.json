@@ -1,20 +1,40 @@
 {
-  "_comment": "Vorab festgelegter Auswerteplan (DECISIONS.md 5.8/5.15) — VOR der Datenerhebung fixiert. evaluate.js prüft Kampagnen-Ergebnisse gegen diesen Plan und wendet die Holm-Korrektur je Familie über alle hier geplanten Tests an (fehlende Tests zählen mit p = 1, damit die Korrektur nicht durch Weglassen milder wird).",
+  "_comment": "Vorab festgelegter Auswerteplan (DECISIONS.md 5.8, 5.15, 5.18, 5.19) — VOR der Datenerhebung fixiert. evaluate.js prüft die Hauptkampagnen gegen diesen Plan: konfirmatorisch ist Block 1, Block 2 ist die Replikation. Die Holm-Korrektur gilt je Familie über alle hier geplanten Tests; fehlende Tests zählen mit p = 1, damit die Korrektur durch Weglassen nicht milder wird.",
   "alpha": 0.05,
+  "confirmatoryBlock": 1,
+  "replicationBlock": 2,
   "scenarios": ["baseline", "medium", "stress"],
+  "scenarioLoad": {
+    "baseline": { "vus": 10, "eventRatePerSecond": 1 },
+    "medium": { "vus": 50, "eventRatePerSecond": 1 },
+    "stress": { "vus": 500, "eventRatePerSecond": 1 }
+  },
   "comparisons": [
     { "id": 1, "a": "node-minimal-sse", "b": "php-minimal-sse", "question": "Sprache (SSE, ohne Framework)" },
     { "id": 2, "a": "node-minimal-ws", "b": "php-minimal-ws", "question": "Sprache (WS, ohne Framework)" },
     { "id": 3, "a": "node-express-sse", "b": "php-laravel-sse", "question": "Sprache (SSE, mit Framework)" },
     { "id": 4, "a": "node-express-ws", "b": "php-laravel-ws", "question": "Sprache (WS, mit Framework)" },
-    { "id": 5, "a": "node-minimal-sse", "b": "node-express-sse", "question": "Framework-Overhead (Node, SSE)" },
-    { "id": 6, "a": "node-minimal-ws", "b": "node-express-ws", "question": "Framework-Overhead (Node, WS)" },
+    { "id": 5, "a": "node-minimal-sse", "b": "node-express-sse", "question": "Framework-Overhead (Node.js, SSE)" },
+    { "id": 6, "a": "node-minimal-ws", "b": "node-express-ws", "question": "Framework-Overhead (Node.js, WS)" },
     { "id": 7, "a": "php-minimal-sse", "b": "php-laravel-sse", "question": "Framework-Overhead (PHP, SSE)" },
-    { "id": 8, "a": "php-minimal-ws", "b": "php-laravel-ws", "question": "Framework-Overhead (PHP, WS)" }
+    { "id": 8, "a": "php-minimal-ws", "b": "php-laravel-ws", "question": "Framework-Overhead (PHP, WS)" },
+    { "id": 9, "a": "node-express-sse", "b": "node-express-sse-queue", "question": "Queue-Overhead (Node.js, SSE)" },
+    { "id": 10, "a": "php-laravel-sse", "b": "php-laravel-sse-queue", "question": "Queue-Overhead (PHP, SSE)" },
+    { "id": 11, "a": "node-express-sse-queue", "b": "php-laravel-sse-queue", "question": "Sprache mit Queue (SSE, mit Framework)" }
   ],
   "families": [
-    { "measure": "latency_mean_ms", "role": "primär", "description": "Mittelwert der Event-Latenz pro Lauf (DECISIONS.md 5.8)" },
-    { "measure": "cpu_seconds", "role": "sekundär", "description": "CPU-Zeit der Zelle pro Lauf (cgroup usage_usec, DECISIONS.md 5.16)" },
-    { "measure": "working_set_peak_bytes", "role": "sekundär", "description": "Spitze des Speicher-Working-Sets der Zelle pro Lauf (DECISIONS.md 5.16)" }
+    { "measure": "latency_mean_ms", "role": "primär", "description": "Mittelwert der Event-Latenz pro Lauf im Messfenster (DECISIONS.md 5.8)" },
+    { "measure": "cpu_seconds_total", "role": "sekundär", "description": "CPU-Zeit von Zelle und Redis pro Lauf (DECISIONS.md 5.16)" },
+    { "measure": "working_set_peak_bytes_total", "role": "sekundär", "description": "Spitze des Speicher-Working-Sets von Zelle und Redis pro Lauf (DECISIONS.md 5.16)" }
+  ],
+  "hypotheses": [
+    { "id": "H1", "text": "Für SSE benötigt PHP-FPM bei 500 Clients ein Vielfaches des Speichers von Node.js.", "comparisons": [1, 3], "measure": "working_set_peak_bytes_total", "scenario": "stress" },
+    { "id": "H2", "text": "Bei 10 Clients sind die Latenzunterschiede höchstens klein (|δ| < 0,33).", "comparisons": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], "measure": "latency_mean_ms", "scenario": "baseline" },
+    { "id": "H3", "text": "Von 10 zu 500 Clients wachsen die Latenzunterschiede zwischen PHP und Node.js; die Richtung ist offen.", "comparisons": [1, 2, 3, 4], "measure": "latency_mean_ms", "scenario": "baseline, stress" },
+    { "id": "H4", "text": "In der Skalierungsreihe erreicht PHP-FPM/SSE als erste Variante eine harte Grenze; Node.js und die PHP-WebSocket-Server werden allmählich langsamer.", "comparisons": [], "measure": "served_ratio, latency_mean_ms", "scenario": "Skalierungsreihe" },
+    { "id": "H5", "text": "Der Framework-Effekt ist bei der Event-Latenz klein, beim Verbindungsaufbau und beim Speicher aber bei Laravel deutlich größer als bei Express.", "comparisons": [5, 6, 7, 8], "measure": "latency_mean_ms, connect_mean_ms, working_set_peak_bytes_total", "scenario": "alle" },
+    { "id": "H6", "text": "php-laravel/WS hat durchgehend höhere Latenz als node-express/WS (zusätzlicher interner HTTP-Aufruf Listener → Reverb).", "comparisons": [4], "measure": "latency_mean_ms", "scenario": "alle" },
+    { "id": "H7", "text": "Die Queue erhöht die Latenz in beiden Stacks, bei Laravel stärker als bei BullMQ.", "comparisons": [9, 10], "measure": "latency_mean_ms", "scenario": "alle" },
+    { "id": "H8", "text": "Bei PHP/SSE trägt Redis einen wesentlichen Teil der Gesamt-CPU, bei allen anderen Zellen nur einen geringen.", "comparisons": [1, 3, 7], "measure": "cpu_seconds_redis / cpu_seconds_total", "scenario": "stress" }
   ]
 }

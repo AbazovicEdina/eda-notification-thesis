@@ -1,19 +1,19 @@
 {
-  "_comment": "Hauptkampagne für Vergleich Nr. 4 aus plan.json (lokaler Ein-Rechner-Aufbau). Wiederholungszahlen sind Platzhalter, bis der Pilot auf dem Pi sie festlegt (DECISIONS.md 5.9). Für den Pilot: phase = pilot, reportEvery setzen.",
-  "name": "c04-node-express-ws-vs-php-laravel-ws",
+  "_comment": "Einzelne Hauptkampagne für Vergleich Nr. 4, Laststufe baseline (lokaler Ein-Rechner-Aufbau). Für den Messbetrieb erzeugt plan-campaigns.js alle Kampagnen einer Phase; diese Datei zeigt das Format. runsPerConfig enthält die Warm-up-Läufe. Für den Pilot: phase = pilot, reportEvery setzen.",
+  "name": "b1-c04-baseline",
   "phase": "main",
+  "block": 1,
   "configs": ["node-express-ws", "php-laravel-ws"],
   "scenarios": [
-    { "name": "baseline", "vus": 10, "holdSeconds": 60, "runsPerConfig": 100, "eventRatePerSecond": 1 },
-    { "name": "medium", "vus": 50, "holdSeconds": 60, "runsPerConfig": 60, "eventRatePerSecond": 1 },
-    { "name": "stress", "vus": 500, "holdSeconds": 60, "runsPerConfig": 30, "eventRatePerSecond": 1 }
+    { "name": "baseline", "vus": 10, "holdSeconds": 60, "runsPerConfig": 85, "eventRatePerSecond": 1 }
   ],
   "warmupRuns": 5,
+  "settleSeconds": 10,
   "pauseMinMs": 100,
   "pauseMaxMs": 500,
   "reportEvery": 0,
   "maxFailureRate": 0.05,
-  "minPairs": 10,
+  "minPairs": 20,
   "bootstrap": { "seed": 20261016, "resamples": 10000 },
   "resourceSampleIntervalMs": 250
 }

@@ -20,8 +20,20 @@ const COUNT = Number(process.env.COUNT || 0); // 0 = unbegrenzt, bis SIGINT/SIGT
 
 const intervalMs = 1000 / RATE_PER_SECOND;
 
+// Scan-Event im Originalformat von Lokato (Lesegerät, Tag-UID, Zeitpunkt),
+// ergänzt um die Messfelder seq (laufende Nummer, Verlustzählung) und ts
+// (Sendezeitpunkt, Start der Latenzmessung) — DECISIONS.md 5.4, 5.21.
+// Die UID variiert pro Event wie bei echten Scans verschiedener Tags.
 function nextPayload(seq) {
-  return { seq, ts: Date.now() };
+  const ts = Date.now();
+  return {
+    event: 'scan',
+    device: 'R200_3',
+    uid: `E28068940000${seq.toString(16).toUpperCase().padStart(12, '0')}`,
+    timestamp: ts,
+    seq,
+    ts,
+  };
 }
 
 async function runPubsub() {

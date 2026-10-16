@@ -9,17 +9,21 @@
 //     Host-Kontext als eine JSON-Zeile (Modell, Kernel, Kerne, RAM, Swap,
 //     cgroup-Controller, CPU-Governor, Temperatur, Drosselstatus).
 //
-//   node sampler.js measure --cell <zelle>=<containerId>[,<containerId>...] [--cell ...] [--interval-ms 250]
+//   node sampler.js measure [--cell <zelle>=<containerId>[,<containerId>...]]... [--host-cpu] [--interval-ms 250]
 //     Gibt nach dem Auflösen der cgroups eine Zeile {"ready":true,...} aus,
 //     misst dann, bis stdin endet (EOF), und gibt die Zusammenfassung als
-//     eine JSON-Zeile aus:
+//     eine JSON-Zeile aus — je Zelle (z. B. die gemessene Zelle und Redis),
+//     als Gesamtsumme über alle Container ("total") und je Container:
 //       CPU: Differenz des Zählers usage_usec (cpu.stat) zwischen Start und
 //            Ende — exakte CPU-Zeit des Laufs, kein Abtastfehler.
 //       RAM: memory.current und "Working Set" (memory.current minus
 //            inactive_file aus memory.stat — dieselbe Definition wie
 //            `docker stats`), alle interval-ms abgetastet; Mittel und
 //            Spitze pro Container und pro Zelle (Summe der Container).
-//       Host: Temperatur (Start/Ende/Max) und Drosselstatus (Start/Ende).
+//       Host: Temperatur (Start/Ende/Max) und Drosselstatus (Start/Ende);
+//            mit --host-cpu zusätzlich die CPU-Auslastung des ganzen Hosts
+//            (Mittel und höchster Wert je Abtastintervall) — auf dem
+//            Lastgenerator der Nachweis, dass k6 nicht der Engpass war.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -139,10 +143,22 @@ function argValue(args, flag, fallback) {
   return i === -1 ? fallback : args[i + 1];
 }
 
+// Gesamte CPU-Zeit des Hosts aus /proc/stat (nicht namensraumgebunden, also
+// auch im Container die Werte des Hosts): Summe aller Zustände und Leerlauf
+// (idle + iowait), in Jiffies.
+function hostCpuTicks() {
+  const line = (readText('/proc/stat') ?? '').split('\n').find((l) => l.startsWith('cpu '));
+  if (!line) return null;
+  const v = line.trim().split(/\s+/).slice(1).map(Number);
+  const idle = v[3] + (v[4] ?? 0);
+  return { total: v.reduce((a, b) => a + b, 0), idle };
+}
+
 function measure(args) {
   const cells = parseCells(args);
   const intervalMs = Number(argValue(args, '--interval-ms', 250));
-  if (Object.keys(cells).length === 0) throw new Error('measure braucht mindestens ein --cell');
+  const withHostCpu = args.includes('--host-cpu');
+  if (Object.keys(cells).length === 0 && !withHostCpu) throw new Error('measure braucht mindestens ein --cell oder --host-cpu');
 
   const containers = [];
   for (const [cell, ids] of Object.entries(cells)) {
@@ -160,30 +176,47 @@ function measure(args) {
     }
   }
 
-  const cellSamples = Object.fromEntries(Object.keys(cells).map((c) => [c, { memSum: 0, wsSum: 0, memMax: 0, wsMax: 0 }]));
+  // Je Zelle plus "Gesamt" über alle übergebenen Container (z. B. Zelle +
+  // Redis, DECISIONS.md 5.16). Die Gesamtspitze wird aus der Summe je
+  // Abtastung gebildet, nicht als Summe der Einzelspitzen.
+  const groups = [...Object.keys(cells), '__total__'];
+  const groupSamples = Object.fromEntries(groups.map((g) => [g, { memSum: 0, wsSum: 0, memMax: 0, wsMax: 0 }]));
   const startedAt = Date.now();
   const tempStart = tempC();
   const throttledStart = throttled();
   let tempMax = tempStart;
   let samples = 0;
+  let prevTicks = withHostCpu ? hostCpuTicks() : null;
+  const hostCpuStart = prevTicks;
+  let hostUtilMax = 0;
 
   const sample = () => {
-    const perCell = Object.fromEntries(Object.keys(cells).map((c) => [c, { mem: 0, ws: 0 }]));
+    const perGroup = Object.fromEntries(groups.map((g) => [g, { mem: 0, ws: 0 }]));
     for (const c of containers) {
       const m = memory(c.dir);
       c.memSum += m.current;
       c.wsSum += m.workingSet;
       c.memMax = Math.max(c.memMax, m.current);
       c.wsMax = Math.max(c.wsMax, m.workingSet);
-      perCell[c.cell].mem += m.current;
-      perCell[c.cell].ws += m.workingSet;
+      for (const g of [c.cell, '__total__']) {
+        perGroup[g].mem += m.current;
+        perGroup[g].ws += m.workingSet;
+      }
     }
-    for (const [cell, v] of Object.entries(perCell)) {
-      const s = cellSamples[cell];
+    for (const [g, v] of Object.entries(perGroup)) {
+      const s = groupSamples[g];
       s.memSum += v.mem;
       s.wsSum += v.ws;
       s.memMax = Math.max(s.memMax, v.mem);
       s.wsMax = Math.max(s.wsMax, v.ws);
+    }
+    if (withHostCpu) {
+      const ticks = hostCpuTicks();
+      if (ticks && prevTicks && ticks.total > prevTicks.total) {
+        const util = 1 - (ticks.idle - prevTicks.idle) / (ticks.total - prevTicks.total);
+        hostUtilMax = Math.max(hostUtilMax, util);
+      }
+      prevTicks = ticks;
     }
     const t = tempC();
     if (t != null) tempMax = tempMax == null ? t : Math.max(tempMax, t);
@@ -205,7 +238,7 @@ function measure(args) {
     sample();
     const wallSeconds = (Date.now() - startedAt) / 1000;
     const perContainer = {};
-    const perCell = {};
+    const perGroup = Object.fromEntries(groups.map((g) => [g, { containers: 0, cpu_seconds: 0 }]));
     for (const c of containers) {
       const cpuEnd = cpuUsageUsec(c.dir);
       const cpuSeconds = c.cpuStart == null || cpuEnd == null ? null : (cpuEnd - c.cpuStart) / 1e6;
@@ -219,25 +252,40 @@ function measure(args) {
         working_set_avg_bytes: c.wsSum / samples,
         working_set_peak_bytes: c.wsMax,
       };
-      const agg = perCell[c.cell] ?? (perCell[c.cell] = { containers: 0, cpu_seconds: 0 });
-      agg.containers += 1;
-      agg.cpu_seconds = agg.cpu_seconds == null || cpuSeconds == null ? null : agg.cpu_seconds + cpuSeconds;
+      for (const g of [c.cell, '__total__']) {
+        const agg = perGroup[g];
+        agg.containers += 1;
+        agg.cpu_seconds = agg.cpu_seconds == null || cpuSeconds == null ? null : agg.cpu_seconds + cpuSeconds;
+      }
     }
-    for (const [cell, s] of Object.entries(cellSamples)) {
-      const agg = perCell[cell];
+    for (const [g, s] of Object.entries(groupSamples)) {
+      const agg = perGroup[g];
       agg.cpu_cores_avg = agg.cpu_seconds == null ? null : agg.cpu_seconds / wallSeconds;
       agg.mem_avg_bytes = s.memSum / samples;
       agg.mem_peak_bytes = s.memMax;
       agg.working_set_avg_bytes = s.wsSum / samples;
       agg.working_set_peak_bytes = s.wsMax;
     }
+    const { __total__: total, ...cellGroups } = perGroup;
+    let hostCpu = null;
+    if (withHostCpu) {
+      const end = hostCpuTicks();
+      hostCpu = {
+        cpus: os.cpus().length,
+        util_avg: hostCpuStart && end && end.total > hostCpuStart.total
+          ? 1 - (end.idle - hostCpuStart.idle) / (end.total - hostCpuStart.total)
+          : null,
+        util_max_interval: hostUtilMax,
+      };
+    }
     console.log(JSON.stringify({
       wall_seconds: wallSeconds,
       interval_ms: intervalMs,
       samples,
-      cells: perCell,
+      cells: cellGroups,
+      total,
       containers: perContainer,
-      host: { temp_start_c: tempStart, temp_end_c: tempC(), temp_max_c: tempMax, throttled_start: throttledStart, throttled_end: throttled() },
+      host: { temp_start_c: tempStart, temp_end_c: tempC(), temp_max_c: tempMax, throttled_start: throttledStart, throttled_end: throttled(), cpu: hostCpu },
     }));
     process.exit(0);
   };
@@ -256,7 +304,7 @@ try {
   } else if (mode === 'measure') {
     measure(rest);
   } else {
-    console.error('Aufruf: node sampler.js info | measure --cell <zelle>=<id>[,<id>] [--interval-ms 250]');
+    console.error('Aufruf: node sampler.js info | measure [--cell <zelle>=<id>[,<id>]]... [--host-cpu] [--interval-ms 250]');
     process.exit(2);
   }
 } catch (err) {

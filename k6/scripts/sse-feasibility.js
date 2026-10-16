@@ -1,15 +1,16 @@
 // SSE-Lasttest (ursprünglich Machbarkeitsprüfung xk6-sse, inzwischen das
-// Messskript für alle vier SSE-Zellen): N VUs halten je eine SSE-Verbindung
-// und messen pro Event die Zustell-Latenz (Empfangszeit minus
-// Sendezeitstempel `ts` des Event-Simulators) sowie die Zustellung
-// (verlorene/doppelte Events, k6/lib/delivery.js).
-// Achtung: sse.open() blockiert die VU, solange die Verbindung offen ist —
-// geschlossen wird deshalb im Event-Handler, sobald die Haltedauer erreicht ist.
+// Messskript aller SSE-Zellen): N VUs halten je eine SSE-Verbindung. Im
+// Messfenster (nach der Einschwingzeit, k6/lib/config.js) wird pro Event die
+// Zustell-Latenz gemessen (Empfangszeit minus Sendezeitstempel `ts`) und die
+// Zustellung gezählt (k6/lib/delivery.js); dazu kommt pro Verbindung die
+// Dauer des Verbindungsaufbaus.
+// sse.open() blockiert die VU, solange die Verbindung offen ist; geschlossen
+// wird im Event-Handler, sobald das Messfenster endet.
 import sse from 'k6/x/sse';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
-import { BASE_URL, HOLD_SECONDS, holdScenario } from '../lib/config.js';
-import { deliveryMetrics, newTracker, track, flush } from '../lib/delivery.js';
+import { BASE_URL, holdScenario, measurementWindow } from '../lib/config.js';
+import { deliveryMetrics, newTracker, markConnected, track, flush } from '../lib/delivery.js';
 
 const eventLatency = new Trend('sse_event_latency_ms');
 const eventsReceived = new Counter('sse_events_received');
@@ -19,19 +20,23 @@ const delivery = deliveryMetrics('sse');
 export const options = holdScenario();
 
 export default function () {
-  const deadline = Date.now() + HOLD_SECONDS * 1000;
+  const window = measurementWindow();
   const tracker = newTracker();
 
   const response = sse.open(`${BASE_URL}/sse`, {}, (client) => {
+    client.on('open', () => markConnected(delivery, tracker, window));
+
     client.on('event', (event) => {
       const now = Date.now();
+      if (now >= window.end) {
+        client.close();
+        return;
+      }
+      if (now < window.start || !event.data) return;
       const data = JSON.parse(event.data);
       eventLatency.add(now - data.ts);
       eventsReceived.add(1);
       track(tracker, data);
-      if (now >= deadline) {
-        client.close();
-      }
     });
 
     client.on('error', (e) => {
