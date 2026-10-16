@@ -1,0 +1,916 @@
+{
+  "schema": "eda-thesis/aggregate/2",
+  "name": "mini-b2-c01-baseline",
+  "phase": "main",
+  "block": 2,
+  "campaign_dir": "2026-10-16T16-51-09-111Z_mini-b2-c01-baseline",
+  "started_at": "2026-10-16T16:51:09.111Z",
+  "finished_at": "2026-10-16T16:52:55.957Z",
+  "aborted": false,
+  "abort_reason": null,
+  "settings": {
+    "name": "mini-b2-c01-baseline",
+    "phase": "main",
+    "block": 2,
+    "warmupRuns": 1,
+    "settleSeconds": 3,
+    "pauseMinMs": 100,
+    "pauseMaxMs": 500,
+    "reportEvery": 0,
+    "maxFailureRate": 0.05,
+    "minPairs": 20,
+    "requireProduction": true,
+    "requireAllConnected": true,
+    "bootstrapSeed": 20261016,
+    "bootstrapResamples": 500,
+    "resourceIntervalMs": 250,
+    "producerSettleMs": 3000,
+    "saturation": {
+      "minDeliveryRatio": 0.99,
+      "maxP95LatencyMs": 1000
+    },
+    "scaling": {
+      "minServedRatio": 0.99
+    },
+    "sut": {
+      "ssh": null,
+      "repoDir": null,
+      "pi": false,
+      "targetBaseUrl": "http://nginx",
+      "redisHost": null
+    }
+  },
+  "configs": [
+    {
+      "name": "node-minimal-sse",
+      "cell": "node-minimal-sse",
+      "language": "node",
+      "variant": "minimal",
+      "transport": "sse",
+      "queue": false,
+      "services": [
+        "node-minimal-sse"
+      ],
+      "front": {
+        "mode": "http",
+        "host": "node-minimal-sse",
+        "port": 8080
+      },
+      "producer": "pubsub",
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    },
+    {
+      "name": "php-minimal-sse",
+      "cell": "php-minimal-sse",
+      "language": "php",
+      "variant": "minimal",
+      "transport": "sse",
+      "queue": false,
+      "services": [
+        "php-minimal-fpm"
+      ],
+      "front": {
+        "mode": "fastcgi",
+        "host": "php-minimal-fpm",
+        "port": 9000,
+        "script": "/var/www/sse.php",
+        "scriptName": "/sse.php",
+        "root": "/var/www"
+      },
+      "producer": "pubsub",
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    }
+  ],
+  "comparisons": [
+    [
+      "node-minimal-sse",
+      "php-minimal-sse"
+    ]
+  ],
+  "tested_measures": [
+    "latency_mean_ms",
+    "cpu_seconds_total",
+    "working_set_peak_bytes_total"
+  ],
+  "note": "p-Werte hier unkorrigiert; Holm-Korrektur über alle Kampagnen in evaluate.js (DECISIONS.md 5.15).",
+  "context": {
+    "campaign": {
+      "name": "mini-b2-c01-baseline",
+      "phase": "main",
+      "block": 2,
+      "dir": "2026-10-16T16-51-09-111Z_mini-b2-c01-baseline",
+      "file": "m2.json"
+    },
+    "topology": "ein Rechner",
+    "git": {
+      "load": {
+        "commit": "d778a236b387378429fdf14a721f1a9c52525aca",
+        "dirty_files": 38
+      },
+      "sut": {
+        "commit": "d778a236b387378429fdf14a721f1a9c52525aca",
+        "dirty_files": 38
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": null,
+      "kernel": "6.18.54.1-microsoft-standard-WSL2",
+      "arch": "x64",
+      "cpus": 16,
+      "mem_total_bytes": 16391233536,
+      "swap_total_bytes": 4294967296,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "hugetlb",
+        "pids",
+        "rdma"
+      ],
+      "memory_controller": true,
+      "cpu_governor": null,
+      "cpu_freq_khz": null,
+      "temp_c": null,
+      "throttled": null,
+      "sampled_at": "2026-10-16T16:51:15.695Z"
+    },
+    "containers": {
+      "node-minimal-sse": {
+        "image": "eda-thesis-node-minimal:latest",
+        "image_id": "sha256:f236370e2e097bfb1a03ff653e82877fd94f1dcc3eb915718f26a8943ba97b98",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      },
+      "php-minimal-fpm": {
+        "image": "eda-thesis-php-minimal:latest",
+        "image_id": "sha256:4f17e02be97050c785337a2fd4bb6a217b2432d5231a672e8fac30cbbb974b83",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0"
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v22.13.0",
+      "platform": "win32"
+    }
+  },
+  "scenarios": {
+    "baseline": {
+      "vus": 10,
+      "settle_seconds": 3,
+      "hold_seconds": 5,
+      "event_rate_nominal_per_s": 1,
+      "runs_per_config": 3,
+      "warmup_runs": 1,
+      "configs": {
+        "node-minimal-sse": {
+          "cell": "node-minimal-sse",
+          "runs_measured": 2,
+          "runs_valid": 2,
+          "runs_invalid": 0,
+          "invalid_reasons": {},
+          "warmup_invalid": 0,
+          "describe": {
+            "latency_mean_ms": {
+              "n": 2,
+              "mean": 1.24,
+              "min": 0.96,
+              "max": 1.52,
+              "median": 1.24,
+              "p95": 1.52,
+              "p99": 1.52,
+              "stddev": 0.39597979746446665,
+              "variance": 0.15680000000000002
+            },
+            "latency_median_ms": {
+              "n": 2,
+              "mean": 1.5,
+              "min": 1,
+              "max": 2,
+              "median": 1.5,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0.7071067811865476,
+              "variance": 0.5
+            },
+            "latency_p95_ms": {
+              "n": 2,
+              "mean": 1.5,
+              "min": 1,
+              "max": 2,
+              "median": 1.5,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0.7071067811865476,
+              "variance": 0.5
+            },
+            "latency_p99_ms": {
+              "n": 2,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_max_ms": {
+              "n": 2,
+              "mean": 2,
+              "min": 2,
+              "max": 2,
+              "median": 2,
+              "p95": 2,
+              "p99": 2,
+              "stddev": 0,
+              "variance": 0
+            },
+            "connect_mean_ms": {
+              "n": 2,
+              "mean": 3.35,
+              "min": 3.2,
+              "max": 3.5,
+              "median": 3.35,
+              "p95": 3.5,
+              "p99": 3.5,
+              "stddev": 0.21213203435596414,
+              "variance": 0.04499999999999995
+            },
+            "connect_p95_ms": {
+              "n": 2,
+              "mean": 4.2749999999999995,
+              "min": 4,
+              "max": 4.549999999999999,
+              "median": 4.2749999999999995,
+              "p95": 4.549999999999999,
+              "p99": 4.549999999999999,
+              "stddev": 0.38890872965260037,
+              "variance": 0.1512499999999994
+            },
+            "connected_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "served_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivery_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "events_lost": {
+              "n": 2,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivered_events_per_s": {
+              "n": 2,
+              "mean": 10,
+              "min": 10,
+              "max": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "stddev": 0,
+              "variance": 0
+            },
+            "source_rate_eps": {
+              "n": 2,
+              "mean": 1.000250062515629,
+              "min": 1.000250062515629,
+              "max": 1.000250062515629,
+              "median": 1.000250062515629,
+              "p95": 1.000250062515629,
+              "p99": 1.000250062515629,
+              "stddev": 0,
+              "variance": 0
+            },
+            "cpu_seconds": {
+              "n": 2,
+              "mean": 0.013019,
+              "min": 0.012446,
+              "max": 0.013592,
+              "median": 0.013019,
+              "p95": 0.013592,
+              "p99": 0.013592,
+              "stddev": 0.0008103443712397831,
+              "variance": 6.566579999999994e-7
+            },
+            "cpu_seconds_redis": {
+              "n": 2,
+              "mean": 0.111898,
+              "min": 0.111475,
+              "max": 0.112321,
+              "median": 0.111898,
+              "p95": 0.112321,
+              "p99": 0.112321,
+              "stddev": 0.0005982123368838189,
+              "variance": 3.578579999999996e-7
+            },
+            "cpu_seconds_total": {
+              "n": 2,
+              "mean": 0.124917,
+              "min": 0.123921,
+              "max": 0.125913,
+              "median": 0.124917,
+              "p95": 0.125913,
+              "p99": 0.125913,
+              "stddev": 0.0014085567081235982,
+              "variance": 0.0000019840319999999877
+            },
+            "cpu_cores_avg": {
+              "n": 2,
+              "mean": 0.0012493200223296684,
+              "min": 0.0012398884239888425,
+              "max": 0.0012587516206704946,
+              "median": 0.0012493200223296684,
+              "p95": 0.0012587516206704946,
+              "p99": 0.0012587516206704946,
+              "stddev": 0.000013338294288451798,
+              "variance": 1.7791009452534584e-10
+            },
+            "working_set_peak_bytes": {
+              "n": 2,
+              "mean": 21231616,
+              "min": 20758528,
+              "max": 21704704,
+              "median": 21231616,
+              "p95": 21704704,
+              "p99": 21704704,
+              "stddev": 669047.4657959628,
+              "variance": 447624511488
+            },
+            "working_set_peak_bytes_redis": {
+              "n": 2,
+              "mean": 8947712,
+              "min": 8257536,
+              "max": 9637888,
+              "median": 8947712,
+              "p95": 9637888,
+              "p99": 9637888,
+              "stddev": 976056.2596244132,
+              "variance": 952685821952
+            },
+            "working_set_peak_bytes_total": {
+              "n": 2,
+              "mean": 29323264,
+              "min": 29286400,
+              "max": 29360128,
+              "median": 29323264,
+              "p95": 29360128,
+              "p99": 29360128,
+              "stddev": 52133.568763321775,
+              "variance": 2717908992
+            },
+            "working_set_avg_bytes": {
+              "n": 2,
+              "mean": 20060576.101587303,
+              "min": 19712877.714285713,
+              "max": 20408274.48888889,
+              "median": 20060576.101587303,
+              "p95": 20408274.48888889,
+              "p99": 20408274.48888889,
+              "stddev": 491719.7749371595,
+              "variance": 241788337064.2508
+            },
+            "data_received_bytes_per_s": {
+              "n": 2,
+              "mean": 1953.2441950825678,
+              "min": 1892.8752611415593,
+              "max": 2013.6131290235762,
+              "median": 1953.2441950825678,
+              "p95": 2013.6131290235762,
+              "p99": 2013.6131290235762,
+              "stddev": 85.37456512537959,
+              "variance": 7288.81637034768
+            },
+            "connection_errors": {
+              "n": 2,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "loadgen_cpu_util_avg": {
+              "n": 2,
+              "mean": 0.024752635805702694,
+              "min": 0.021514247635971318,
+              "max": 0.02799102397543407,
+              "median": 0.024752635805702694,
+              "p95": 0.02799102397543407,
+              "p99": 0.02799102397543407,
+              "stddev": 0.0045797724698626975,
+              "variance": 0.00002097431587571227
+            },
+            "loadgen_cpu_util_max": {
+              "n": 2,
+              "mean": 0.09418646358017246,
+              "min": 0.09203980099502485,
+              "max": 0.09633312616532008,
+              "median": 0.09418646358017246,
+              "p95": 0.09633312616532008,
+              "p99": 0.09633312616532008,
+              "stddev": 0.003035839341754651,
+              "variance": 0.000009216320508945313
+            }
+          }
+        },
+        "php-minimal-sse": {
+          "cell": "php-minimal-sse",
+          "runs_measured": 2,
+          "runs_valid": 2,
+          "runs_invalid": 0,
+          "invalid_reasons": {},
+          "warmup_invalid": 0,
+          "describe": {
+            "latency_mean_ms": {
+              "n": 2,
+              "mean": 0.86,
+              "min": 0.86,
+              "max": 0.86,
+              "median": 0.86,
+              "p95": 0.86,
+              "p99": 0.86,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_median_ms": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_p95_ms": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_p99_ms": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "latency_max_ms": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "connect_mean_ms": {
+              "n": 2,
+              "mean": 2.95,
+              "min": 2.9,
+              "max": 3,
+              "median": 2.95,
+              "p95": 3,
+              "p99": 3,
+              "stddev": 0.07071067811865482,
+              "variance": 0.005000000000000009
+            },
+            "connect_p95_ms": {
+              "n": 2,
+              "mean": 3,
+              "min": 3,
+              "max": 3,
+              "median": 3,
+              "p95": 3,
+              "p99": 3,
+              "stddev": 0,
+              "variance": 0
+            },
+            "connected_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "served_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivery_ratio": {
+              "n": 2,
+              "mean": 1,
+              "min": 1,
+              "max": 1,
+              "median": 1,
+              "p95": 1,
+              "p99": 1,
+              "stddev": 0,
+              "variance": 0
+            },
+            "events_lost": {
+              "n": 2,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "delivered_events_per_s": {
+              "n": 2,
+              "mean": 10,
+              "min": 10,
+              "max": 10,
+              "median": 10,
+              "p95": 10,
+              "p99": 10,
+              "stddev": 0,
+              "variance": 0
+            },
+            "source_rate_eps": {
+              "n": 2,
+              "mean": 1.0001250312578145,
+              "min": 1,
+              "max": 1.000250062515629,
+              "median": 1.0001250312578145,
+              "p95": 1.000250062515629,
+              "p99": 1.000250062515629,
+              "stddev": 0.00017682090052181828,
+              "variance": 3.1265630861346757e-8
+            },
+            "cpu_seconds": {
+              "n": 2,
+              "mean": 0.0189065,
+              "min": 0.018227,
+              "max": 0.019586,
+              "median": 0.0189065,
+              "p95": 0.019586,
+              "p99": 0.019586,
+              "stddev": 0.0009609581156325175,
+              "variance": 9.234404999999988e-7
+            },
+            "cpu_seconds_redis": {
+              "n": 2,
+              "mean": 0.1168575,
+              "min": 0.116534,
+              "max": 0.117181,
+              "median": 0.1168575,
+              "p95": 0.117181,
+              "p99": 0.117181,
+              "stddev": 0.00045749808742769256,
+              "variance": 2.0930449999999663e-7
+            },
+            "cpu_seconds_total": {
+              "n": 2,
+              "mean": 0.135764,
+              "min": 0.134761,
+              "max": 0.136767,
+              "median": 0.135764,
+              "p95": 0.136767,
+              "p99": 0.136767,
+              "stddev": 0.00141845620306022,
+              "variance": 0.0000020120180000000157
+            },
+            "cpu_cores_avg": {
+              "n": 2,
+              "mean": 0.001778487063566932,
+              "min": 0.0017554656650293752,
+              "max": 0.0018015084621044886,
+              "median": 0.001778487063566932,
+              "p95": 0.0018015084621044886,
+              "p99": 0.0018015084621044886,
+              "stddev": 0.000032557174036608835,
+              "variance": 1.0599695812500366e-9
+            },
+            "working_set_peak_bytes": {
+              "n": 2,
+              "mean": 224456704,
+              "min": 223272960,
+              "max": 225640448,
+              "median": 224456704,
+              "p95": 225640448,
+              "p99": 225640448,
+              "stddev": 1674066.819177777,
+              "variance": 2802499715072
+            },
+            "working_set_peak_bytes_redis": {
+              "n": 2,
+              "mean": 9701376,
+              "min": 9302016,
+              "max": 10100736,
+              "median": 9701376,
+              "p95": 10100736,
+              "p99": 10100736,
+              "stddev": 564780.3282693193,
+              "variance": 318976819200
+            },
+            "working_set_peak_bytes_total": {
+              "n": 2,
+              "mean": 232771584,
+              "min": 231383040,
+              "max": 234160128,
+              "median": 232771584,
+              "p95": 234160128,
+              "p99": 234160128,
+              "stddev": 1963697.756751787,
+              "variance": 3856108879872
+            },
+            "working_set_avg_bytes": {
+              "n": 2,
+              "mean": 222845723.91524547,
+              "min": 221576168.1860465,
+              "max": 224115279.64444444,
+              "median": 222845723.91524547,
+              "p95": 224115279.64444444,
+              "p99": 224115279.64444444,
+              "stddev": 1795422.930421637,
+              "variance": 3223543499083.8184
+            },
+            "data_received_bytes_per_s": {
+              "n": 2,
+              "mean": 1949.4932203218568,
+              "min": 1861.8388023579207,
+              "max": 2037.147638285793,
+              "median": 1949.4932203218568,
+              "p95": 2037.147638285793,
+              "p99": 2037.147638285793,
+              "stddev": 123.96206668651831,
+              "variance": 15366.593977192812
+            },
+            "connection_errors": {
+              "n": 2,
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "median": 0,
+              "p95": 0,
+              "p99": 0,
+              "stddev": 0,
+              "variance": 0
+            },
+            "loadgen_cpu_util_avg": {
+              "n": 2,
+              "mean": 0.02050638366290819,
+              "min": 0.02029563585171279,
+              "max": 0.02071713147410359,
+              "median": 0.02050638366290819,
+              "p95": 0.02071713147410359,
+              "p99": 0.02071713147410359,
+              "stddev": 0.00029804241283297873,
+              "variance": 8.882927984730373e-8
+            },
+            "loadgen_cpu_util_max": {
+              "n": 2,
+              "mean": 0.08946650000501838,
+              "min": 0.08841843088418433,
+              "max": 0.09051456912585243,
+              "median": 0.08946650000501838,
+              "p95": 0.09051456912585243,
+              "p99": 0.09051456912585243,
+              "stddev": 0.0014821935649879593,
+              "variance": 0.0000021968977640917163
+            }
+          }
+        }
+      },
+      "comparisons": [
+        {
+          "a": "node-minimal-sse",
+          "b": "php-minimal-sse",
+          "cell_a": "node-minimal-sse",
+          "cell_b": "php-minimal-sse",
+          "measures": {
+            "latency_mean_ms": {
+              "n_pairs": 2,
+              "n_pairs_nonzero": 2,
+              "n_pairs_zero_diff": 0,
+              "conclusive": false,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 3,
+                "w_minus": 0,
+                "z": null,
+                "p": 0.5,
+                "method": "exakt"
+              },
+              "cliffs_delta": 1,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": 1,
+              "median_diff": 0.38,
+              "median_diff_ci95": [
+                0.09999999999999998,
+                0.66
+              ],
+              "bootstrap": {
+                "resamples": 500,
+                "seed": 3720055245
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  3
+                ],
+                "dropped_run_indices": [],
+                "a": [
+                  0.96,
+                  1.52
+                ],
+                "b": [
+                  0.86,
+                  0.86
+                ]
+              }
+            },
+            "cpu_seconds_total": {
+              "n_pairs": 2,
+              "n_pairs_nonzero": 2,
+              "n_pairs_zero_diff": 0,
+              "conclusive": false,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 0,
+                "w_minus": 3,
+                "z": null,
+                "p": 0.5,
+                "method": "exakt"
+              },
+              "cliffs_delta": -1,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": -1,
+              "median_diff": -0.010846999999999996,
+              "median_diff_ci95": [
+                -0.010854000000000003,
+                -0.010839999999999989
+              ],
+              "bootstrap": {
+                "resamples": 500,
+                "seed": 2083981155
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  3
+                ],
+                "dropped_run_indices": [],
+                "a": [
+                  0.123921,
+                  0.125913
+                ],
+                "b": [
+                  0.134761,
+                  0.136767
+                ]
+              }
+            },
+            "working_set_peak_bytes_total": {
+              "n_pairs": 2,
+              "n_pairs_nonzero": 2,
+              "n_pairs_zero_diff": 0,
+              "conclusive": false,
+              "wilcoxon": {
+                "W": 0,
+                "w_plus": 0,
+                "w_minus": 3,
+                "z": null,
+                "p": 0.5,
+                "method": "exakt"
+              },
+              "cliffs_delta": -1,
+              "cliffs_magnitude": "groß",
+              "rank_biserial": -1,
+              "median_diff": -203448320,
+              "median_diff_ci95": [
+                -204800000,
+                -202096640
+              ],
+              "bootstrap": {
+                "resamples": 500,
+                "seed": 2218679737
+              },
+              "pairs": {
+                "run_indices": [
+                  2,
+                  3
+                ],
+                "dropped_run_indices": [],
+                "a": [
+                  29286400,
+                  29360128
+                ],
+                "b": [
+                  231383040,
+                  234160128
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "interim": [],
+  "saturation": null,
+  "scaling": null
+}

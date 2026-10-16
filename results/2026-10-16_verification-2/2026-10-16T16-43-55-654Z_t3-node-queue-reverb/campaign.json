@@ -1,0 +1,35 @@
+{
+  "name": "t3-node-queue-reverb",
+  "phase": "pilot",
+  "configs": [
+    "node-express-sse",
+    "node-express-sse-queue",
+    "node-express-ws",
+    "php-laravel-ws"
+  ],
+  "comparisons": [
+    [
+      "node-express-sse",
+      "node-express-sse-queue"
+    ],
+    [
+      "node-express-ws",
+      "php-laravel-ws"
+    ]
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 6,
+      "runsPerConfig": 2,
+      "eventRatePerSecond": 2
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 3,
+  "minPairs": 1,
+  "bootstrap": {
+    "resamples": 500
+  }
+}

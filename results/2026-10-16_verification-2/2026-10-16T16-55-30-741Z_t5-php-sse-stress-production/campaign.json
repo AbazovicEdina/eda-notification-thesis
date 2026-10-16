@@ -1,0 +1,23 @@
+{
+  "name": "t5-php-sse-stress-production",
+  "phase": "pilot",
+  "configs": [
+    "php-minimal-sse",
+    "php-laravel-sse"
+  ],
+  "scenarios": [
+    {
+      "name": "stress",
+      "vus": 500,
+      "holdSeconds": 15,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "minPairs": 2,
+  "bootstrap": {
+    "resamples": 1000
+  }
+}

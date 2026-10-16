@@ -1,0 +1,508 @@
+{
+  "schema": "eda-thesis/run/2",
+  "run": {
+    "id": "baseline_node-express-sse_run0001",
+    "config": "node-express-sse",
+    "cell": "node-express-sse",
+    "scenario": "baseline",
+    "phase": "pilot",
+    "block": null,
+    "run_index": 1,
+    "warmup": true,
+    "valid": true,
+    "invalid_reason": null,
+    "started_at": "2026-10-16T16:44:17.386Z",
+    "ended_at": "2026-10-16T16:44:28.324Z"
+  },
+  "load": {
+    "vus": 10,
+    "settle_seconds": 3,
+    "hold_seconds": 6,
+    "event_rate_nominal_per_s": 2,
+    "producer": "pubsub",
+    "script": "sse-feasibility.js",
+    "metric": "sse_event_latency_ms",
+    "target_base_url": "http://nginx",
+    "front_mode": "http",
+    "extra_env_keys": []
+  },
+  "measures": {
+    "latency_mean_ms": 1.0916666666666666,
+    "latency_min_ms": 1,
+    "latency_median_ms": 1,
+    "latency_p90_ms": 1,
+    "latency_p95_ms": 2,
+    "latency_p99_ms": 2,
+    "latency_max_ms": 2,
+    "connect_mean_ms": 5.5,
+    "connect_median_ms": 5.5,
+    "connect_p95_ms": 7,
+    "connect_max_ms": 7,
+    "clients": 10,
+    "clients_connected_in_time": 10,
+    "clients_served": 10,
+    "connected_ratio": 1,
+    "served_ratio": 1,
+    "events_received": 120,
+    "events_unique": 120,
+    "events_expected": 120,
+    "events_lost": 0,
+    "events_duplicate": 0,
+    "delivery_ratio": 1,
+    "delivered_events_per_s": 20,
+    "source_rate_eps": 2.000363702491362,
+    "connection_errors": 0,
+    "checks_passed": 10,
+    "checks_failed": 0,
+    "data_received_bytes": 32310,
+    "data_received_bytes_per_s": 3477.671273134101,
+    "data_sent_bytes": 1140,
+    "data_sent_bytes_per_s": 122.70335039841768,
+    "cpu_seconds": 0.064756,
+    "cpu_cores_avg": 0.005781269529506293,
+    "working_set_avg_bytes": 40735521.39130435,
+    "working_set_peak_bytes": 55828480,
+    "mem_peak_bytes": 55828480,
+    "cpu_seconds_redis": 0.130544,
+    "working_set_peak_bytes_redis": 8585216,
+    "cpu_seconds_total": 0.19529999999999997,
+    "working_set_peak_bytes_total": 62607360,
+    "loadgen_cpu_util_avg": 0.020397727272727262,
+    "loadgen_cpu_util_max": 0.09825870646766166
+  },
+  "resources": {
+    "wall_seconds": 11.201,
+    "interval_ms": 250,
+    "samples": 46,
+    "cells": {
+      "node-express-sse": {
+        "containers": 1,
+        "cpu_seconds": 0.064756,
+        "cpu_cores_avg": 0.005781269529506293,
+        "mem_avg_bytes": 40735521.39130435,
+        "mem_peak_bytes": 55828480,
+        "working_set_avg_bytes": 40735521.39130435,
+        "working_set_peak_bytes": 55828480
+      },
+      "redis": {
+        "containers": 1,
+        "cpu_seconds": 0.130544,
+        "cpu_cores_avg": 0.01165467368984912,
+        "mem_avg_bytes": 6697138.0869565215,
+        "mem_peak_bytes": 8585216,
+        "working_set_avg_bytes": 6697138.0869565215,
+        "working_set_peak_bytes": 8585216
+      }
+    },
+    "total": {
+      "containers": 2,
+      "cpu_seconds": 0.19529999999999997,
+      "cpu_cores_avg": 0.01743594321935541,
+      "mem_avg_bytes": 47432659.47826087,
+      "mem_peak_bytes": 62607360,
+      "working_set_avg_bytes": 47432659.47826087,
+      "working_set_peak_bytes": 62607360
+    },
+    "containers": {
+      "6a9ccc7e477a": {
+        "cell": "node-express-sse",
+        "cgroup": "/sys/fs/cgroup/docker/6a9ccc7e477af0f8ab96a60fe3ae075ea417085a4ba268ec0269d12f50294819",
+        "cpu_seconds": 0.064756,
+        "cpu_cores_avg": 0.005781269529506293,
+        "mem_avg_bytes": 40735521.39130435,
+        "mem_peak_bytes": 55828480,
+        "working_set_avg_bytes": 40735521.39130435,
+        "working_set_peak_bytes": 55828480
+      },
+      "18502f82e536": {
+        "cell": "redis",
+        "cgroup": "/sys/fs/cgroup/docker/18502f82e5362e53aa3c7f57ebae89d215c7cd82d0d85d475748777ad91fbaba",
+        "cpu_seconds": 0.130544,
+        "cpu_cores_avg": 0.01165467368984912,
+        "mem_avg_bytes": 6697138.0869565215,
+        "mem_peak_bytes": 8585216,
+        "working_set_avg_bytes": 6697138.0869565215,
+        "working_set_peak_bytes": 8585216
+      }
+    },
+    "host": {
+      "temp_start_c": null,
+      "temp_end_c": null,
+      "temp_max_c": null,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": null
+    }
+  },
+  "loadgen": {
+    "wall_seconds": 11.018,
+    "interval_ms": 1000,
+    "samples": 13,
+    "cells": {},
+    "total": {
+      "containers": 0,
+      "cpu_seconds": 0,
+      "cpu_cores_avg": 0,
+      "mem_avg_bytes": 0,
+      "mem_peak_bytes": 0,
+      "working_set_avg_bytes": 0,
+      "working_set_peak_bytes": 0
+    },
+    "containers": {},
+    "host": {
+      "temp_start_c": null,
+      "temp_end_c": null,
+      "temp_max_c": null,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": {
+        "cpus": 16,
+        "util_avg": 0.020397727272727262,
+        "util_max_interval": 0.09825870646766166
+      }
+    }
+  },
+  "containers": [
+    {
+      "id": "6a9ccc7e477af0f8ab96a60fe3ae075ea417085a4ba268ec0269d12f50294819",
+      "name": "eda-thesis-node-express-sse-1",
+      "service": "node-express-sse",
+      "image": "eda-thesis-node-express:latest",
+      "image_id": "sha256:0721807775c5e31fb92111248fe0d8d8c2523d52881c5941481dbc49a78cd208",
+      "status": "running",
+      "oom_killed": false,
+      "started_at": "2026-10-16T16:44:03.692411939Z",
+      "runtime_env": {
+        "APP_ENV": null,
+        "APP_DEBUG": null,
+        "NODE_ENV": "production"
+      },
+      "limits": {
+        "cpus": 2,
+        "memory_bytes": 2147483648,
+        "memory_swap_bytes": 2147483648,
+        "cgroup_parent": null,
+        "nofile": 8192
+      }
+    }
+  ],
+  "context": {
+    "campaign": {
+      "name": "t3-node-queue-reverb",
+      "phase": "pilot",
+      "block": null,
+      "dir": "2026-10-16T16-43-55-654Z_t3-node-queue-reverb",
+      "file": "t3-mixed.json"
+    },
+    "topology": "ein Rechner",
+    "git": {
+      "load": {
+        "commit": "d778a236b387378429fdf14a721f1a9c52525aca",
+        "dirty_files": 31
+      },
+      "sut": {
+        "commit": "d778a236b387378429fdf14a721f1a9c52525aca",
+        "dirty_files": 31
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": null,
+      "kernel": "6.18.54.1-microsoft-standard-WSL2",
+      "arch": "x64",
+      "cpus": 16,
+      "mem_total_bytes": 16391233536,
+      "swap_total_bytes": 4294967296,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "hugetlb",
+        "pids",
+        "rdma"
+      ],
+      "memory_controller": true,
+      "cpu_governor": null,
+      "cpu_freq_khz": null,
+      "temp_c": null,
+      "throttled": null,
+      "sampled_at": "2026-10-16T16:44:06.730Z"
+    },
+    "containers": {
+      "node-express-sse": {
+        "image": "eda-thesis-node-express:latest",
+        "image_id": "sha256:0721807775c5e31fb92111248fe0d8d8c2523d52881c5941481dbc49a78cd208",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      },
+      "node-express-sse-queue": {
+        "image": "eda-thesis-node-express:latest",
+        "image_id": "sha256:0721807775c5e31fb92111248fe0d8d8c2523d52881c5941481dbc49a78cd208",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      },
+      "node-express-worker": {
+        "image": "eda-thesis-node-express:latest",
+        "image_id": "sha256:0721807775c5e31fb92111248fe0d8d8c2523d52881c5941481dbc49a78cd208",
+        "limits": {
+          "cpus": null,
+          "memory_bytes": null,
+          "memory_swap_bytes": null,
+          "cgroup_parent": null,
+          "nofile": null
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      },
+      "node-express-ws": {
+        "image": "eda-thesis-node-express:latest",
+        "image_id": "sha256:0721807775c5e31fb92111248fe0d8d8c2523d52881c5941481dbc49a78cd208",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      },
+      "php-laravel-listener": {
+        "image": "eda-thesis-php-laravel:latest",
+        "image_id": "sha256:ddcf8c0d26690ba42a017e194c40dd50fdbb921eed9427688c6b1e515c6474a9",
+        "limits": {
+          "cpus": null,
+          "memory_bytes": null,
+          "memory_swap_bytes": null,
+          "cgroup_parent": null,
+          "nofile": null
+        },
+        "runtime_env": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0"
+          }
+        }
+      },
+      "php-laravel-reverb": {
+        "image": "eda-thesis-php-laravel:latest",
+        "image_id": "sha256:ddcf8c0d26690ba42a017e194c40dd50fdbb921eed9427688c6b1e515c6474a9",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 2147483648,
+          "memory_swap_bytes": 2147483648,
+          "cgroup_parent": null,
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0"
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v22.13.0",
+      "platform": "win32"
+    }
+  },
+  "k6_summary": {
+    "metrics": {
+      "sse_events_expected": {
+        "count": 120,
+        "rate": 12.91614214720186
+      },
+      "sse_events_lost": {
+        "count": 0,
+        "rate": 0
+      },
+      "vus": {
+        "value": 10,
+        "min": 10,
+        "max": 10
+      },
+      "iteration_duration": {
+        "p(95)": 9291.9566426,
+        "p(99)": 9292.009091720001,
+        "avg": 9290.9036807,
+        "min": 9290.518528,
+        "med": 9290.681281500001,
+        "max": 9292.022204,
+        "p(90)": 9291.891081200001
+      },
+      "vus_max": {
+        "value": 10,
+        "min": 10,
+        "max": 10
+      },
+      "iterations": {
+        "count": 10,
+        "rate": 1.0763451789334884
+      },
+      "checks": {
+        "passes": 10,
+        "fails": 0,
+        "value": 1
+      },
+      "sse_clients_connected_in_time": {
+        "count": 10,
+        "rate": 1.0763451789334884
+      },
+      "sse_event": {
+        "count": 200,
+        "rate": 21.526903578669767
+      },
+      "sse_source_rate_eps": {
+        "avg": 2.0003637024913625,
+        "min": 2.000363702491362,
+        "med": 2.000363702491362,
+        "max": 2.000363702491362,
+        "p(90)": 2.000363702491362,
+        "p(95)": 2.000363702491362,
+        "p(99)": 2.000363702491362
+      },
+      "http_req_sending": {
+        "p(90)": 6.5772089000000005,
+        "p(95)": 6.786152,
+        "p(99)": 6.786152,
+        "avg": 5.1433477,
+        "min": 3.050982,
+        "med": 5.2072185,
+        "max": 6.786152
+      },
+      "sse_connect_ms": {
+        "med": 5.5,
+        "max": 7,
+        "p(90)": 7,
+        "p(95)": 7,
+        "p(99)": 7,
+        "avg": 5.5,
+        "min": 4
+      },
+      "sse_clients_served": {
+        "count": 10,
+        "rate": 1.0763451789334884
+      },
+      "sse_events_unique": {
+        "count": 120,
+        "rate": 12.91614214720186
+      },
+      "sse_events_duplicate": {
+        "rate": 0,
+        "count": 0
+      },
+      "data_sent": {
+        "count": 1140,
+        "rate": 122.70335039841768
+      },
+      "sse_event_latency_ms": {
+        "med": 1,
+        "max": 2,
+        "p(90)": 1,
+        "p(95)": 2,
+        "p(99)": 2,
+        "avg": 1.0916666666666666,
+        "min": 1
+      },
+      "sse_events_received": {
+        "count": 120,
+        "rate": 12.91614214720186
+      },
+      "http_req_duration": {
+        "p(95)": 9291.842176350001,
+        "p(99)": 9291.87114807,
+        "avg": 9290.7599802,
+        "min": 9290.234519,
+        "med": 9290.5602975,
+        "max": 9291.878391,
+        "p(90)": 9291.8059617
+      },
+      "data_received": {
+        "count": 32310,
+        "rate": 3477.671273134101
+      },
+      "http_reqs": {
+        "count": 10,
+        "rate": 1.0763451789334884
+      }
+    },
+    "root_group": {
+      "name": "",
+      "path": "",
+      "id": "d41d8cd98f00b204e9800998ecf8427e",
+      "groups": {},
+      "checks": {
+        "SSE-Verbindung: HTTP 200": {
+          "path": "::SSE-Verbindung: HTTP 200",
+          "id": "aa6e68e31d1e0a5a7cf1f06674a8f810",
+          "passes": 10,
+          "fails": 0,
+          "name": "SSE-Verbindung: HTTP 200"
+        }
+      }
+    }
+  }
+}
