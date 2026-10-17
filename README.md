@@ -49,6 +49,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 ├── tools/                     # Werkzeuge, nicht Teil der Prototypen
 │   ├── orchestrate/           #   Kampagnen, Zeitplan, Statusbericht, Statistik, Gesamtauswertung
 │   ├── code-metrics/          #   Code- und Betriebskennzahlen je Zelle (Komplexität, Wartbarkeit)
+│   ├── figures/               #   Abbildungen der Ergebniskapitel als Vektor-PDF (Python, eigener Container)
 │   ├── resource-sampler/      #   CPU und Speicher pro Lauf aus cgroup v2, Auslastung des Lastgenerators
 │   ├── event-simulator/       #   Lokato-Scan-Events mit fester Rate (Pub/Sub oder BullMQ)
 │   └── sse-feasibility/       #   SSE-Server der Machbarkeitsprüfung (DECISIONS.md, Abschnitt 3)
@@ -98,6 +99,7 @@ node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json
 node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
 node tools/orchestrate/series.js results/<skalierungs-und-saettigungskampagnen> ...
 node tools/code-metrics/metrics.js
+docker compose --profile tools run --rm figures --evaluation results/<auswertung> --series results/<reihen>
 ```
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).

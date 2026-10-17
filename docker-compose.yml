@@ -126,6 +126,16 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
+  # Abbildungen für die schriftliche Arbeit (tools/figures/README.md), einmalig
+  # per `docker compose --profile tools run --rm figures ...`.
+  figures:
+    <<: *default-logging
+    build: ./tools/figures
+    image: eda-thesis-figures:latest
+    volumes:
+      - ./results:/results
+    profiles: ["tools"]
+
   # k6 mit xk6-sse — startet nicht bei `up`, sondern per:
   #   docker compose --profile load run --rm k6 run scripts/<skript>.js
   k6:
