@@ -13,6 +13,7 @@ Nachtrag vom 2026-10-17:
 | Verzeichnis bzw. Prüfung | Prüfgegenstand | Ergebnis |
 |---|---|---|
 | `…_v-digests-all-cells` | alle zehn Zellen nach dem Pinnen der Basis-Images auf Multi-Arch-Digests und einem Neubau aller Images, Produktionsbetrieb, 10 Clients | alle 30 Läufe gültig; alle Container im Produktionsbetrieb; Zustellung 100 % |
+| `…_v-connect-family` | Verbindungsaufbau als vierte Testfamilie: Hauptkampagne (Block 1) mit Vergleich 1 bei 10 Clients, anschließend `evaluate.js` | `connect_mean_ms` wird je Kampagne verglichen und in der Gesamtauswertung als eigene Familie mit m = 39 korrigiert |
 | Fehlersichtbarkeit der Laravel-Queue (ohne Ergebnisverzeichnis) | Wiederholung des Experiments aus DECISIONS.md 5.13 unter Laravel 13.34.0; der Fehler wurde nur im laufenden Prüf-Container eingebaut, der Container danach verworfen | Befund wie unter Laravel 12: Konsole nur `FAIL`, Protokollierung scheitert an der fehlenden SQLite-Datenbank, Fehlermeldung und Correlation-ID nur im Kontext des Folgefehlers |
 
 Wegen der geringen Zahl an Läufen (n = 1–3 Paare) sind alle Vergleiche erwartungsgemäß nicht aussagekräftig. Der Hinweis auf aktiven Swap betrifft nur den lokalen Rechner; auf dem Pi ist Swap abgeschaltet und wird vor jeder Kampagne geprüft.

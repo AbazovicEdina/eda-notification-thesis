@@ -126,7 +126,9 @@ const families = plan.families.map((family) => {
 
 // Replikation (Block 2): stimmen Richtung und Effektklasse mit Block 1
 // überein, und überlappen die Konfidenzintervalle? Beschreibend, ohne
-// eigene Signifikanzaussage.
+// eigene Signifikanzaussage. Als repliziert gilt ein Ergebnis bei gleicher
+// Richtung und überlappenden Intervallen (plan.json, decisionRules); die
+// Effektklasse wird berichtet, ist aber keine Bedingung.
 const sign = (v) => (v == null || v === 0 ? 0 : Math.sign(v));
 const replication = plan.families.map((family) => {
   const b1 = testsFor(family.measure, plan.confirmatoryBlock);
@@ -147,7 +149,7 @@ const replication = plan.families.map((family) => {
       same_magnitude: r1.cliffs_magnitude === r2.cliffs_magnitude,
       ci_overlap: lo1 != null && lo2 != null && lo1 <= hi2 && lo2 <= hi1,
     };
-  });
+  }).map((r) => (r.status === 'verglichen' ? { ...r, replicated: r.same_direction && r.ci_overlap } : r));
   const compared = rows.filter((r) => r.status === 'verglichen');
   return {
     measure: family.measure,
@@ -155,6 +157,7 @@ const replication = plan.families.map((family) => {
     same_direction: compared.filter((r) => r.same_direction).length,
     same_magnitude: compared.filter((r) => r.same_magnitude).length,
     ci_overlap: compared.filter((r) => r.ci_overlap).length,
+    replicated: compared.filter((r) => r.replicated).length,
     rows,
   };
 });
@@ -199,14 +202,19 @@ const lines = [
   'Vorzeichen: Differenz = A − B. Negative Werte bedeuten, dass A kleiner (bei Latenz, CPU und Speicher: besser) ist.',
   '',
 ];
+// Einheit der Median-Differenz je Messgröße; Speicher in MiB statt Bytes.
+const unitOf = (measure) => (measure.includes('bytes') ? { label: 'MiB', scale: 1 / 2 ** 20, digits: 1 }
+  : measure.includes('seconds') ? { label: 's', scale: 1, digits: 3 } : { label: 'ms', scale: 1, digits: 3 });
 for (const family of families) {
+  const u = unitOf(family.measure);
+  const fu = (v) => (v == null ? '–' : fmt(v * u.scale, u.digits));
   lines.push(`## ${family.measure} (${family.role}, Block ${family.block}, m = ${family.m})`, '', family.description, '');
-  lines.push('| Nr. | A vs. B | Laststufe | Paare | Median-Diff [95-%-KI] | Cliff\'s δ | r (rangbiserial) | p | p (Holm) | signifikant | Status |');
+  lines.push(`| Nr. | A vs. B | Laststufe | Paare | Median-Diff in ${u.label} [95-%-KI] | Cliff's δ | r (rangbiserial) | p | p (Holm) | signifikant | Status |`);
   lines.push('|---|---|---|---|---|---|---|---|---|---|---|');
   for (const t of family.tests) {
     const r = t.result;
     lines.push(`| ${t.comparison_id} | ${t.a} vs. ${t.b} | ${t.scenario} | ${r?.n_pairs ?? '–'} | `
-      + `${r ? `${fmt(r.median_diff)} [${fmt(r.median_diff_ci95[0])}, ${fmt(r.median_diff_ci95[1])}]` : '–'} | `
+      + `${r ? `${fu(r.median_diff)} [${fu(r.median_diff_ci95[0])}, ${fu(r.median_diff_ci95[1])}]` : '–'} | `
       + `${r ? `${fmt(r.cliffs_delta)} (${r.cliffs_magnitude})` : '–'} | ${r ? fmt(r.rank_biserial) : '–'} | `
       + `${r ? fmtP(t.pValue) : '–'} | ${fmtP(t.pHolm)} | ${t.significant ? 'ja' : 'nein'} | ${t.status} |`);
   }
@@ -214,21 +222,30 @@ for (const family of families) {
 }
 
 lines.push(`## Replikation (Block ${plan.replicationBlock} gegen Block ${plan.confirmatoryBlock})`, '');
-lines.push('Beschreibender Abgleich ohne eigene Signifikanzaussage: gleiche Richtung der Median-Differenz, gleiche Effektklasse (Cliff\'s δ), überlappende 95-%-Konfidenzintervalle.', '');
-lines.push('| Messgröße | verglichen | gleiche Richtung | gleiche Effektklasse | KI überlappen |');
-lines.push('|---|---|---|---|---|');
+lines.push(`Beschreibender Abgleich ohne eigene Signifikanzaussage. ${plan.decisionRules?.replication ?? ''}`, '');
+lines.push('| Messgröße | verglichen | repliziert | gleiche Richtung | KI überlappen | gleiche Effektklasse |');
+lines.push('|---|---|---|---|---|---|');
 for (const r of replication) {
-  lines.push(`| ${r.measure} | ${r.compared} | ${r.same_direction} | ${r.same_magnitude} | ${r.ci_overlap} |`);
+  lines.push(`| ${r.measure} | ${r.compared} | ${r.replicated} | ${r.same_direction} | ${r.ci_overlap} | ${r.same_magnitude} |`);
 }
 lines.push('');
 
 lines.push('## Hypothesen (vorab festgelegt, DECISIONS.md 5.18)', '');
-lines.push('| Nr. | Hypothese | Vergleiche | Messgröße | Laststufe |');
-lines.push('|---|---|---|---|---|');
+lines.push('| Nr. | Hypothese | Vergleiche | Messgröße | Laststufe | Bestätigt, wenn … |');
+lines.push('|---|---|---|---|---|---|');
 for (const h of plan.hypotheses) {
-  lines.push(`| ${h.id} | ${h.text} | ${h.comparisons.length ? h.comparisons.join(', ') : '–'} | ${h.measure} | ${h.scenario} |`);
+  lines.push(`| ${h.id} | ${h.text} | ${h.comparisons.length ? h.comparisons.join(', ') : '–'} | ${h.measure} | ${h.scenario} | ${h.rule ?? '–'} |`);
 }
-lines.push('', 'Die Bewertung jeder Hypothese (bestätigt, nicht bestätigt, unentschieden) erfolgt in der Arbeit anhand der Tabellen oben, der Skalierungs- und der Sättigungsreihe.', '');
+lines.push('', 'Allgemeine Entscheidungsregeln:', '', ...(plan.decisionRules?.general ?? []).map((g) => `- ${g}`), '');
+lines.push('Die Bewertung jeder Hypothese (bestätigt, nicht bestätigt, unentschieden) erfolgt in der Arbeit nach diesen Regeln anhand der Tabellen oben, der Skalierungs- und der Sättigungsreihe (series.md).', '');
+lines.push('### Wortlaut für die Arbeit (englisch)', '');
+lines.push('General decision rules:', '', ...(plan.decisionRules?.general_en ?? []).map((g) => `- ${g}`), '');
+if (plan.decisionRules?.replication_en) lines.push(`Replication: ${plan.decisionRules.replication_en}`, '');
+for (const h of plan.hypotheses) {
+  lines.push(`- **${h.id}:** ${h.text_en ?? '–'}`);
+  if (h.rule_en) lines.push(`  *Supported if:* ${h.rule_en}`);
+}
+lines.push('');
 
 if (notes.length) {
   lines.push('## Hinweise', '', ...notes.map((n) => `- ${n}`), '');
@@ -242,6 +259,6 @@ for (const family of families) {
   console.log(`  ${family.measure}: ${measured}/${family.m} Tests gemessen (Block ${family.block}), ${significant} signifikant nach Holm`);
 }
 for (const r of replication) {
-  console.log(`  Replikation ${r.measure}: ${r.compared} verglichen, ${r.same_direction} gleiche Richtung, ${r.same_magnitude} gleiche Effektklasse`);
+  console.log(`  Replikation ${r.measure}: ${r.compared} verglichen, ${r.replicated} repliziert (${r.same_direction} gleiche Richtung, ${r.ci_overlap} KI überlappen, ${r.same_magnitude} gleiche Effektklasse)`);
 }
 for (const n of notes) console.log(`  Hinweis: ${n}`);

@@ -187,7 +187,7 @@ Zusätzliche Umgebungsvariablen einer Zelle können aus einer Datei gelesen werd
 | `runs/<laststufe>_<konfiguration>_runNNNN.json` | Lauf-Protokoll: Messwerte (`measures`), Ressourcen von Zelle, Redis und Gesamt sowie je Container, Auslastung des Lastgenerators, Container-Status, Kontext (Git-Stand, Versionen, Host, Limits, Images, Betriebsmodus), vollständige k6-Zusammenfassung |
 | `aggregate.json` | deskriptive Kennzahlen je Konfiguration und Laststufe, Vergleiche je Messgröße mit Paaren, Zwischenstände, ggf. Skalierung oder Sättigung |
 
-Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statistisch verglichen werden `latency_mean_ms`, `cpu_seconds_total` und `working_set_peak_bytes_total` (Zelle und Redis zusammen). Für jeden Vergleich enthält `aggregate.json`:
+Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statistisch verglichen werden `latency_mean_ms`, `cpu_seconds_total`, `working_set_peak_bytes_total` (Zelle und Redis zusammen) und `connect_mean_ms`, je Messgröße eine Testfamilie mit 39 Tests. Für jeden Vergleich enthält `aggregate.json`:
 
 - die Paare mit Laufnummern sowie die verworfenen Laufnummern,
 - den Wilcoxon-Test (W, W⁺, W⁻, p, Verfahren),

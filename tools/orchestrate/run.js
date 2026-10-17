@@ -50,7 +50,7 @@ const COMPARING_PHASES = new Set(['pilot', 'main']);
 const STRICT_PHASES = new Set(['pilot', 'main', 'control']);
 
 // Messgrößen mit statistischem Vergleich je Kampagne (Familien in plan.json).
-const TESTED_MEASURES = ['latency_mean_ms', 'cpu_seconds_total', 'working_set_peak_bytes_total'];
+const TESTED_MEASURES = ['latency_mean_ms', 'cpu_seconds_total', 'working_set_peak_bytes_total', 'connect_mean_ms'];
 // Messgrößen, für die pro Konfiguration deskriptive Kennzahlen entstehen.
 const DESCRIBED_MEASURES = [
   'latency_mean_ms', 'latency_median_ms', 'latency_p95_ms', 'latency_p99_ms', 'latency_max_ms',
