@@ -8,11 +8,12 @@ Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, 
 
 ### Einordnung und Forschungslücke (Entwurf)
 
-Die verwandten Arbeiten lassen sich drei Linien zuordnen:
+Die verwandten Arbeiten lassen sich vier Linien zuordnen:
 
 1. **Nebenläufigkeitsmodelle von Servern:** Prozess- bzw. Thread-pro-Verbindung gegenüber ereignisgesteuerter Verarbeitung (Lauer & Needham 1979; Welsh et al. 2001; von Behren et al. 2003; Pariag et al. 2007). Diese Arbeiten liefern die theoretische Grundlage für den Vergleich von PHP-FPM (Worker pro Verbindung) und Node.js (Event Loop). Sie untersuchen Webserver mit kurzen Anfragen, nicht langlebige Push-Verbindungen.
 2. **PHP gegenüber Node.js:** Bestehende Vergleiche (z. B. Lei, Ma & Tan 2014) messen klassische Anfrage-Antwort-Lasten. Node.js wird dort als ereignisgesteuerte Plattform für ein- und ausgabelastige Anwendungen beschrieben (Tilkov & Vinoski 2010).
-3. **Echtzeit im Web:** WebSockets sind verbreitet, Polling ist aber weiterhin häufiger (Murley et al. 2021). Eine begutachtete Studie, die SSE und WebSocket unter kontrollierten Bedingungen gegenüberstellt, wurde in der Websuche (2026-10-16) nicht gefunden; die verfügbaren Vergleiche sind Blog- und Herstellerbeiträge.
+3. **Ereignisgesteuerte Architektur:** Begriffe und Muster (Fowler 2017; Hohpe & Woolf 2003), Auswirkungen auf Modularität (Farias & Lazzari 2023) und Performance (Cabane & Farias 2024), Herausforderungen bei Überwachung und Fehlersuche (Laigner et al. 2026), Performance-Modelle (Woodside 2021). Diese Arbeiten betrachten die Kommunikation zwischen Diensten, nicht die Zustellung an viele dauerhaft verbundene Clients.
+4. **Echtzeit im Web:** WebSockets sind verbreitet, Polling ist aber weiterhin häufiger (Murley et al. 2021). Eine begutachtete Studie, die SSE und WebSocket unter kontrollierten Bedingungen gegenüberstellt, wurde in der Websuche (2026-10-16) nicht gefunden; die verfügbaren Vergleiche sind Blog- und Herstellerbeiträge.
 
 **Lücke (vorläufig, durch Recherche in IEEE Xplore, ACM Digital Library und Google Scholar zu bestätigen):** Ein kontrollierter Vergleich von PHP und Node.js bei der Zustellung von Server-Push-Nachrichten über langlebige Verbindungen (SSE und WebSocket), bei dem das Nebenläufigkeitsmodell am stärksten ins Gewicht fällt, getrennt nach Sprache, Framework und Queue, mit vorab festgelegtem Auswerteplan, liegt in dieser Form nicht vor.
 
@@ -175,6 +176,148 @@ Bezug: Begriffe und Grundlagen für Redis Pub/Sub und die Queues im Grundlagenka
 ```
 
 ---
+
+## Ereignisgesteuerte Architektur (Quellen aus dem Exposé)
+
+Das Exposé nennt zehn Quellen. Drei davon stehen bereits an anderer Stelle (Hohpe & Woolf 2003, Laravel Queues, WHATWG Server-Sent Events). Die übrigen wurden am 2026-10-17 einzeln geprüft: Fundstelle über Crossref, arXiv bzw. Verlagsseite, Inhalt über das Abstract. Übernommen werden nur Quellen, die eine konkrete Aussage der Arbeit stützen. Zwei Angaben des Exposés sind dabei korrigiert (Laigner et al., Farias & Lazzari), eine Quelle wird nicht übernommen (Tzialla et al., siehe unten).
+
+### Fielding (2000) — REST und ereignisbasierte Integration
+
+Roy Thomas Fielding. *Architectural Styles and the Design of Network-based Software Architectures*. Dissertation, University of California, Irvine, 2000.
+
+Inhalt: Ableitung des Architekturstils REST aus netzwerkbasierten Architekturstilen. Abschnitt 3.6.1 beschreibt den Stil „Event-based Integration" mit seinen Vor- und Nachteilen.
+
+Verwendung: Definition des Anfrage-Antwort-Modells des Webs (REST, vom Client ausgelöste Interaktion) als Gegenstück zu Push-Verfahren im Grundlagenkapitel; Einordnung ereignisbasierter Integration (Abschnitt 3.6.1). Die Aussage des Exposés, Anfrage-Antwort-Architekturen stießen bei häufigen Aktualisierungen an Grenzen, ist in dieser Form nicht direkt aus Fielding belegbar; zitiert wird die Definition, nicht eine Bewertung.
+
+```bibtex
+@thesis{fielding2000rest,
+  author      = {Fielding, Roy Thomas},
+  title       = {Architectural Styles and the Design of Network-based Software Architectures},
+  type        = {phdthesis},
+  institution = {University of California, Irvine},
+  date        = {2000},
+  url         = {https://ics.uci.edu/~fielding/pubs/dissertation/top.htm},
+  urldate     = {2026-10-17},
+  langid      = {english}
+}
+```
+
+### Fowler (2017) — Bedeutungen von „event-driven"
+
+Martin Fowler. „What do you mean by ‚Event-Driven'?" Blogbeitrag, 2017. https://martinfowler.com/articles/201701-event-driven.html
+
+Inhalt: Unterscheidung von vier Mustern, die unter „event-driven" zusammengefasst werden: Event Notification, Event-Carried State Transfer, Event Sourcing und CQRS.
+
+Verwendung: Begriffsklärung im Grundlagenkapitel. Das untersuchte System entspricht dem Muster Event Notification mit Nutzdaten im Event (jeder Scan wird an alle Clients verteilt). Hinweis: kein begutachteter Beitrag; geeignet für Begriffe, nicht als Beleg für empirische Aussagen.
+
+```bibtex
+@online{fowler2017eventdriven,
+  author  = {Fowler, Martin},
+  title   = {What do you mean by ``Event-Driven''?},
+  date    = {2017-02-07},
+  url     = {https://martinfowler.com/articles/201701-event-driven.html},
+  urldate = {2026-10-17},
+  langid  = {english}
+}
+```
+
+Datum des Beitrags (7. Februar 2017) auf der Seite geprüft am 2026-10-17.
+
+### Laigner, Almeida, Assunção & Zhou (2026) — Herausforderungen ereignisbasierter Kommunikation
+
+Rodrigo Laigner, Ana Carolina Almeida, Wesley K. G. Assunção, Yongluan Zhou. „An Empirical Study on Challenges of Event Management in Microservice Architectures." *ACM Transactions on Software Engineering and Methodology*, 35(8), 1–62, 2026. DOI: 10.1145/3776581. Vorabfassung: arXiv:2408.00440 (2024).
+
+Korrektur gegenüber dem Exposé: Das Exposé nennt SIGMOD 2024. Die Arbeit ist als arXiv-Vorabfassung 2024 erschienen und 2026 in ACM TOSEM veröffentlicht; zitiert wird die veröffentlichte Fassung.
+
+Inhalt laut Abstract: empirische Untersuchung der Praktiken und Herausforderungen beim Entwerfen, Umsetzen, Testen, Überwachen und Fehlersuchen ereignisbasierter Kommunikation zwischen Microservices.
+
+Verwendung: Motivation (Ereignisse entkoppeln, bringen aber Schwierigkeiten bei Fehlersuche und Überwachung) und Einordnung von RQ3 sowie des Debugging- und Monitoring-Vergleichs (DECISIONS.md 5.13, 5.22).
+
+```bibtex
+@article{laigner2026event,
+  author       = {Laigner, Rodrigo and Almeida, Ana Carolina and Assunção, Wesley K. G. and Zhou, Yongluan},
+  title        = {An Empirical Study on Challenges of Event Management in Microservice Architectures},
+  journaltitle = {ACM Transactions on Software Engineering and Methodology},
+  volume       = {35},
+  number       = {8},
+  pages        = {1--62},
+  date         = {2026},
+  doi          = {10.1145/3776581},
+  langid       = {english}
+}
+```
+
+### Farias & Lazzari (2023) — ereignisgesteuerte Architektur und Modularität
+
+Kleinner Farias, Luan Lazzari. „Event-driven Architecture and REST Architectural Style: An Exploratory Study on Modularity." *Journal of Applied Research and Technology*, 21(3), 338–351, 2023. DOI: 10.22201/icat.24486736e.2023.21.3.1764. Vorabfassung: L. Lazzari, K. Farias, arXiv:2110.14699 (2021).
+
+Korrektur gegenüber dem Exposé: Das Exposé zitiert die arXiv-Vorabfassung. Die begutachtete Fassung ist 2023 in einer Zeitschrift erschienen, mit geändertem Titel und Farias als Erstautor; nach den Regeln der Vorlage wird die veröffentlichte Fassung zitiert.
+
+Inhalt laut Abstract: exploratorische Studie, die eine ereignisgesteuerte und eine REST-basierte Umsetzung derselben Anwendung hinsichtlich Trennung der Belange, Kopplung, Kohäsion, Komplexität und Größe vergleicht.
+
+Verwendung: Einordnung von RQ3 (Komplexität und Wartbarkeit) und der Code-Kennzahlen (DECISIONS.md 5.22); verwandte Arbeit, die Wartbarkeit ebenfalls über Code-Kennzahlen erfasst.
+
+```bibtex
+@article{farias2023modularity,
+  author       = {Farias, Kleinner and Lazzari, Luan},
+  title        = {Event-driven Architecture and {REST} Architectural Style: An Exploratory Study on Modularity},
+  journaltitle = {Journal of Applied Research and Technology},
+  volume       = {21},
+  number       = {3},
+  pages        = {338--351},
+  date         = {2023},
+  doi          = {10.22201/icat.24486736e.2023.21.3.1764},
+  langid       = {english}
+}
+```
+
+### Woodside (2021) — Performance-Modelle ereignisgesteuerter Architekturen
+
+Murray Woodside. „Performance Models of Event-Driven Architectures." In *Companion of the ACM/SPEC International Conference on Performance Engineering (ICPE '21)*, 145–149, 2021. DOI: 10.1145/3447545.3451203.
+
+Inhalt laut Abstract: Ereignisgesteuerte Architekturen verbessern die Skalierbarkeit durch zustandslose Server und asynchrone Interaktion. Der Beitrag zeigt, wie sich ereignisgesteuerte und blockierende, synchrone Komponenten gemeinsam in einem Layered-Queueing-Modell abbilden lassen.
+
+Verwendung: Grundlagen (Skalierbarkeit durch asynchrone Interaktion) und verwandte Arbeiten (modellbasierte gegenüber messbasierter Performance-Bewertung). Passt zur PHP-Seite der Arbeit, in der ein synchrones Ausführungsmodell (PHP-FPM) Ereignisse ausliefert. Hinweis: kurzer Beitrag im Companion-Band, kein Hauptkonferenzbeitrag.
+
+```bibtex
+@inproceedings{woodside2021eda,
+  author    = {Woodside, Murray},
+  title     = {Performance Models of Event-Driven Architectures},
+  booktitle = {Companion of the ACM/SPEC International Conference on Performance Engineering (ICPE '21)},
+  pages     = {145--149},
+  publisher = {ACM},
+  date      = {2021},
+  doi       = {10.1145/3447545.3451203},
+  langid    = {english}
+}
+```
+
+### Cabane & Farias (2024) — ereignisgesteuerte Architektur und Performance (Ergänzung, nicht im Exposé)
+
+Hebert Cabane, Kleinner Farias. „On the impact of event-driven architecture on performance: An exploratory study." *Future Generation Computer Systems*, 153, 52–69, 2024. DOI: 10.1016/j.future.2023.10.021.
+
+Bei der Prüfung von Farias & Lazzari gefunden. Fundstelle über Crossref bestätigt; das Abstract war über die offenen Schnittstellen nicht abrufbar. Der Inhalt ist daher nur aus dem Titel bekannt und vor jeder Verwendung zu lesen.
+
+Verwendung (vorgesehen): verwandte Arbeiten, empirische Untersuchung der Performance ereignisgesteuerter Architekturen; Abgrenzung zur eigenen Messung (Zustellung an viele dauerhafte Client-Verbindungen statt Kommunikation zwischen Diensten, falls sich das beim Lesen bestätigt).
+
+```bibtex
+@article{cabane2024performance,
+  author       = {Cabane, Hebert and Farias, Kleinner},
+  title        = {On the impact of event-driven architecture on performance: An exploratory study},
+  journaltitle = {Future Generation Computer Systems},
+  volume       = {153},
+  pages        = {52--69},
+  date         = {2024},
+  doi          = {10.1016/j.future.2023.10.021},
+  langid       = {english}
+}
+```
+
+### Geprüft, nicht übernommen: Tzialla et al. (2024)
+
+Ioanna Tzialla, Jeffery Wang, Jingyi Zhu, Aurojit Panda. „Efficient Auditing of Event-driven Web Applications." In *Proceedings of the 19th European Conference on Computer Systems (EuroSys '24)*, 2024. DOI: 10.1145/3627703.3650089.
+
+Das Exposé zitiert die Arbeit für Herausforderungen beim Überwachen und Auditieren ereignisgesteuerter Systeme. „Auditing" bedeutet dort jedoch die Prüfung, ob ein Server eine Webanwendung unverfälscht ausgeführt hat (Record-Replay für Node.js-Anwendungen auf nicht vertrauenswürdigen Servern). Das ist eine Frage der Integrität, nicht der Beobachtbarkeit im Betrieb, und berührt keine Aussage dieser Arbeit. Für Herausforderungen bei Überwachung und Fehlersuche ist Laigner et al. (2026) die passende Quelle.
 
 ## Empirische Softwaretechnik — Validitätsrahmen
 
@@ -874,7 +1017,17 @@ Symfony SAS. „Pushing Data to Clients Using the Mercure Protocol." *Symfony Do
 
 Verwendung: Begründung, warum keine Symfony-Variante gemessen wird (DECISIONS.md 5.23). Symfony überträgt Push-Nachrichten über Mercure; die dauerhaften SSE-Verbindungen hält dabei ein eigener Hub-Server, der als Go-Programm bzw. Caddy-Modul ausgeliefert wird. Eine Symfony-Variante würde den Push-Pfad daher nicht in PHP messen.
 
+Ergänzend aus dem Exposé: Symfony. „Events and Event Listeners." *Symfony Documentation*. https://symfony.com/doc/current/event_dispatcher.html (die im Exposé genannte Adresse der Komponentendokumentation leitet dorthin weiter). Die Dokumentation beschreibt den EventDispatcher als Umsetzung der Muster Mediator und Observer, mit denen Komponenten einer Anwendung über Ereignisse kommunizieren. Beleg dafür, dass der EventDispatcher ein Mechanismus innerhalb eines Prozesses ist und keinen Weg zum Client bietet (DECISIONS.md 5.23).
+
 ```bibtex
+@online{symfony-eventdispatcher,
+  author  = {{Symfony SAS}},
+  title   = {Events and Event Listeners},
+  url     = {https://symfony.com/doc/current/event_dispatcher.html},
+  urldate = {2026-10-17},
+  langid  = {english}
+}
+
 @online{symfony-mercure,
   author  = {{Symfony SAS}},
   title   = {Pushing Data to Clients Using the Mercure Protocol},
@@ -1071,3 +1224,7 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 | 5.16 | Ressourcenmessung über cgroup v2, Working Set | Kernel-Dokumentation cgroup v2; Docker-Dokumentation `docker stats` |
 | 3, 5.9 | Lastwerkzeug k6 und xk6-sse | k6-Dokumentation; xk6-sse |
 | 5.23 | Laravel 13 statt 12 (Unterstützungszeitraum) | Laravel Release Notes |
+| 5.23 | keine Symfony-Variante | Symfony EventDispatcher und Mercure; Mercure-Hub |
+| Grundlagen | Anfrage-Antwort-Modell, ereignisbasierte Integration | Fielding (2000); Fowler (2017); Hohpe & Woolf (2003) |
+| Verwandte Arbeiten | ereignisgesteuerte Architektur: Modularität, Performance, Herausforderungen, Modelle | Farias & Lazzari (2023); Cabane & Farias (2024); Laigner et al. (2026); Woodside (2021) |
+| 5.13, 5.22 | Fehlersuche und Überwachung, Wartbarkeit | Laigner et al. (2026); Farias & Lazzari (2023) |

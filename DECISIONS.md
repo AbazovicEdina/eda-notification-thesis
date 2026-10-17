@@ -551,7 +551,10 @@ Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, de
 | 7 | Durchsatz | Events pro Sekunde bei steigender Last | Zustellquote je Lauf und Sättigungstest |
 | 8 | Skalierung | 10, 50, 100 und 500 Clients | Laststufen 10, 50, 500; Skalierungsreihe 10 bis 1 000 |
 | 9 | Laravel-Version | 13.x | 13.34.0 (zwischenzeitlich 12.61.1) |
-| 10 | Literatur | u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside, Laravel- und Symfony-Dokumentation | LITERATUR.md; Übernahme der Exposé-Quellen offen (Abschnitt 6) |
+| 10 | Literatur | zehn Quellen, u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside | neun übernommen (drei standen bereits in LITERATUR.md), zwei Angaben korrigiert, Tzialla et al. nicht übernommen (LITERATUR.md) |
+| 11 | Grundlage der Prototypen | PHP-Prototyp erweitert das bestehende Lokato-Backend (Laravel, relationale Datenbank) | eigenständige Prototypen mit dem Ereignisformat von Lokato, ohne Datenbank |
+| 12 | Queue in den Varianten | Laravel-Queue und Event-Dispatcher als Teil der vollständigen Umsetzungen | Queue als eigene Achse in zwei Varianten (5.19) |
+| 13 | Erwartung zur Latenz | Node.js mit geringerer Latenz und höherem Durchsatz unter hoher Last | H3 mit offener Richtung |
 
 **1. Titel.** Die Studie ist symmetrischer geworden als geplant. Beide Sprachen werden jeweils ohne und mit Framework umgesetzt, beide Transporte gemessen, und die Queue ist eine von vier Achsen (Sprache, Framework, Transport, Queue). Ein Titel, der PHP mit SSE und Queues in den Mittelpunkt stellt und Node.js/Express nur als Vergleichsgröße nennt, beschreibt die Arbeit daher nicht mehr genau. Der Arbeitstitel ist ein Vorschlag. Ein Kompromiss, der die Formulierung des Exposés erhält, wäre „Design and Implementation of Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues".
 
@@ -591,14 +594,25 @@ Die Arbeit nennt Symfony in der Abgrenzung und im Ausblick.
 
 Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 und 500 Clients) verlief ohne ungültige Läufe (`results/2026-10-16_verification-3/`).
 
-**10. Literatur.** LITERATUR.md enthält die Quellen, auf die sich die Entscheidungen stützen, sowie die Spezifikationen und Dokumentationen der eingesetzten Technologien. Die im Exposé genannten Quellen zu ereignisgesteuerten Architekturen werden übernommen, soweit die Arbeit sie zitiert; die Auswahl trifft die Autorin (Abschnitt 6).
+**10. Literatur.** Die zehn Quellen des Exposés wurden einzeln geprüft (LITERATUR.md, Abschnitt zur ereignisgesteuerten Architektur). Übernommen sind alle, die eine Aussage der Arbeit stützen. Zwei Angaben sind korrigiert: Laigner et al. ist nicht bei SIGMOD 2024, sondern 2026 in ACM TOSEM erschienen, und von Lazzari & Farias wird statt der arXiv-Vorabfassung die begutachtete Zeitschriftenfassung (Farias & Lazzari 2023) zitiert. Tzialla et al. (2024) wird nicht übernommen. „Auditing" bezeichnet dort die Prüfung, ob ein Server eine Anwendung unverfälscht ausgeführt hat, und berührt keine Aussage dieser Arbeit; für Herausforderungen bei Überwachung und Fehlersuche steht Laigner et al. zur Verfügung.
+
+**11. Grundlage der Prototypen.** Laut Exposé sollte der PHP-Prototyp das bestehende Lokato-Backend erweitern, das Scan-Ereignisse in einer relationalen Datenbank speichert. Umgesetzt sind eigenständige Prototypen, die das Ereignisformat von Lokato übernehmen (5.21), aber keine Datenbank und keine weitere Anwendungslogik enthalten. Gründe:
+
+- Gleiche Ausgangslage: Ein Node.js-Gegenstück zum gewachsenen Lokato-Backend hätte erst nachgebaut werden müssen. Die PHP-Seite hätte sonst Code, Middleware und Datenbankzugriffe mitgebracht, die auf der Node.js-Seite fehlen, und der Vergleich hätte die beiden Code-Basen statt der Technologien gemessen.
+- Kein Störfaktor durch die Datenbank: Ein Schreibzugriff pro Ereignis hätte die Latenz um die Datenbank verlängert und deren eigene Schwankung in jede Messung getragen. Die Zustellung eines Ereignisses ist die untersuchte Frage, nicht seine Speicherung.
+- Lesbarkeit: Die Prototypen dienen in der Arbeit als Codebeispiele und bleiben deshalb so knapp wie möglich (Abschnitt 1).
+
+Der Bezug zu Lokato bleibt über das Ereignisformat, die Ereignisquelle und das Szenario (Broadcast an Dashboards) erhalten.
+
+**12. Queue in den Varianten.** Das Exposé sieht die Queue als Bestandteil der vollständigen Umsetzungen in allen vier Konfigurationen vor. Umgesetzt ist sie als eigene Achse in je einer Variante pro Sprache (5.19). So bleibt der Effekt der Queue messbar, statt sich mit dem Framework-Effekt zu vermischen; Begründung im Detail: 5.7 und 5.19.
+
+**13. Erwartung zur Latenz.** Das Exposé erwartet, dass Node.js unter hoher Last eine geringere Latenz und einen höheren Durchsatz erreicht. H3 lässt die Richtung offen, weil zwei Mechanismen gegeneinander wirken: PHP-FPM verteilt ein Ereignis parallel in vielen Prozessen, Node.js nacheinander in einem Thread (5.18). Die Erwartung des Exposés wird in der Diskussion den Ergebnissen gegenübergestellt; die Tests sind ohnehin zweiseitig. Die Erwartung zum Ressourcenverbrauch je Verbindung bei PHP ist in H1 und H10 enthalten.
 
 ## 6. Offene Punkte
 
 | Punkt | Stand | Klärung durch |
 |---|---|---|
-| Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version (5.23); Bestätigung ausstehend | Betreuer |
-| Quellen aus dem Exposé | Auswahl der zitierten Quellen (u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside) und Übernahme in LITERATUR.md | Autorin |
+| Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
 | Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 | Befund aus 5.13 (Laravel 12) erneut prüfen | vor dem Schreiben von Abschnitt 6.10 |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
@@ -629,3 +643,4 @@ Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 un
 | 2026-10-16 | Zweite Überprüfung (Bewertung als Bachelorarbeit, neun Befunde): Produktionsbetrieb (5.5), Einschwingzeit und Verbindungsaufbau (5.9), Redis im Ressourcenvergleich (5.6.2, 5.8), Messphasen mit Replikation, Skalierungsreihe und Kontrollmessung (5.9), Queue-Achse mit Vergleichen 9–11 (5.15, 5.19), Hypothesen (5.18), verwandte Arbeiten (LITERATUR.md), ein Nginx pro Zelle ohne Brücke (5.6.1), Grenzen der Testlast (5.21), Abweichungen von der Standardkonfiguration (5.20). |
 | 2026-10-16 | Betrieb: Pilot-Kampagnen und Namenspräfix für Probeläufe in `plan-campaigns.js` (5.9), Statusbericht und Benachrichtigung für den Dauerbetrieb, Einrichtungsskript für den Pi (5.14). |
 | 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |
+| 2026-10-17 | Quellen des Exposés geprüft und übernommen, zwei Angaben korrigiert, eine verworfen (LITERATUR.md); weitere Abweichungen vom Exposé ergänzt: eigenständige Prototypen, Queue als Achse, Erwartung zur Latenz (5.23). |
