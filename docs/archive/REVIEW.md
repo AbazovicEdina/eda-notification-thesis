@@ -1,6 +1,6 @@
 # Prüfbericht vom 2026-07-26 (historisch)
 
-> **Historisches Dokument.** Stand 2026-07-26, nach Abschluss der Machbarkeitsprüfung und des Grundaufbaus. Die Befunde sind inhaltlich unverändert wiedergegeben. Ihren heutigen Stand zeigt die folgende Tabelle; maßgeblich ist [DECISIONS.md](DECISIONS.md).
+> **Historisches Dokument.** Stand 2026-07-26, nach Abschluss der Machbarkeitsprüfung und des Grundaufbaus. Die Befunde sind inhaltlich unverändert wiedergegeben. Ihren heutigen Stand zeigt die folgende Tabelle; maßgeblich ist [DECISIONS.md](../../DECISIONS.md).
 
 ## Verbleib der Befunde (Stand 2026-10-16)
 

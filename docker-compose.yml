@@ -126,24 +126,6 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
-  # Isolierter Redis-Pub/Sub-Test ohne Prototyp — tools/redis-baseline/README.md.
-  redis-baseline:
-    <<: *default-logging
-    build: ./tools/redis-baseline
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      EVENT_CHANNEL: ${EVENT_CHANNEL:-scan-events}
-      CLIENTS: ${BASELINE_CLIENTS:-50}
-      HOLD_SECONDS: ${BASELINE_HOLD_SECONDS:-60}
-      EVENT_INTERVAL_MS: ${SSE_EVENT_INTERVAL_MS:-1000}
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./results:/results
-    profiles: ["tools"]
-
   # k6 mit xk6-sse — startet nicht bei `up`, sondern per:
   #   docker compose --profile load run --rm k6 run scripts/<skript>.js
   k6:

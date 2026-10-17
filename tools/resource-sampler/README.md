@@ -36,6 +36,6 @@ docker compose --profile tools exec -T resource-sampler node sampler.js measure 
 
 `info` meldet in `docker_disk_free_bytes` und `docker_disk_total_bytes` den Datenträger des Container-Dateisystems. Das ist der Datenträger, auf dem Docker Images, Container und Container-Logs ablegt. `tools/orchestrate/status.js` warnt, wenn dort weniger als 10 % frei sind.
 
-## Abgrenzung zu tools/monitor
+## Abgrenzung zu docker stats
 
-`tools/monitor` protokolliert `docker stats` als CSV. Jede Abfrage dauert ein bis drei Sekunden und verbraucht selbst CPU auf dem gemessenen Rechner; eine Zuordnung zu einzelnen Läufen fehlt. Für Messungen wird daher ausschließlich `resource-sampler` verwendet.
+`docker stats` braucht je Abfrage ein bis drei Sekunden, verbraucht selbst CPU auf dem gemessenen Rechner und lässt sich keinem einzelnen Lauf zuordnen. Für Messungen wird daher ausschließlich `resource-sampler` verwendet; die Definition des Working Sets ist dieselbe.

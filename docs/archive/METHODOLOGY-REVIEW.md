@@ -1,6 +1,6 @@
 # Methodische Prüfung der Entscheidungen, 2026-08 (historisch)
 
-> **Historisches Dokument.** Stand August 2026, vor der Abstimmung mit dem Betreuer am 2026-10-16. Die Befunde sind inhaltlich unverändert wiedergegeben. Ihren heutigen Stand zeigt die folgende Tabelle; maßgeblich ist [DECISIONS.md](DECISIONS.md).
+> **Historisches Dokument.** Stand August 2026, vor der Abstimmung mit dem Betreuer am 2026-10-16. Die Befunde sind inhaltlich unverändert wiedergegeben. Ihren heutigen Stand zeigt die folgende Tabelle; maßgeblich ist [DECISIONS.md](../../DECISIONS.md).
 
 ## Verbleib der Befunde (Stand 2026-10-16)
 

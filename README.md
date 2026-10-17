@@ -21,7 +21,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 | [LITERATUR.md](LITERATUR.md) | verwandte Arbeiten und Quellen zu den Entscheidungen, mit BibTeX |
 | [infra/pi/README.md](infra/pi/README.md) | Einrichtung des Raspberry-Pi-Testservers und des Lastgenerators |
 | [tools/orchestrate/README.md](tools/orchestrate/README.md) | Messkampagnen, Zeitplan und Auswertung |
-| [REVIEW.md](REVIEW.md), [METHODOLOGY-REVIEW.md](METHODOLOGY-REVIEW.md) | frühere Prüfberichte (historisch, überholt durch DECISIONS.md) |
+| [docs/archive/](docs/archive/) | frühere Prüfberichte (historisch, überholt durch DECISIONS.md) |
 
 ## Repository-Struktur
 
@@ -29,8 +29,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 .
 ├── DECISIONS.md               # Entscheidungsprotokoll
 ├── LITERATUR.md               # Literatur mit BibTeX
-├── REVIEW.md                  # Prüfbericht 2026-07 (historisch)
-├── METHODOLOGY-REVIEW.md      # Methodische Prüfung 2026-08 (historisch)
+├── docs/archive/              # frühere Prüfberichte (historisch)
 ├── docker-compose.yml         # portable Basis
 ├── docker-compose.pi.yml      # Ergänzung für den Raspberry-Pi-Testserver
 ├── docker-compose.override.example.yml  # Vorlage für lokale Abweichungen
@@ -52,9 +51,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 │   ├── code-metrics/          #   Code- und Betriebskennzahlen je Zelle (Komplexität, Wartbarkeit)
 │   ├── resource-sampler/      #   CPU und Speicher pro Lauf aus cgroup v2, Auslastung des Lastgenerators
 │   ├── event-simulator/       #   Lokato-Scan-Events mit fester Rate (Pub/Sub oder BullMQ)
-│   ├── redis-baseline/        #   isolierter Redis-Pub/Sub-Test ohne Prototyp
-│   ├── sse-feasibility/       #   SSE-Server der Machbarkeitsprüfung
-│   └── monitor/               #   docker-stats-Protokoll für manuelle Beobachtung
+│   └── sse-feasibility/       #   SSE-Server der Machbarkeitsprüfung (DECISIONS.md, Abschnitt 3)
 └── results/                   # Messergebnisse und Auswertungen
 ```
 
@@ -63,7 +60,7 @@ Der Code unter `prototypes/` dient in der Arbeit als Anschauungsbeispiel und ist
 ## Voraussetzungen
 
 - **Docker mit Compose v2** für alle Prototypen und Messungen. PHP, Node.js und Go müssen dafür nicht lokal installiert sein (DECISIONS.md, Abschnitt 2).
-- **Node.js 22** für `tools/orchestrate` und `tools/monitor`. Beide rufen selbst `docker compose` auf und laufen daher direkt auf dem steuernden Rechner.
+- **Node.js 22** für `tools/orchestrate` und `tools/code-metrics`. Der Orchestrator ruft selbst `docker compose` auf und läuft daher direkt auf dem steuernden Rechner.
 - **PHP und Composer** nur für die einmalige Einrichtung von `prototypes/php-laravel` (Schlüssel erzeugen, siehe unten). Alternativ läuft diese Einrichtung in einem temporären Container mit dem Image `eda-thesis-php-laravel`.
 
 ## Lokale Einrichtung
@@ -88,7 +85,7 @@ Einzelne Zellen manuell starten, z. B. die Node-Minimalvariante:
 docker compose --profile node-minimal up -d
 ```
 
-Profile: `node-minimal`, `node-express`, `node-express-queue`, `php-minimal`, `php-laravel`, `php-laravel-queue`, dazu `tools` (Ereignisquellen, Sampler, Redis-Baseline) und `load` (k6). Für Messungen startet und stoppt der Orchestrator die benötigten Container selbst. Für die Fehlersuche lässt sich der Produktionsbetrieb lokal per `.env` abschalten (`LARAVEL_APP_ENV=local`, `LARAVEL_APP_DEBUG=true`, `SUT_NODE_ENV=development`); Pilot- und Hauptkampagnen brechen dann ab.
+Profile: `node-minimal`, `node-express`, `node-express-queue`, `php-minimal`, `php-laravel`, `php-laravel-queue`, dazu `tools` (Ereignisquellen, Sampler) und `load` (k6). Für Messungen startet und stoppt der Orchestrator die benötigten Container selbst. Für die Fehlersuche lässt sich der Produktionsbetrieb lokal per `.env` abschalten (`LARAVEL_APP_ENV=local`, `LARAVEL_APP_DEBUG=true`, `SUT_NODE_ENV=development`); Pilot- und Hauptkampagnen brechen dann ab.
 
 ## Messungen
 
