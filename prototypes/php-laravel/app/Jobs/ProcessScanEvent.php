@@ -9,11 +9,12 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Redis;
 
-// Grundgerüst für die vollständige Lokato-Pipeline —
-// absichtlich getrennt vom /sse-Endpunkt und scan:listen: Die gemessenen
-// SSE/WS-Pfade laufen über direktes Pub/Sub (DECISIONS.md 5.4), damit der
-// Vergleich php-minimal vs. php-laravel ausschließlich Framework-Overhead
-// zeigt, nicht zusätzlich Queue-Overhead. Zum Ausprobieren siehe
+// Job der Queue-Zelle php-laravel-sse-queue (DECISIONS.md 5.19): Der Worker
+// (`queue:work`) verarbeitet ein Scan-Ereignis aus der Queue "scan-events"
+// und veröffentlicht es auf dem Redis-Kanal "notifications", den der
+// SSE-Endpunkt dieser Zelle abonniert. Die Zellen ohne Queue beziehen die
+// Ereignisse direkt über Pub/Sub (5.4), damit der Vergleich php-minimal
+// gegen php-laravel nur den Framework-Overhead zeigt. Einzelner Test-Job:
 // app/Console/Commands/DispatchTestScanCommand.php.
 class ProcessScanEvent implements ShouldQueue
 {

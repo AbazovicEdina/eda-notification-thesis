@@ -271,7 +271,7 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 - Übersteigt der Anteil ungültiger Läufe 5 % der gemessenen Läufe einer Konfiguration, bricht die Kampagne ab, da die Ergebnisse dann nicht belastbar sind. In Skalierungs- und Sättigungsreihen sind ausgefallene Läufe dagegen Messergebnisse und kein Abbruchgrund.
 - Pro Lauf entsteht ein vollständiges Messprotokoll (5.16).
 
-**Phasen der Messung** (beschlossen am 2026-10-16; Messzeit insgesamt drei bis vier Wochen Dauerbetrieb):
+**Phasen der Messung** (beschlossen am 2026-10-16). Zeitfenster: drei bis vier Wochen Dauerbetrieb. Davon entfallen bei den Beispiel-Wiederholungszahlen rund 12 bis 13 Tage auf die reine Messzeit (Belastungstest 1 Tag, Pilot rund 1,6 Tage, Block 1 und Block 2 je rund 4,7 Tage, Skalierung und Sättigung zusammen unter einem Tag); der Rest ist Puffer für Einrichtung, Wiederholungen nach Abbrüchen und die Auswertung des Pilots.
 
 | Phase | Zweck | Auswertung |
 |---|---|---|
@@ -279,9 +279,15 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 | 2. Pilot (`phase: pilot`) | Festlegung der Wiederholungszahl je Laststufe | Zwischenstände, nicht konfirmatorisch |
 | 3. Block 1 (`phase: main`, `block: 1`) | Hauptmessung aller 39 geplanten Tests | konfirmatorisch, Holm-Korrektur (5.8) |
 | 4. Block 2 (`phase: main`, `block: 2`) | vollständige Wiederholung in anderer, zufälliger Reihenfolge | Replikationsabgleich (5.8) |
-| 5. Skalierungsreihe (`phase: scaling`) | 10, 50, 100, 250, 500, 750 und 1 000 Clients je Zelle | beschreibend (H4) |
+| 5. Skalierungsreihe (`phase: scaling`) | 10, 50, 100, 250, 500, 750 und 1 000 Clients je Zelle, 1 Event/s, je Stufe 3 Läufe nach 1 Warm-up-Lauf | beschreibend (H4) |
 | 6. Sättigungstest (`phase: saturation`) | höchste nachhaltige Event-Rate je Zelle (5.17) | beschreibend |
-| laufend: Kontrollmessung (`phase: control`) | einmal täglich feste Zelle (node-minimal/SSE), feste Last; macht Drift über die Wochen sichtbar | beschreibend |
+| laufend: Kontrollmessung (`phase: control`) | einmal täglich node-minimal/SSE mit 50 Clients und 1 Event/s, 5 Läufe nach 1 Warm-up-Lauf; macht Drift über die Wochen sichtbar | beschreibend |
+
+**Kriterien der beschreibenden Reihen** (vorab festgelegt, Standardwerte in `tools/orchestrate/run.js`):
+
+- **Kapazitätsgrenze** (Skalierungsreihe, RQ2, H4): die kleinste Clientzahl, bei der im Median der gültigen Läufe weniger als 99 % der Clients bedient werden (`scaling.minServedRatio`). Wird das Kriterium bis 1 000 Clients nie verfehlt, lautet das Ergebnis „nicht erreicht".
+- **Höchste nachhaltige Event-Rate** (Sättigungstest, H11): die höchste Stufe, bis zu der auf jeder Stufe im Median mindestens 99 % der Events zugestellt werden und die p95-Latenz höchstens 1 000 ms beträgt (5.17).
+- **Drift der Kontrollmessung:** Abweichung des Medians der Latenz-Mittelwerte vom ersten Messtag; ab 20 % warnt `status.js`, die Arbeit berichtet den Verlauf.
 
 `tools/orchestrate/plan-campaigns.js` erzeugt die Kampagnen einer Phase aus `plan.json`, für den Pilot mit einer Auswahl der Vergleiche (`--comparisons`); `tools/orchestrate/schedule.js` arbeitet sie in zufälliger, reproduzierbarer Reihenfolge ab, schiebt die Kontrollmessung ein und setzt nach einem Abbruch an der nächsten unvollständigen Kampagne fort. Da `schedule.js` erledigte Kampagnen am Namen erkennt, erhalten Probeläufe ein eigenes Namenspräfix (`--prefix smoke-`); andernfalls würde ein Probelauf die gleichnamige Kampagne der echten Phase als erledigt markieren.
 
@@ -330,7 +336,9 @@ Befund: Debugger und Profiler sind bei Node.js ohne Zusatzinstallation nutzbar, 
 **3. Fehlersichtbarkeit in Queue-Workern**, geprüft mit einem absichtlich fehlschlagenden Job (`correlation_id="corr-test-abc123"`):
 
 - *BullMQ (Node.js):* Der vorhandene `worker.on('failed', …)`-Handler protokolliert Job-ID, Fehlermeldung und Stacktrace, nicht aber die Correlation-ID. Diese ist jedoch programmatisch abrufbar: `queue.getFailed()` liefert die vollständigen Job-Daten einschließlich `correlation_id`, dauerhaft in Redis gespeichert und ohne Zusatzkonfiguration. Für die Ausgabe im Log genügt die Änderung einer bestehenden Zeile (`job.data` im vorhandenen `console.error`-Aufruf).
-- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im damals verwendeten Laravel-12-Starter-Kit (seit 2026-10-16 Laravel 13, 5.23; vor dem Schreiben des Abschnitts zu Komplexität und Wartbarkeit erneut prüfen) nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
+- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im damals verwendeten Laravel-12-Starter-Kit nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
+
+Wiederholung unter Laravel 13.34.0 (2026-10-17, Produktionsbetrieb, Fehler nur im laufenden Prüf-Container eingebaut): gleiches Ergebnis. `queue:work` meldet nur `FAIL`; das Protokollieren des fehlgeschlagenen Jobs scheitert an der fehlenden SQLite-Datenbank (`QueryException`), und `queue:failed` bricht mit derselben Meldung ab. Die eigentliche Fehlermeldung und die Correlation-ID stehen nur im Kontext dieses Folgefehlers in `storage/logs/laravel.log`. Der Befund gilt damit für die gemessene Version.
 
 Einordnung: BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
@@ -397,7 +405,7 @@ Jeder Vergleich wird in eigenen Kampagnen über die drei Laststufen gemessen (5.
 
 Bei PHP ist der Transport nicht vom Laufzeitmodell zu trennen. SSE läuft in der üblichen Betriebsweise über PHP-FPM (ein Worker je Verbindung, 5.5), ein WebSocket-Server ist dagegen ein langlaufender Prozess mit Ereignisschleife (Ratchet). Vergleich 13 misst daher die praktische Entscheidung, vor der ein PHP-Team steht, und nicht das Protokoll allein (H10). Bei Node.js nutzen beide Transporte dieselbe Ereignisschleife; Vergleich 12 kommt einem reinen Protokollvergleich am nächsten (H9).
 
-Einschränkung: SSE wird mit der Erweiterung xk6-sse, WebSocket mit dem WebSocket-Modul von k6 gemessen. Beide laufen im selben k6-Prozess auf dem Lastgenerator, und beide Zeitstempel stammen von dort. Unterschiede in der clientseitigen Verarbeitung der beiden Module können dennoch in die Latenz eingehen. Die Arbeit nennt das als Bedrohung der Konstruktvalidität.
+Einschränkung: SSE wird mit der Erweiterung xk6-sse, WebSocket mit dem WebSocket-Modul von k6 gemessen. Beide laufen im selben k6-Prozess auf dem Lastgenerator, und beide Zeitstempel stammen von dort. Unterschiede in der clientseitigen Verarbeitung der beiden Module können dennoch in die Latenz eingehen. Die Arbeit nennt das als Bedrohung der Konstruktvalidität. Dasselbe gilt für Vergleich 4: php-laravel/WS wird mit `ws-reverb.js` gemessen, das zusätzlich den Verbindungsaufbau und das Abonnement des Pusher-Protokolls durchläuft, node-express/WS mit `ws-skeleton.js`. Der Unterschied betrifft vor allem den Verbindungsaufbau; die Event-Latenz misst beide Male die Zeit vom Senden bis zum Empfang des Events.
 
 Aufwand: zwei Vergleiche mehr je Block, also sechs Kampagnen. Bei den Beispiel-Wiederholungszahlen (80, 60 und 40 Läufe zuzüglich Warm-up) sind das rund 17 Stunden je Block. Die Holm-Korrektur wird geringfügig strenger (kleinste Schwelle α/39 statt α/33).
 
@@ -414,7 +422,7 @@ Ablage pro Kampagne unter `results/<zeitstempel>_<name>/`:
 | `runs/<laststufe>_<konfiguration>_runNNNN.json` | vollständiges Protokoll eines Laufs |
 | `aggregate.json` | Kampagnenauswertung: deskriptive Kennzahlen, Vergleiche mit unkorrigierten p-Werten, Zwischenstände, ggf. Skalierung oder Sättigung |
 
-`tools/orchestrate/schedule.js` schreibt zusätzlich ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`), `tools/orchestrate/evaluate.js` die Gesamtauswertung über alle Hauptkampagnen (`results/<zeitstempel>_evaluation/`, JSON und Markdown-Tabellen).
+`tools/orchestrate/schedule.js` schreibt zusätzlich ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`), `tools/orchestrate/evaluate.js` die Gesamtauswertung über alle Hauptkampagnen (`results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md`), `tools/orchestrate/series.js` die Auswertung von Skalierung und Sättigung (`results/<zeitstempel>_series/series.json` und `series.md`) und `tools/code-metrics/metrics.js` die Code-Kennzahlen (`results/<zeitstempel>_code-metrics/metrics.json` und `metrics.md`).
 
 Inhalt eines Lauf-Protokolls:
 
@@ -616,9 +624,10 @@ Zehn Varianten, dreizehn Vergleiche, elf Hypothesen, Replikation, Skalierung, S�
 
 | Stufe | Inhalt | Darstellung |
 |---|---|---|
-| Kern | Sprache und Laufzeitmodell unter Last: Vergleiche 1–4, H1, H3, H4, Skalierungsreihe | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
+| Kern | Sprache und Laufzeitmodell unter Last: Vergleiche 1–4, H1, H3, H4, H6, H8 (Anteil von Redis an der CPU), Skalierungsreihe | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
 | Kern | Transport: Vergleiche 12 und 13, H9–H11, SSE gegen WebSocket im Sättigungstest | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
-| Ergänzung | Kosten der Architektur: Framework (Vergleiche 5–8, H5, H6), Queue (Vergleiche 9–11, H7), Anteil von Redis (H8) | ein Abschnitt, je Achse eine Tabelle und wenige Absätze |
+| Ergänzung | Kosten der Architektur: Framework (Vergleiche 5–8, H5), Queue (Vergleiche 9–11, H7) | ein Abschnitt, je Achse eine Tabelle und wenige Absätze |
+| übergreifend | H2 (alle dreizehn Vergleiche bei 10 Clients) | Belege in den jeweiligen Abschnitten, Bewertung in der Hypothesentabelle |
 | Ergänzung | Komplexität und Wartbarkeit (RQ3, 5.13, 5.22) | ein Abschnitt mit einer Tabelle der Kennzahlen und dem qualitativen Vergleich |
 | Ergänzung | Messbetrieb, Zustellung, Replikation | knapp, Zusammenfassung im Text |
 | Anhang | vollständige Tabellen aller 39 Tests je Messgröße, rangbiseriale Korrelation, Replikation je Vergleich, Stufen von Skalierung und Sättigung je Variante, Verlauf von Pilot und Kontrollmessung | nur Tabellen, im Text verwiesen |
@@ -644,7 +653,6 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Punkt | Stand | Klärung durch |
 |---|---|---|
 | Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
-| Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 | Befund aus 5.13 (Laravel 12) erneut prüfen | vor dem Schreiben des Abschnitts zu Komplexität und Wartbarkeit |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
 | Auslegung „gleiches Budget pro Container" | als „pro Zelle" umgesetzt (5.6.2), Bestätigung ausstehend | Betreuer |
@@ -652,7 +660,6 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Erprobung des Zwei-Rechner-Aufbaus | implementiert, nicht auf Pi-Hardware getestet (5.14) | nach Verfügbarkeit des Pi |
 | Belastungstest, Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17) | auf dem Pi |
 | Endwerte der Ressourcenlimits | Arbeitswerte 2 CPUs / 2 GiB (5.10); Speicherspitze von Laravel auf dem Pi prüfen | nach Festlegung des Pi-Modells |
-| Docker-Images auf Digests pinnen | damit alle Kampagnen mit identischen Images laufen | vor Block 1 |
 | Literaturangaben mit Prüfvermerk | DOIs bzw. Verlagsangaben einzelner Quellen bestätigen (LITERATUR.md) | vor Abgabe |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
@@ -676,3 +683,4 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |
 | 2026-10-17 | Quellen des Exposés geprüft und übernommen, zwei Angaben korrigiert, eine verworfen (LITERATUR.md); weitere Abweichungen vom Exposé ergänzt: eigenständige Prototypen, Queue als Achse, Erwartung zur Latenz (5.23). |
 | 2026-10-17 | Schwerpunkte der schriftlichen Arbeit und Reihenfolge von Kürzungen festgelegt (5.24), Cliff's Delta als einziges Effektmaß im Text (5.8). Aufgeräumt: `tools/monitor` und `tools/redis-baseline` entfernt, frühere Prüfberichte nach `docs/archive/` verschoben. |
+| 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |

@@ -1,6 +1,6 @@
 # Literatur
 
-Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Angaben, die nicht direkt an einer Verlags- oder Primärquelle bestätigt werden konnten, sind mit **„vor Abgabe prüfen"** gekennzeichnet. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
+Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Am 2026-10-17 wurden alle Fundstellen mit DOI über Crossref, Bücher ohne DOI über Open Library bzw. den Verlag bestätigt; offene Prüfvermerke gibt es nicht mehr. Online-Quellen tragen ihr Abrufdatum. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
 
 ---
 
@@ -19,7 +19,7 @@ Die verwandten Arbeiten lassen sich vier Linien zuordnen:
 
 ### Lauer & Needham (1979) — Dualität von Nachrichten- und Prozedurmodell
 
-Hugh C. Lauer, Roger M. Needham. „On the Duality of Operating System Structures." *ACM SIGOPS Operating Systems Review*, 13(2), 3–19, 1979 (Erstvorstellung 1978). DOI: vor Abgabe prüfen.
+Hugh C. Lauer, Roger M. Needham. „On the Duality of Operating System Structures." *ACM SIGOPS Operating Systems Review*, 13(2), 3–19, 1979 (Erstvorstellung 1978). DOI: 10.1145/850657.850658 (über Crossref bestätigt am 2026-10-17).
 
 Inhalt laut Zusammenfassungen: Betriebssysteme lassen sich in nachrichtenorientierte (wenige Prozesse, expliziter Nachrichtenaustausch) und prozedurorientierte Systeme einteilen; beide Modelle sind zueinander dual, keines ist grundsätzlich überlegen.
 
@@ -34,6 +34,7 @@ Bezug: theoretischer Ausgangspunkt der Debatte „Threads gegen Events", in die 
   number       = {2},
   pages        = {3--19},
   date         = {1979},
+  doi          = {10.1145/850657.850658},
   langid       = {english}
 }
 ```
@@ -79,7 +80,7 @@ Bezug: Gegenposition, die in der Diskussion verhindert, das Ergebnis vorschnell 
 
 ### Pariag et al. (2007) — Vergleich von Webserver-Architekturen
 
-David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. „Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI: vor Abgabe prüfen.
+David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. „Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI: 10.1145/1272996.1273021 (über Crossref bestätigt am 2026-10-17).
 
 Inhalt laut Zusammenfassung: Vergleich eines ereignisgesteuerten, eines Thread-pro-Verbindung- und eines Pipeline-Servers; die ereignisgesteuerte und die Pipeline-Variante erzielten rund 18 % höheren Durchsatz als die Thread-Variante.
 
@@ -92,13 +93,14 @@ Bezug: empirischer Vergleich der Nebenläufigkeitsmodelle unter kontrollierten B
   booktitle = {Proceedings of the 2nd ACM SIGOPS/EuroSys European Conference on Computer Systems},
   pages     = {231--243},
   date      = {2007},
+  doi       = {10.1145/1272996.1273021},
   langid    = {english}
 }
 ```
 
 ### Tilkov & Vinoski (2010) — Node.js
 
-Stefan Tilkov, Steve Vinoski. „Node.js: Using JavaScript to Build High-Performance Network Programs." *IEEE Internet Computing*, 14(6), 80–83, 2010. IEEE-Xplore-Dokument 5617064; DOI vor Abgabe prüfen.
+Stefan Tilkov, Steve Vinoski. „Node.js: Using JavaScript to Build High-Performance Network Programs." *IEEE Internet Computing*, 14(6), 80–83, 2010. DOI: 10.1109/MIC.2010.145 (über Crossref bestätigt am 2026-10-17).
 
 Inhalt laut Abstract: Node.js als Plattform für nebenläufige Netzwerkprogramme mit asynchroner Ein- und Ausgabe und ereignisgesteuertem Modell statt Multithreading.
 
@@ -113,6 +115,7 @@ Bezug: Einordnung von Node.js als Vertreter des ereignisgesteuerten Modells.
   number       = {6},
   pages        = {80--83},
   date         = {2010},
+  doi          = {10.1109/MIC.2010.145},
   langid       = {english}
 }
 ```
@@ -335,6 +338,7 @@ Verwendung: Rahmen aus Konstrukt-, interner, externer und statistischer Schlussf
   edition   = {2},
   publisher = {Springer},
   date      = {2024},
+  doi       = {10.1007/978-3-662-69306-3},
   langid    = {english}
 }
 ```
@@ -377,6 +381,7 @@ Verwendung: gepaarter Signifikanztest (DECISIONS.md 5.8) auf den Laufpaaren des 
   number       = {6},
   pages        = {80--83},
   date         = {1945},
+  doi          = {10.2307/3001968},
   langid       = {english}
 }
 ```
@@ -404,7 +409,7 @@ Status: bis 2026-10-16 vorgesehenes Verfahren, ersetzt durch den gepaarten Wilco
 
 ### Armitage, McPherson & Rowe (1969) — wiederholtes Testen auf anwachsenden Daten
 
-P. Armitage, C. K. McPherson, B. C. Rowe. „Repeated Significance Tests on Accumulating Data." *Journal of the Royal Statistical Society, Series A (General)*, 132(2), 235–244, 1969. DOI: vor Abgabe prüfen (Crossref oder JSTOR).
+P. Armitage, C. K. McPherson, B. C. Rowe. „Repeated Significance Tests on Accumulating Data." *Journal of the Royal Statistical Society, Series A (General)*, 132(2), 235–244, 1969. DOI: 10.2307/2343787 (über Crossref bestätigt am 2026-10-17).
 
 Verwendung: Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein Abbruchkriterium sind und die Wiederholungszahl vorab aus einem Pilot festgelegt wird (DECISIONS.md 5.9). Wird auf anwachsenden Daten wiederholt getestet und bei Signifikanz abgebrochen, steigt die Fehlerrate erster Art deutlich über das nominelle Niveau.
 
@@ -417,6 +422,7 @@ Verwendung: Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein A
   number       = {2},
   pages        = {235--244},
   date         = {1969},
+  doi          = {10.2307/2343787},
   langid       = {english}
 }
 ```
@@ -459,6 +465,7 @@ Verwendung: eingeordnetes Effektmaß (DECISIONS.md 5.8). Ordinal, ohne Intervall
   number       = {3},
   pages        = {494--509},
   date         = {1993},
+  doi          = {10.1037/0033-2909.114.3.494},
   langid       = {english}
 }
 ```
@@ -485,7 +492,7 @@ Verwendung: vorab festgelegte Schwellenwerte (|δ| < 0,147 vernachlässigbar; < 
 
 ### Kerby (2014) — rangbiseriale Korrelation für gepaarte Daten
 
-Dave S. Kerby. „The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation." *Comprehensive Psychology*, 3, 2014. DOI: 10.2466/11.IT.3.1 (aus Sekundärquelle; vor Abgabe prüfen).
+Dave S. Kerby. „The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation." *Comprehensive Psychology*, 3, 2014. DOI: 10.2466/11.IT.3.1 (über Crossref bestätigt am 2026-10-17).
 
 Verwendung: zusätzlich zu Cliff's Delta ausgegebenes Effektmaß r = (W⁺ − W⁻) / (W⁺ + W⁻), das direkt zum Wilcoxon-Vorzeichen-Rang-Test passt: Anteil der Rangsumme, der für eine Richtung spricht, minus Anteil, der dagegen spricht (DECISIONS.md 5.8).
 
@@ -566,7 +573,7 @@ Verwendung: 95-%-Konfidenzintervall für den Median der gepaarten Differenzen (n
 
 ### Widrow & Kollár (2008) — Quantisierungsrauschen
 
-Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital Computation, Signal Processing, Control, and Communications*. Cambridge University Press, 2008. ISBN 978-0-521-88671-0. DOI: 10.1017/CBO9780511754661 (aus dem Schema der Kapitel-DOIs abgeleitet; vor Abgabe prüfen).
+Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital Computation, Signal Processing, Control, and Communications*. Cambridge University Press, 2008. ISBN 978-0-521-88671-0. DOI: 10.1017/CBO9780511754661 (über Crossref bestätigt am 2026-10-17).
 
 Verwendung: Begründung des Mittelwerts pro Lauf als Testgröße (DECISIONS.md 5.8). Werden Zeitstempel auf ganze Millisekunden gerundet und sind die Ereignisse nicht an das Millisekundenraster gekoppelt, ist der Rundungsfehler näherungsweise gleichverteilt und im Mittel null. Der Mittelwert vieler gerundeter Werte ist dann fein aufgelöst und unverzerrt, der Median dagegen bleibt an das Raster gebunden.
 
@@ -577,6 +584,7 @@ Verwendung: Begründung des Mittelwerts pro Lauf als Testgröße (DECISIONS.md 5
                Signal Processing, Control, and Communications},
   publisher = {Cambridge University Press},
   date      = {2008},
+  doi       = {10.1017/CBO9780511754661},
   langid    = {english}
 }
 ```
@@ -599,6 +607,7 @@ Verwendung: Begründung, den k6-Lauf statt des Einzelereignisses als Analyseeinh
   number       = {2},
   pages        = {187--211},
   date         = {1984},
+  doi          = {10.2307/1942661},
   langid       = {english}
 }
 ```
@@ -620,6 +629,7 @@ Verwendung: wiederholte Läufe, Ausschluss von Warm-up-Läufen und nicht normalv
                (OOPSLA)},
   pages     = {57--76},
   date      = {2007},
+  doi       = {10.1145/1297027.1297033},
   langid    = {english}
 }
 ```
@@ -667,7 +677,7 @@ Verwendung: Begründung, p95, p99 und Maximum zusätzlich zum Mittelwert pro Lau
 
 ### Nielsen (1993) — Grenzen der Antwortzeit
 
-Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Kapitel 5 (Antwortzeiten). ISBN 0-12-518405-0 (Verlag und ISBN vor Abgabe prüfen). Die drei Grenzen (0,1 s, 1 s, 10 s) sind vom Autor auch online zusammengefasst: nngroup.com/articles/response-times-3-important-limits.
+Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Kapitel 5 (Antwortzeiten). ISBN 0-12-518405-0 (Verlag, Ort und ISBN über Open Library bestätigt am 2026-10-17). Die drei Grenzen (0,1 s, 1 s, 10 s) sind vom Autor auch online zusammengefasst: nngroup.com/articles/response-times-3-important-limits.
 
 Verwendung: Latenzgrenze von 1 000 ms im Sättigungskriterium (DECISIONS.md 5.17). Bis etwa eine Sekunde unterbricht eine Verzögerung den Gedankenfluss von Nutzern nicht.
 
@@ -700,6 +710,7 @@ Verwendung: Docker führt einen messbaren, für PHP und Node.js aber symmetrisch
                Performance Analysis of Systems and Software (ISPASS)},
   pages     = {171--172},
   date      = {2015},
+  doi       = {10.1109/ISPASS.2015.7095802},
   langid    = {english}
 }
 ```

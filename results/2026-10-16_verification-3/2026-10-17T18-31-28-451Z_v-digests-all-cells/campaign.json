@@ -1,0 +1,45 @@
+{
+  "name": "v-digests-all-cells",
+  "phase": "pilot",
+  "configs": [
+    "node-minimal-sse",
+    "node-minimal-ws",
+    "node-express-sse",
+    "node-express-ws",
+    "php-minimal-sse",
+    "php-minimal-ws",
+    "php-laravel-sse",
+    "php-laravel-ws",
+    "node-express-sse-queue",
+    "php-laravel-sse-queue"
+  ],
+  "comparisons": [
+    [
+      "node-minimal-sse",
+      "php-minimal-sse"
+    ],
+    [
+      "node-minimal-sse",
+      "node-minimal-ws"
+    ],
+    [
+      "php-minimal-sse",
+      "php-minimal-ws"
+    ]
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 8,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "minPairs": 1,
+  "bootstrap": {
+    "resamples": 1000
+  }
+}
