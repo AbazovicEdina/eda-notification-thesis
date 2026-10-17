@@ -146,7 +146,7 @@ Umsetzung:
 
 Für die Fehlersuche ist lokal per `.env` auf Entwicklung umschaltbar. Der Orchestrator protokolliert den Modus jedes Containers in jedem Lauf und bricht Pilot-, Haupt- und Kontrollkampagnen ab, wenn eine Zelle nicht im Produktionsbetrieb läuft. Der Werkzeugvergleich (5.13) wurde dagegen bewusst im Entwicklungsbetrieb durchgeführt, weil Debugging in der Entwicklung stattfindet.
 
-### 5.6 Fairness-Regeln — ENTSCHIEDEN (abgestimmt am 2026-10-16; Präzisierung in 5.6.2 offen)
+### 5.6 Fairness-Regeln — ENTSCHIEDEN (abgestimmt am 2026-10-16, Auslegung in 5.6.2 geklärt am 2026-10-17)
 
 **Node.js läuft als einzelner Prozess** ohne `cluster`-Modul. Wie PHP-FPM ist das der ökosystemtypische Standardbetrieb ohne gezielte Zusatzoptimierung. Eine Konsequenz ist in der Arbeit zu berichten: Ein Node-Prozess führt JavaScript auf einem Kern aus und kann ein Budget von zwei Kernen strukturell nicht ausschöpfen, PHP-FPM mit mehreren Worker-Prozessen dagegen schon. Gleiches Budget bedeutet gleiche Zuteilung, nicht gleiche Ausschöpfbarkeit. Die tatsächlich genutzte CPU-Zeit wird pro Lauf gemessen (5.16) und macht den Effekt sichtbar.
 
@@ -185,7 +185,7 @@ Umsetzung:
 
 **Redis außerhalb des Budgets.** Redis ist gemeinsame Infrastruktur und gehört zu keiner Zelle. Bei PHP-FPM/SSE übernimmt Redis aber die Verteilung an alle Clients (eine Subscription pro Worker), bei allen anderen Zellen der Zellprozess selbst. Damit diese Verlagerung den Vergleich nicht verzerrt, wird Redis in jedem Lauf mitgemessen, und die Ressourcen-Familien der Statistik verwenden den Gesamtverbrauch „Zelle + Redis" (5.8, 5.16). Zelle und Redis werden zusätzlich einzeln berichtet.
 
-Offen: Die Betreuervorgabe lautete „gleiches Budget pro Container". Sie wird als „gleiches Budget pro verglichenem System" ausgelegt, da sie vermutlich von einem Container pro Zelle ausging. Die Bestätigung steht aus (Abschnitt 6).
+Auslegung der Betreuervorgabe (geklärt am 2026-10-17): Notiert war „gleiches Budget pro Container", weil die Frage beim Abstimmungstermin von Containern sprach. Gemeint war ein möglichst fairer Vergleich. Da einige Zellen aus mehreren Containern bestehen, ist das Budget pro Zelle die faire Umsetzung.
 
 #### 5.6.3 Nur die Zellen der laufenden Kampagne sind gestartet
 
@@ -572,23 +572,25 @@ Die Kennzahlen zeigen einen Zielkonflikt, der ohne Gewichtung berichtet wird: Ei
 
 ### 5.23 Abweichungen vom Exposé — ENTSCHIEDEN (Bestätigung durch den Betreuer ausstehend)
 
+Maßstab für jede Abweichung: Sie muss sinnvoll begründet sein und den Entwicklern, für die die Entscheidungshilfe gedacht ist, einen echten Mehrwert bringen (Vorgabe der Autorin, 2026-10-17). Die Tabelle nennt diesen Mehrwert je Punkt.
+
 Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, der Abstimmung mit dem Betreuer am 2026-10-16 und zwei Überprüfungen des Messaufbaus (Abschnitt 8) haben sich Abweichungen ergeben. Jede ist hier mit Begründung festgehalten. Das Methodikkapitel der Arbeit nennt sie in einer Tabelle, damit die Gutachter den Weg vom Exposé zur Umsetzung nachvollziehen können.
 
-| Nr. | Punkt | Exposé | Umsetzung |
-|---|---|---|---|
-| 1 | Titel | „Design and Implementation of an Event-Driven Notification System in PHP Using SSE and Queues: A Comparative Study with Node.js/Express" | Arbeitstitel „Event-driven Notification Systems: PHP vs. Node.js with Server-Sent Events and WebSockets"; endgültiger Titel mit dem Betreuer abzustimmen |
-| 2 | Forschungsfragen | eine Hauptfrage (Entwurf, Umsetzung, messbare Unterschiede) mit sechs Unterfragen | drei messbare Forschungsfragen und ein praktisches Ziel; Entwurf und Umsetzung als konstruktiver Teil |
-| 3 | SSE und WebSocket | direkter Vergleich mit Erwartung | Vergleiche 12 und 13 (gepaart), Skalierung und Sättigung (beschreibend), H9 bis H11 |
-| 4 | Symfony | EventDispatcher als zweite Referenz | nicht umgesetzt |
-| 5 | Komplexität und Wartbarkeit | Unterfrage | Code-Kennzahlen und Debugging-Vergleich (5.13, 5.22) |
-| 6 | Latenzmaß | p50, p95, p99 | Mittelwert pro Lauf als Testgröße, Perzentile beschreibend |
-| 7 | Durchsatz | Events pro Sekunde bei steigender Last | Zustellquote je Lauf und Sättigungstest |
-| 8 | Skalierung | 10, 50, 100 und 500 Clients | Laststufen 10, 50, 500; Skalierungsreihe 10 bis 1 000 |
-| 9 | Laravel-Version | 13.x | 13.34.0 (zwischenzeitlich 12.61.1) |
-| 10 | Literatur | zehn Quellen, u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside | neun übernommen (drei standen bereits in LITERATUR.md), zwei Angaben korrigiert, Tzialla et al. nicht übernommen (LITERATUR.md) |
-| 11 | Grundlage der Prototypen | PHP-Prototyp erweitert das bestehende Lokato-Backend (Laravel, relationale Datenbank) | eigenständige Prototypen mit dem Ereignisformat von Lokato, ohne Datenbank |
-| 12 | Queue in den Varianten | Laravel-Queue und Event-Dispatcher als Teil der vollständigen Umsetzungen | Queue als eigene Achse in zwei Varianten (5.19) |
-| 13 | Erwartung zur Latenz | Node.js mit geringerer Latenz und höherem Durchsatz unter hoher Last | H3 mit offener Richtung |
+| Nr. | Punkt | Exposé | Umsetzung | Mehrwert für Entwickler |
+|---|---|---|---|---|
+| 1 | Titel | „Design and Implementation of an Event-Driven Notification System in PHP Using SSE and Queues: A Comparative Study with Node.js/Express" | Arbeitstitel „Event-driven Notification Systems: PHP vs. Node.js with Server-Sent Events and WebSockets"; endgültiger Titel mit dem Betreuer abzustimmen | Der Titel zeigt sofort, welche Entscheidungen die Arbeit unterstützt: Sprache, Transport, Framework und Queue |
+| 2 | Forschungsfragen | eine Hauptfrage (Entwurf, Umsetzung, messbare Unterschiede) mit sechs Unterfragen | drei messbare Forschungsfragen und ein praktisches Ziel; Entwurf und Umsetzung als konstruktiver Teil | Antworten mit Zahlen und Effektstärken statt einer allgemeinen Beschreibung, dazu eine Entscheidungshilfe |
+| 3 | SSE und WebSocket | direkter Vergleich mit Erwartung | Vergleiche 12 und 13 (gepaart), Skalierung und Sättigung (beschreibend), H9 bis H11 | Die Wahl zwischen SSE und WebSocket ist eine der häufigsten Entscheidungen bei Benachrichtigungen; gemessene Unterschiede statt Erfahrungsberichten |
+| 4 | Symfony | EventDispatcher als zweite Referenz | nicht umgesetzt | Kein irreführendes Ergebnis über einen Go-Hub als „Symfony"; der Hinweis auf Mercure ist selbst eine praktische Information |
+| 5 | Komplexität und Wartbarkeit | Unterfrage | Code-Kennzahlen und Debugging-Vergleich (5.13, 5.22) | Sichtbar, was eine Variante an Code, Abhängigkeiten und Betrieb kostet, nicht nur an Leistung |
+| 6 | Latenzmaß | p50, p95, p99 | Mittelwert pro Lauf als Testgröße, Perzentile beschreibend | Belastbare Unterschiede, die sich bei Wiederholung bestätigen; Perzentile für die Nutzersicht bleiben erhalten |
+| 7 | Durchsatz | Events pro Sekunde bei steigender Last | Zustellquote je Lauf und Sättigungstest | Die Rate, ab der ein Stack versagt, ist eine direkte Grundlage für Kapazitätsplanung |
+| 8 | Skalierung | 10, 50, 100 und 500 Clients | Laststufen 10, 50, 500; Skalierungsreihe 10 bis 1 000 | Zeigt, ab wie vielen Clients PHP-FPM an seine Worker-Grenze stößt, und damit, wie ein Pool zu dimensionieren ist |
+| 9 | Laravel-Version | 13.x | 13.34.0 (zwischenzeitlich 12.61.1) | Ergebnisse gelten für die Version, die Entwickler heute einsetzen |
+| 10 | Literatur | zehn Quellen, u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside | neun übernommen (drei standen bereits in LITERATUR.md), zwei Angaben korrigiert, Tzialla et al. nicht übernommen (LITERATUR.md) | Nur geprüfte, passende Quellen; korrigierte Angaben sparen Lesern Sucharbeit |
+| 11 | Grundlage der Prototypen | PHP-Prototyp erweitert das bestehende Lokato-Backend (Laravel, relationale Datenbank) | eigenständige Prototypen mit dem Ereignisformat von Lokato, ohne Datenbank | Ergebnisse sind auf eigene Projekte übertragbar statt an eine bestimmte Code-Basis gebunden; die Prototypen dienen als Referenzcode |
+| 12 | Queue in den Varianten | Laravel-Queue und Event-Dispatcher als Teil der vollständigen Umsetzungen | Queue als eigene Achse in zwei Varianten (5.19) | Eigener Preis einer Queue, getrennt vom Framework; hilft bei der Entscheidung, ob sich eine Queue lohnt |
+| 13 | Erwartung zur Latenz | Node.js mit geringerer Latenz und höherem Durchsatz unter hoher Last | H3 mit offener Richtung | Keine vorweggenommene Antwort; die Erwartung des Exposés wird trotzdem geprüft |
 
 **1. Titel.** Die Studie ist symmetrischer geworden als geplant. Beide Sprachen werden jeweils ohne und mit Framework umgesetzt, beide Transporte gemessen, und die Queue ist eine von vier Achsen (Sprache, Framework, Transport, Queue). Ein Titel, der PHP mit SSE und Queues in den Mittelpunkt stellt und Node.js/Express nur als Vergleichsgröße nennt, beschreibt die Arbeit daher nicht mehr genau. Der Arbeitstitel ist ein Vorschlag. Ein Kompromiss, der die Formulierung des Exposés erhält, wäre „Design and Implementation of Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues".
 
@@ -674,6 +676,14 @@ Regeln:
 
 Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleichen, Kontrollmessung, Skalierungsreihe und Sättigungstest. Die beiden Reihen kosten zusammen weniger als einen Tag und tragen RQ2, H4 und H11. Jede Kürzung wird mit Umfang und Grund in der Arbeit genannt.
 
+### 5.25 Abbildungen für die Arbeit — ENTSCHIEDEN (2026-10-17)
+
+`tools/figures` erzeugt die Abbildungen der Ergebniskapitel als Vektor-PDF aus `evaluation.json` und `series.json`, damit sie nach der Messung ohne Handarbeit entstehen und bei einer Neuauswertung identisch neu erzeugt werden können.
+
+- **Inhalt:** Boxplots der Lauf-Werte je Vergleichsgruppe und Messgröße (Kern: Sprache, Vergleiche 1–4, und Transport, Vergleiche 12 und 13; Anhang: Framework, Queue), Skalierungskurven (bediente Clients, Latenz, Working Set) je Sprache und Framework-Wahl, höchste nachhaltige Rate im Sättigungstest. `figures.md` beschreibt jede Datei und nennt fehlende Werte.
+- **Gestaltung:** Schrift Computer Modern passend zur Latin Modern der Vorlage, eingebettet; Farben aus einer auf Farbfehlsichtigkeit geprüften Palette mit eigenem Paar für Sprache (Node.js, PHP) und Transport (SSE, WebSocket), damit eine Farbe nie zwei Bedeutungen trägt; zusätzlich Schraffur, Linienart und Markierung für den Schwarzweißdruck; Anhangsabbildungen in Graustufen.
+- **Umgebung:** Python mit matplotlib 3.11.2 und numpy 2.5.3 in einem eigenen Container (Basis-Image per Digest gepinnt). Die Messwerkzeuge bleiben bei Node.js; Python wird nur für die Abbildungen gebraucht, weil matplotlib druckfähige Vektorgrafiken mit eingebetteten Schriften ohne weitere Werkzeuge erzeugt.
+
 ## 6. Offene Punkte
 
 | Punkt | Stand | Klärung durch |
@@ -681,7 +691,6 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
-| Auslegung „gleiches Budget pro Container" | als „pro Zelle" umgesetzt (5.6.2), Bestätigung ausstehend | Betreuer |
 | Frage 8: Telemetrie statt oder zusätzlich zum Werkzeugvergleich | beides umgesetzt (5.13, 5.16) | Betreuer |
 | Erprobung des Zwei-Rechner-Aufbaus | implementiert, nicht auf Pi-Hardware getestet (5.14) | nach Verfügbarkeit des Pi |
 | Belastungstest, Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17) | auf dem Pi |
@@ -709,5 +718,6 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |
 | 2026-10-17 | Quellen des Exposés geprüft und übernommen, zwei Angaben korrigiert, eine verworfen (LITERATUR.md); weitere Abweichungen vom Exposé ergänzt: eigenständige Prototypen, Queue als Achse, Erwartung zur Latenz (5.23). |
 | 2026-10-17 | Schwerpunkte der schriftlichen Arbeit und Reihenfolge von Kürzungen festgelegt (5.24), Cliff's Delta als einziges Effektmaß im Text (5.8). Aufgeräumt: `tools/monitor` und `tools/redis-baseline` entfernt, frühere Prüfberichte nach `docs/archive/` verschoben. |
-| 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
+| 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
+| 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
