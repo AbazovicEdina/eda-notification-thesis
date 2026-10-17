@@ -1,0 +1,31 @@
+{
+  "name": "v13-laravel",
+  "phase": "pilot",
+  "configs": [
+    "php-laravel-sse",
+    "php-laravel-ws",
+    "php-laravel-sse-queue"
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 8,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 2
+    },
+    {
+      "name": "stress",
+      "vus": 500,
+      "holdSeconds": 10,
+      "runsPerConfig": 2,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "minPairs": 1,
+  "bootstrap": {
+    "resamples": 1000
+  }
+}
