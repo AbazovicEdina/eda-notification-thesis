@@ -1,6 +1,6 @@
 # Literatur
 
-Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Am 2026-10-17 wurden alle Fundstellen mit DOI über Crossref, Bücher ohne DOI über Open Library bzw. den Verlag bestätigt; offene Prüfvermerke gibt es nicht mehr. Online-Quellen tragen ihr Abrufdatum. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
+Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16 und 2026-10-17). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Am 2026-10-17 wurden alle Fundstellen mit DOI über Crossref, Bücher ohne DOI über Open Library bzw. den Verlag bestätigt; offene Prüfvermerke gibt es nicht mehr. Online-Quellen tragen ihr Abrufdatum. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
 
 ---
 
@@ -431,7 +431,7 @@ Verwendung: Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein A
 
 Norbert L. Kerr. „HARKing: Hypothesizing After the Results are Known." *Personality and Social Psychology Review*, 2(3), 196–217, 1998. DOI: 10.1207/s15327957pspr0203_4.
 
-Verwendung: Begründung, die Hypothesen H1–H8 vor der Datenerhebung festzulegen (DECISIONS.md 5.18). HARKing bezeichnet das Darstellen einer nachträglich aus den Ergebnissen abgeleiteten Hypothese, als sei sie vorab formuliert gewesen.
+Verwendung: Begründung, die Hypothesen H1–H11 vor der Datenerhebung festzulegen (DECISIONS.md 5.18). HARKing bezeichnet das Darstellen einer nachträglich aus den Ergebnissen abgeleiteten Hypothese, als sei sie vorab formuliert gewesen.
 
 ```bibtex
 @article{kerr1998harking,

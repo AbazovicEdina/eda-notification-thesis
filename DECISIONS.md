@@ -244,8 +244,9 @@ Alle Festlegungen dieses Abschnitts sind vor der Hauptmessung getroffen und in `
 | Latenz (Mittelwert pro Lauf) | primär | 13 Vergleiche × 3 Laststufen = 39 |
 | CPU-Zeit von Zelle und Redis pro Lauf | sekundär | 39 |
 | Spitze des Speicher-Working-Sets von Zelle und Redis pro Lauf | sekundär | 39 |
+| Mittlere Dauer des Verbindungsaufbaus pro Lauf (ergänzt am 2026-10-17, vor der Datenerhebung) | sekundär | 39 |
 
-Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vorab festgelegt sind. Die Korrektur erfolgt über alle Kampagnen hinweg in `tools/orchestrate/evaluate.js`. Geplante, aber nicht gemessene Tests gehen mit p = 1 ein, damit Weglassen die Korrektur nicht abschwächt. Block 2 (Replikation) wird beschreibend gegen Block 1 abgeglichen: gleiche Richtung, gleiche Effektklasse, überlappende Konfidenzintervalle. Skalierungsreihe, Sättigungstest und Kontrollmessungen werden nur beschreibend ausgewertet.
+Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vorab festgelegt sind. Die Korrektur erfolgt über alle Kampagnen hinweg in `tools/orchestrate/evaluate.js`. Geplante, aber nicht gemessene Tests gehen mit p = 1 ein, damit Weglassen die Korrektur nicht abschwächt. Block 2 (Replikation) wird beschreibend gegen Block 1 abgeglichen. Ein Ergebnis gilt als repliziert, wenn die Median-Differenz dieselbe Richtung hat und sich die 95-%-Konfidenzintervalle beider Blöcke überlappen; die Effektklasse wird zusätzlich berichtet, ist aber keine Bedingung, weil ihre Grenzen grob sind. Der Verbindungsaufbau ist eine eigene Familie, weil H5 sich auf ihn stützt und er den Unterschied zwischen Prozess pro Verbindung und Event Loop beim Verbindungsansturm am direktesten zeigt; Messzeit kostet die Familie nicht, da die Messgröße in jedem Lauf ohnehin erhoben wird. Skalierungsreihe, Sättigungstest und Kontrollmessungen werden nur beschreibend ausgewertet.
 
 Implementierung: `tools/orchestrate/stats.js` und `pairing.js`. Die Tests in `tools/orchestrate/test/stats.test.js` prüfen sie gegen von Hand gerechnete Werte, u. a. die exakte Nullverteilung für n = 5 und n = 6, die Bindungskorrektur und die Holm-Schwellen.
 
@@ -488,6 +489,31 @@ Die Hypothesen sind aus der Architektur der Stacks abgeleitet und vor der Datene
 
 H9 und H11 übernehmen die Erwartungen des Exposés zum Transportvergleich, H10 ergänzt die Besonderheit von PHP (5.23). Sie wurden am 2026-10-16 vor der Datenerhebung festgelegt, wie H1 bis H8.
 
+**Entscheidungsregeln** (festgelegt am 2026-10-17, vor der Datenerhebung; maschinenlesbar in `plan.json`, `decisionRules` und `rule` je Hypothese, mit englischem Wortlaut für die Arbeit). Ohne festgelegte Regeln wäre die Bewertung als bestätigt, nicht bestätigt oder unentschieden selbst eine nachträgliche Entscheidung (Kerr 1998).
+
+Allgemeine Regeln:
+
+- **G1:** Eine gerichtete Aussage gilt als gezeigt, wenn der Test nach Holm signifikant ist und die Median-Differenz in die vorhergesagte Richtung zeigt.
+- **G2:** Eine Aussage über keinen oder höchstens einen kleinen Unterschied wird über das Effektmaß geprüft (|δ| < 0,33), nicht über fehlende Signifikanz. Ein nicht signifikanter Test belegt keine Gleichheit.
+- **G3:** „Vielfaches" bedeutet ein Verhältnis der Mediane von mindestens 2.
+- **G4:** Betrifft eine Hypothese mehrere Vergleiche oder Laststufen, ist sie bestätigt, wenn die Bedingung in allen Fällen erfüllt ist, und nicht bestätigt, wenn mindestens ein Fall das Gegenteil zeigt. Sonst ist sie unentschieden, ebenso wenn ein benötigter Vergleich weniger als 20 verwertbare Paare hat oder fehlt.
+
+| Nr. | Bestätigt, wenn … |
+|---|---|
+| H1 | Vergleiche 1 und 3 bei 500 Clients: Working Set (Variante und Redis) von PHP mindestens das Doppelte von Node.js, Unterschied signifikant |
+| H2 | alle 13 Vergleiche bei 10 Clients: \|δ\| < 0,33 bei der Latenz; nicht bestätigt, sobald ein Vergleich \|δ\| ≥ 0,33 zusammen mit einem signifikanten Unterschied zeigt |
+| H3 | Vergleiche 1–4: Betrag der Median-Differenz der Latenz bei 500 Clients größer als bei 10 Clients und bei 500 Clients signifikant. Cliff's Delta wird hier nicht verwendet, weil es bei gleichbleibendem Unterschied schon bei 10 Clients nahe seinem Maximum liegt und nicht weiter wachsen kann |
+| H4 | die PHP-FPM-Varianten mit SSE (php-minimal-sse, php-laravel-sse, php-laravel-sse-queue) haben die niedrigsten Kapazitätsgrenzen aller Varianten, und ihr Anteil bedienter Clients fällt zwischen zwei aufeinanderfolgenden Stufen um mindestens 5 Prozentpunkte (harte Grenze); die Node.js-Varianten und die PHP-WebSocket-Server zeigen bis zur selben Stufe keinen solchen Sprung |
+| H5 | Vergleiche 5–8: \|δ\| < 0,33 bei der Latenz auf allen Laststufen; bei Verbindungsaufbau und Working Set ist die Median-Differenz Laravel gegen Minimalumsetzung größer als Express gegen Minimalumsetzung bei gleichem Transport und gleicher Laststufe, und der Laravel-Effekt ist signifikant |
+| H6 | Vergleich 4: php-laravel-ws auf allen drei Laststufen mit signifikant höherer Latenz |
+| H7 | Vergleiche 9 und 10: die Variante mit Queue hat auf allen Laststufen eine signifikant höhere Latenz, und die Median-Differenz ist bei Laravel (Vergleich 10) größer als bei BullMQ (Vergleich 9) |
+| H8 | bei 500 Clients, Median des Redis-Anteils an der gesamten CPU-Zeit über alle gültigen Läufe der Variante in Block 1: mindestens 25 % für alle PHP-FPM-Varianten mit SSE („wesentlich") und unter 10 % für alle übrigen Varianten („gering") |
+| H9 | Vergleich 12: SSE mit signifikant niedrigerer CPU-Zeit und kleinerem Working Set auf allen Laststufen |
+| H10 | Vergleich 13 bei 500 Clients: Working Set von SSE mindestens das Doppelte von WebSocket, Unterschied signifikant |
+| H11 | in allen vier Paaren aus SSE- und WebSocket-Variante gleicher Sprache und Framework-Wahl erreicht die WebSocket-Variante die höhere nachhaltige Rate; unentschieden bei Gleichstand, etwa wenn beide die höchste Stufe erreichen |
+
+Die Schwellen von H8 (25 % und 10 %) sind aus der Formulierung „wesentlicher" bzw. „geringer" Anteil abgeleitet. Die lokalen Funktionsprüfungen hatten zu diesem Zeitpunkt bereits Redis-Anteile gezeigt, auch bei WebSocket-Varianten über 25 %; die Schwellen wurden nicht an diese Werte angepasst, und die Arbeit nennt das offen.
+
 Transparenz: Lokale Funktionsprüfungen vor der Festlegung zeigten bei H6 bereits diese Richtung (2,2 ms gegenüber 1,1 ms bei 10 Clients, n = 3, nicht auf der Zielhardware). H6 wurde aus der Architektur abgeleitet, nicht aus diesen Werten. Gleiches gilt für Hinweise zu H4, H5 und H8 aus den Funktionsprüfungen (`results/2026-10-16_verification-2/`); die Arbeit nennt das offen.
 
 ### 5.19 Queue-Achse — ENTSCHIEDEN (beschlossen am 2026-10-16)
@@ -683,4 +709,5 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |
 | 2026-10-17 | Quellen des Exposés geprüft und übernommen, zwei Angaben korrigiert, eine verworfen (LITERATUR.md); weitere Abweichungen vom Exposé ergänzt: eigenständige Prototypen, Queue als Achse, Erwartung zur Latenz (5.23). |
 | 2026-10-17 | Schwerpunkte der schriftlichen Arbeit und Reihenfolge von Kürzungen festgelegt (5.24), Cliff's Delta als einziges Effektmaß im Text (5.8). Aufgeräumt: `tools/monitor` und `tools/redis-baseline` entfernt, frühere Prüfberichte nach `docs/archive/` verschoben. |
+| 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
