@@ -187,10 +187,10 @@ const evaluation = {
 };
 writeFileSync(path.join(outDir, 'evaluation.json'), JSON.stringify(evaluation, null, 2));
 
-// Markdown-Tabellen für die schriftliche Arbeit
-// Deutsche Schreibweise (Dezimalkomma) für die Übernahme in die Arbeit.
-const fmt = (v, digits = 3) => (v == null || Number.isNaN(v) ? '–' : Number(v).toFixed(digits).replace('.', ','));
-const fmtP = (v) => (v == null ? '–' : v < 0.001 ? '< 0,001' : fmt(v));
+// Markdown-Tabellen für die schriftliche Arbeit. Zahlen mit Dezimalpunkt,
+// da die Arbeit auf Englisch verfasst wird.
+const fmt = (v, digits = 3) => (v == null || Number.isNaN(v) ? '–' : Number(v).toFixed(digits));
+const fmtP = (v) => (v == null ? '–' : v < 0.001 ? '< 0.001' : fmt(v));
 const lines = [
   '# Gesamtauswertung',
   '',
@@ -206,7 +206,7 @@ for (const family of families) {
   for (const t of family.tests) {
     const r = t.result;
     lines.push(`| ${t.comparison_id} | ${t.a} vs. ${t.b} | ${t.scenario} | ${r?.n_pairs ?? '–'} | `
-      + `${r ? `${fmt(r.median_diff)} [${fmt(r.median_diff_ci95[0])}; ${fmt(r.median_diff_ci95[1])}]` : '–'} | `
+      + `${r ? `${fmt(r.median_diff)} [${fmt(r.median_diff_ci95[0])}, ${fmt(r.median_diff_ci95[1])}]` : '–'} | `
       + `${r ? `${fmt(r.cliffs_delta)} (${r.cliffs_magnitude})` : '–'} | ${r ? fmt(r.rank_biserial) : '–'} | `
       + `${r ? fmtP(t.pValue) : '–'} | ${fmtP(t.pHolm)} | ${t.significant ? 'ja' : 'nein'} | ${t.status} |`);
   }

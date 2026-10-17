@@ -1,0 +1,81 @@
+{
+  "_comment": "Zuordnung der Dateien und Abhängigkeiten je Zelle für die Code-Kennzahlen (DECISIONS.md 5.22). own = Anwendungscode, der für die Zelle geschrieben wurde und in ihren Containern läuft (Ereignisquellen des Lastgenerators und Hilfsbefehle für den Debugging-Vergleich sind ausgenommen). deploy = Betriebskonfiguration der Zelle. deps = direkt genutzte Abhängigkeiten aus composer.json bzw. package.json. system = Laufzeiterweiterungen außerhalb des Paketmanagers. Alle Pfade relativ zu prototypes/.",
+  "prototypes": {
+    "node-minimal": { "dir": "node-minimal", "manager": "npm" },
+    "node-express": { "dir": "node-express", "manager": "npm" },
+    "php-minimal": { "dir": "php-minimal", "manager": "composer" },
+    "php-laravel": { "dir": "php-laravel", "manager": "composer" }
+  },
+  "cells": {
+    "node-minimal-sse": {
+      "prototype": "node-minimal",
+      "own": ["node-minimal/sse.js"],
+      "deploy": ["node-minimal/Dockerfile"],
+      "deps": ["redis"],
+      "system": []
+    },
+    "node-minimal-ws": {
+      "prototype": "node-minimal",
+      "own": ["node-minimal/ws.js"],
+      "deploy": ["node-minimal/Dockerfile"],
+      "deps": ["redis", "ws"],
+      "system": []
+    },
+    "node-express-sse": {
+      "prototype": "node-express",
+      "own": ["node-express/sse.js"],
+      "deploy": ["node-express/Dockerfile"],
+      "deps": ["express", "redis"],
+      "system": []
+    },
+    "node-express-ws": {
+      "prototype": "node-express",
+      "own": ["node-express/ws.js"],
+      "deploy": ["node-express/Dockerfile"],
+      "deps": ["express", "redis", "ws"],
+      "system": []
+    },
+    "node-express-sse-queue": {
+      "prototype": "node-express",
+      "own": ["node-express/sse.js", "node-express/queue/worker.js"],
+      "deploy": ["node-express/Dockerfile"],
+      "deps": ["express", "redis", "bullmq"],
+      "system": []
+    },
+    "php-minimal-sse": {
+      "prototype": "php-minimal",
+      "own": ["php-minimal/sse.php"],
+      "deploy": ["php-minimal/Dockerfile", "php-minimal/fpm-pool.conf"],
+      "deps": [],
+      "system": ["ext-redis (PECL)"]
+    },
+    "php-minimal-ws": {
+      "prototype": "php-minimal",
+      "own": ["php-minimal/ws.php"],
+      "deploy": ["php-minimal/Dockerfile"],
+      "deps": ["cboden/ratchet", "clue/redis-react"],
+      "system": []
+    },
+    "php-laravel-sse": {
+      "prototype": "php-laravel",
+      "own": ["php-laravel/routes/web.php"],
+      "deploy": ["php-laravel/Dockerfile", "php-laravel/fpm-pool.conf", "php-laravel/docker/start.sh"],
+      "deps": ["laravel/framework"],
+      "system": ["ext-redis (PECL)", "ext-pcntl"]
+    },
+    "php-laravel-ws": {
+      "prototype": "php-laravel",
+      "own": ["php-laravel/app/Console/Commands/ScanListenCommand.php", "php-laravel/app/Events/ScanReceived.php", "php-laravel/routes/channels.php"],
+      "deploy": ["php-laravel/Dockerfile", "php-laravel/docker/start.sh"],
+      "deps": ["laravel/framework", "laravel/reverb"],
+      "system": ["ext-redis (PECL)", "ext-pcntl"]
+    },
+    "php-laravel-sse-queue": {
+      "prototype": "php-laravel",
+      "own": ["php-laravel/routes/web.php", "php-laravel/app/Jobs/ProcessScanEvent.php"],
+      "deploy": ["php-laravel/Dockerfile", "php-laravel/fpm-pool.conf", "php-laravel/docker/start.sh"],
+      "deps": ["laravel/framework"],
+      "system": ["ext-redis (PECL)", "ext-pcntl"]
+    }
+  }
+}

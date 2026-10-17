@@ -20,7 +20,9 @@
     { "id": 8, "a": "php-minimal-ws", "b": "php-laravel-ws", "question": "Framework-Overhead (PHP, WS)" },
     { "id": 9, "a": "node-express-sse", "b": "node-express-sse-queue", "question": "Queue-Overhead (Node.js, SSE)" },
     { "id": 10, "a": "php-laravel-sse", "b": "php-laravel-sse-queue", "question": "Queue-Overhead (PHP, SSE)" },
-    { "id": 11, "a": "node-express-sse-queue", "b": "php-laravel-sse-queue", "question": "Sprache mit Queue (SSE, mit Framework)" }
+    { "id": 11, "a": "node-express-sse-queue", "b": "php-laravel-sse-queue", "question": "Sprache mit Queue (SSE, mit Framework)" },
+    { "id": 12, "a": "node-minimal-sse", "b": "node-minimal-ws", "question": "Transport (Node.js, ohne Framework)" },
+    { "id": 13, "a": "php-minimal-sse", "b": "php-minimal-ws", "question": "Transport (PHP, ohne Framework)" }
   ],
   "families": [
     { "measure": "latency_mean_ms", "role": "primär", "description": "Mittelwert der Event-Latenz pro Lauf im Messfenster (DECISIONS.md 5.8)" },
@@ -29,12 +31,15 @@
   ],
   "hypotheses": [
     { "id": "H1", "text": "Für SSE benötigt PHP-FPM bei 500 Clients ein Vielfaches des Speichers von Node.js.", "comparisons": [1, 3], "measure": "working_set_peak_bytes_total", "scenario": "stress" },
-    { "id": "H2", "text": "Bei 10 Clients sind die Latenzunterschiede höchstens klein (|δ| < 0,33).", "comparisons": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], "measure": "latency_mean_ms", "scenario": "baseline" },
+    { "id": "H2", "text": "Bei 10 Clients sind die Latenzunterschiede höchstens klein (|δ| < 0,33).", "comparisons": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], "measure": "latency_mean_ms", "scenario": "baseline" },
     { "id": "H3", "text": "Von 10 zu 500 Clients wachsen die Latenzunterschiede zwischen PHP und Node.js; die Richtung ist offen.", "comparisons": [1, 2, 3, 4], "measure": "latency_mean_ms", "scenario": "baseline, stress" },
     { "id": "H4", "text": "In der Skalierungsreihe erreicht PHP-FPM/SSE als erste Variante eine harte Grenze; Node.js und die PHP-WebSocket-Server werden allmählich langsamer.", "comparisons": [], "measure": "served_ratio, latency_mean_ms", "scenario": "Skalierungsreihe" },
     { "id": "H5", "text": "Der Framework-Effekt ist bei der Event-Latenz klein, beim Verbindungsaufbau und beim Speicher aber bei Laravel deutlich größer als bei Express.", "comparisons": [5, 6, 7, 8], "measure": "latency_mean_ms, connect_mean_ms, working_set_peak_bytes_total", "scenario": "alle" },
     { "id": "H6", "text": "php-laravel/WS hat durchgehend höhere Latenz als node-express/WS (zusätzlicher interner HTTP-Aufruf Listener → Reverb).", "comparisons": [4], "measure": "latency_mean_ms", "scenario": "alle" },
     { "id": "H7", "text": "Die Queue erhöht die Latenz in beiden Stacks, bei Laravel stärker als bei BullMQ.", "comparisons": [9, 10], "measure": "latency_mean_ms", "scenario": "alle" },
-    { "id": "H8", "text": "Bei PHP/SSE trägt Redis einen wesentlichen Teil der Gesamt-CPU, bei allen anderen Zellen nur einen geringen.", "comparisons": [1, 3, 7], "measure": "cpu_seconds_redis / cpu_seconds_total", "scenario": "stress" }
+    { "id": "H8", "text": "Bei PHP/SSE trägt Redis einen wesentlichen Teil der Gesamt-CPU, bei allen anderen Zellen nur einen geringen.", "comparisons": [1, 3, 7], "measure": "cpu_seconds_redis / cpu_seconds_total", "scenario": "stress" },
+    { "id": "H9", "text": "Bei Node.js, wo beide Transporte dasselbe Laufzeitmodell nutzen, verursacht SSE weniger Overhead als WebSockets: weniger CPU-Zeit und ein kleineres Working Set bei gleicher Last (Erwartung aus dem Exposé).", "comparisons": [12], "measure": "cpu_seconds_total, working_set_peak_bytes_total", "scenario": "alle" },
+    { "id": "H10", "text": "Bei PHP bestimmt das Laufzeitmodell den Transportvergleich: PHP-FPM/SSE (ein Worker je Verbindung) benötigt bei 500 Clients ein Vielfaches des Speichers des Ratchet-WebSocket-Servers (eine Ereignisschleife).", "comparisons": [13], "measure": "working_set_peak_bytes_total", "scenario": "stress" },
+    { "id": "H11", "text": "Bei hohen Event-Raten erreichen die WebSocket-Varianten eine höhere nachhaltige Rate als die SSE-Varianten derselben Sprache und Variante (Erwartung aus dem Exposé).", "comparisons": [], "measure": "höchste nachhaltige Event-Rate", "scenario": "Sättigungstest" }
   ]
 }
