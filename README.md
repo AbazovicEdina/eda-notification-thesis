@@ -122,7 +122,7 @@ Die gemessene Zelle wählen `SUT_MODE`, `SUT_HOST` und `SUT_PORT` in der `.env`;
 
 ## Versionen
 
-Keine Komponente läuft auf `latest` (Stand 2026-10-16):
+Keine Komponente läuft auf `latest` (Stand 2026-10-17):
 
 | Komponente | Version | Pinning |
 | ---------- | ------- | ------- |
@@ -137,9 +137,10 @@ Keine Komponente läuft auf `latest` (Stand 2026-10-16):
 | Redis | 7.4-alpine | `docker-compose.yml` |
 | Nginx | 1.27-alpine | `docker-compose.yml` |
 | k6 / xk6-sse | 1.2.1 / 0.1.12 | `k6/Dockerfile` (Begründung: DECISIONS.md, Abschnitt 3) |
-| xk6-Builder | 1.4.7 | `k6/Dockerfile` |
+| xk6-Builder / k6-Laufzeit | 1.4.7 / Alpine 3.20 | `k6/Dockerfile` |
+| Composer (nur Build) | 2.8 | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
 
-Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind auf Minor-Versionen gepinnt; exakte Digests werden vor Block 1 festgelegt (DECISIONS.md, Abschnitt 6). Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
+Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind zusätzlich zum Tag auf den Digest ihres Multi-Arch-Index gepinnt (`image:tag@sha256:…` in den Dockerfiles und in `docker-compose.yml`, festgelegt am 2026-10-17). Derselbe Digest gilt für amd64 und arm64; Lastgenerator und Pi bauen damit aus identischen Basis-Images. Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
 
 ## PHP-FPM-Dimensionierung
 

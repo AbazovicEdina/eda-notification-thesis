@@ -10,11 +10,11 @@
 # Builder ebenfalls gepinnt (1.4.7 = Version des Machbarkeitsnachweises):
 # ein ungepinnter Builder kann das Build-Verhalten still ändern — genau die
 # Fehlerklasse, die den v2-Konflikt oben verursacht hat.
-FROM grafana/xk6:1.4.7 AS builder
+FROM grafana/xk6:1.4.7@sha256:16a4044c63bbef291bd51c9213fdcfaee7342d0fac2c9bb9ec64eca23ac35377 AS builder
 WORKDIR /build
 RUN xk6 build v1.2.1 --with github.com/phymbert/xk6-sse@v0.1.12 --output /build/k6
 
-FROM alpine:3.20
+FROM alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /build/k6 /usr/local/bin/k6
 WORKDIR /k6
