@@ -1,6 +1,6 @@
 # Literatur
 
-Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Angaben, die nicht direkt an einer Verlags- oder Primärquelle bestätigt werden konnten, sind mit **„vor Abgabe prüfen"** gekennzeichnet. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
+Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Angaben, die nicht direkt an einer Verlags- oder Primärquelle bestätigt werden konnten, sind mit **„vor Abgabe prüfen"** gekennzeichnet. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
 
 ---
 
@@ -26,13 +26,14 @@ Bezug: theoretischer Ausgangspunkt der Debatte „Threads gegen Events", in die 
 
 ```bibtex
 @article{lauer1979duality,
-  author  = {Lauer, Hugh C. and Needham, Roger M.},
-  title   = {On the Duality of Operating System Structures},
-  journal = {ACM SIGOPS Operating Systems Review},
-  volume  = {13},
-  number  = {2},
-  pages   = {3--19},
-  year    = {1979}
+  author       = {Lauer, Hugh C. and Needham, Roger M.},
+  title        = {On the Duality of Operating System Structures},
+  journaltitle = {ACM SIGOPS Operating Systems Review},
+  volume       = {13},
+  number       = {2},
+  pages        = {3--19},
+  date         = {1979},
+  langid       = {english}
 }
 ```
 
@@ -50,8 +51,9 @@ Bezug: Ereignis- und Warteschlangen-Modell als Grundlage für ereignisgesteuerte
   title     = {{SEDA}: An Architecture for Well-Conditioned, Scalable Internet Services},
   booktitle = {Proceedings of the 18th ACM Symposium on Operating Systems Principles (SOSP)},
   pages     = {230--243},
-  year      = {2001},
-  doi       = {10.1145/502034.502057}
+  date      = {2001},
+  doi       = {10.1145/502034.502057},
+  langid    = {english}
 }
 ```
 
@@ -69,7 +71,8 @@ Bezug: Gegenposition, die in der Diskussion verhindert, das Ergebnis vorschnell 
   title     = {Why Events Are A Bad Idea (for High-Concurrency Servers)},
   booktitle = {Proceedings of the 9th Workshop on Hot Topics in Operating Systems (HotOS IX)},
   publisher = {USENIX},
-  year      = {2003}
+  date      = {2003},
+  langid    = {english}
 }
 ```
 
@@ -87,7 +90,8 @@ Bezug: empirischer Vergleich der Nebenläufigkeitsmodelle unter kontrollierten B
   title     = {Comparing the Performance of Web Server Architectures},
   booktitle = {Proceedings of the 2nd ACM SIGOPS/EuroSys European Conference on Computer Systems},
   pages     = {231--243},
-  year      = {2007}
+  date      = {2007},
+  langid    = {english}
 }
 ```
 
@@ -101,13 +105,14 @@ Bezug: Einordnung von Node.js als Vertreter des ereignisgesteuerten Modells.
 
 ```bibtex
 @article{tilkov2010nodejs,
-  author  = {Tilkov, Stefan and Vinoski, Steve},
-  title   = {Node.js: Using {JavaScript} to Build High-Performance Network Programs},
-  journal = {IEEE Internet Computing},
-  volume  = {14},
-  number  = {6},
-  pages   = {80--83},
-  year    = {2010}
+  author       = {Tilkov, Stefan and Vinoski, Steve},
+  title        = {Node.js: Using {JavaScript} to Build High-Performance Network Programs},
+  journaltitle = {IEEE Internet Computing},
+  volume       = {14},
+  number       = {6},
+  pages        = {80--83},
+  date         = {2010},
+  langid       = {english}
 }
 ```
 
@@ -125,8 +130,9 @@ Bezug und Abgrenzung: direktester Vorläufer des Sprachvergleichs; misst jedoch 
   title     = {Performance Comparison and Evaluation of Web Development Technologies in {PHP}, {Python}, and {Node.js}},
   booktitle = {2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)},
   pages     = {661--668},
-  year      = {2014},
-  doi       = {10.1109/CSE.2014.142}
+  date      = {2014},
+  doi       = {10.1109/CSE.2014.142},
+  langid    = {english}
 }
 ```
 
@@ -144,8 +150,9 @@ Bezug: Einordnung der Relevanz von Echtzeitkommunikation im Web; belegt, dass Pu
   title     = {{WebSocket} Adoption and the Landscape of the Real-Time Web},
   booktitle = {Proceedings of the Web Conference 2021 (WWW '21)},
   pages     = {1192--1203},
-  year      = {2021},
-  doi       = {10.1145/3442381.3450063}
+  date      = {2021},
+  doi       = {10.1145/3442381.3450063},
+  langid    = {english}
 }
 ```
 
@@ -162,8 +169,8 @@ Bezug: Begriffe und Grundlagen für Redis Pub/Sub und die Queues im Grundlagenka
   author    = {Hohpe, Gregor and Woolf, Bobby},
   title     = {Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions},
   publisher = {Addison-Wesley},
-  year      = {2003},
-  isbn      = {978-0-321-20068-6}
+  date      = {2003},
+  langid    = {english}
 }
 ```
 
@@ -184,8 +191,8 @@ Verwendung: Rahmen aus Konstrukt-, interner, externer und statistischer Schlussf
   title     = {Experimentation in Software Engineering},
   edition   = {2},
   publisher = {Springer},
-  year      = {2024},
-  isbn      = {978-3-662-69305-6}
+  date      = {2024},
+  langid    = {english}
 }
 ```
 
@@ -197,15 +204,16 @@ Verwendung: Signifikanztests stets zusammen mit einer Effektstärke berichten; s
 
 ```bibtex
 @article{arcuri2014hitchhiker,
-  author  = {Arcuri, Andrea and Briand, Lionel},
-  title   = {A Hitchhiker's Guide to Statistical Tests for Assessing
+  author       = {Arcuri, Andrea and Briand, Lionel},
+  title        = {A Hitchhiker's Guide to Statistical Tests for Assessing
              Randomized Algorithms in Software Engineering},
-  journal = {Software Testing, Verification and Reliability},
-  volume  = {24},
-  number  = {3},
-  pages   = {219--250},
-  year    = {2014},
-  doi     = {10.1002/stvr.1486}
+  journaltitle = {Software Testing, Verification and Reliability},
+  volume       = {24},
+  number       = {3},
+  pages        = {219--250},
+  date         = {2014},
+  doi          = {10.1002/stvr.1486},
+  langid       = {english}
 }
 ```
 
@@ -219,13 +227,14 @@ Verwendung: gepaarter Signifikanztest (DECISIONS.md 5.8) auf den Laufpaaren des 
 
 ```bibtex
 @article{wilcoxon1945individual,
-  author  = {Wilcoxon, Frank},
-  title   = {Individual Comparisons by Ranking Methods},
-  journal = {Biometrics Bulletin},
-  volume  = {1},
-  number  = {6},
-  pages   = {80--83},
-  year    = {1945}
+  author       = {Wilcoxon, Frank},
+  title        = {Individual Comparisons by Ranking Methods},
+  journaltitle = {Biometrics Bulletin},
+  volume       = {1},
+  number       = {6},
+  pages        = {80--83},
+  date         = {1945},
+  langid       = {english}
 }
 ```
 
@@ -237,15 +246,16 @@ Status: bis 2026-10-16 vorgesehenes Verfahren, ersetzt durch den gepaarten Wilco
 
 ```bibtex
 @article{mann1947test,
-  author  = {Mann, H. B. and Whitney, D. R.},
-  title   = {On a Test of Whether one of Two Random Variables is
+  author       = {Mann, H. B. and Whitney, D. R.},
+  title        = {On a Test of Whether one of Two Random Variables is
              Stochastically Larger than the Other},
-  journal = {The Annals of Mathematical Statistics},
-  volume  = {18},
-  number  = {1},
-  pages   = {50--60},
-  year    = {1947},
-  doi     = {10.1214/aoms/1177730491}
+  journaltitle = {The Annals of Mathematical Statistics},
+  volume       = {18},
+  number       = {1},
+  pages        = {50--60},
+  date         = {1947},
+  doi          = {10.1214/aoms/1177730491},
+  langid       = {english}
 }
 ```
 
@@ -257,13 +267,14 @@ Verwendung: Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein A
 
 ```bibtex
 @article{armitage1969repeated,
-  author  = {Armitage, P. and McPherson, C. K. and Rowe, B. C.},
-  title   = {Repeated Significance Tests on Accumulating Data},
-  journal = {Journal of the Royal Statistical Society. Series A (General)},
-  volume  = {132},
-  number  = {2},
-  pages   = {235--244},
-  year    = {1969}
+  author       = {Armitage, P. and McPherson, C. K. and Rowe, B. C.},
+  title        = {Repeated Significance Tests on Accumulating Data},
+  journaltitle = {Journal of the Royal Statistical Society. Series A (General)},
+  volume       = {132},
+  number       = {2},
+  pages        = {235--244},
+  date         = {1969},
+  langid       = {english}
 }
 ```
 
@@ -275,14 +286,15 @@ Verwendung: Begründung, die Hypothesen H1–H8 vor der Datenerhebung festzulege
 
 ```bibtex
 @article{kerr1998harking,
-  author  = {Kerr, Norbert L.},
-  title   = {{HARKing}: Hypothesizing After the Results are Known},
-  journal = {Personality and Social Psychology Review},
-  volume  = {2},
-  number  = {3},
-  pages   = {196--217},
-  year    = {1998},
-  doi     = {10.1207/s15327957pspr0203_4}
+  author       = {Kerr, Norbert L.},
+  title        = {{HARKing}: Hypothesizing After the Results are Known},
+  journaltitle = {Personality and Social Psychology Review},
+  volume       = {2},
+  number       = {3},
+  pages        = {196--217},
+  date         = {1998},
+  doi          = {10.1207/s15327957pspr0203_4},
+  langid       = {english}
 }
 ```
 
@@ -296,14 +308,15 @@ Verwendung: eingeordnetes Effektmaß (DECISIONS.md 5.8). Ordinal, ohne Intervall
 
 ```bibtex
 @article{cliff1993dominance,
-  author  = {Cliff, Norman},
-  title   = {Dominance Statistics: Ordinal Analyses to Answer Ordinal
+  author       = {Cliff, Norman},
+  title        = {Dominance Statistics: Ordinal Analyses to Answer Ordinal
              Questions},
-  journal = {Psychological Bulletin},
-  volume  = {114},
-  number  = {3},
-  pages   = {494--509},
-  year    = {1993}
+  journaltitle = {Psychological Bulletin},
+  volume       = {114},
+  number       = {3},
+  pages        = {494--509},
+  date         = {1993},
+  langid       = {english}
 }
 ```
 
@@ -322,7 +335,8 @@ Verwendung: vorab festgelegte Schwellenwerte (|δ| < 0,147 vernachlässigbar; < 
                Differences on the {NSSE} and Other Surveys?},
   booktitle = {Annual Meeting of the Florida Association of Institutional
                Research},
-  year      = {2006}
+  date      = {2006},
+  langid    = {english}
 }
 ```
 
@@ -334,13 +348,14 @@ Verwendung: zusätzlich zu Cliff's Delta ausgegebenes Effektmaß r = (W⁺ − W
 
 ```bibtex
 @article{kerby2014simple,
-  author  = {Kerby, Dave S.},
-  title   = {The Simple Difference Formula: An Approach to Teaching
+  author       = {Kerby, Dave S.},
+  title        = {The Simple Difference Formula: An Approach to Teaching
              Nonparametric Correlation},
-  journal = {Comprehensive Psychology},
-  volume  = {3},
-  year    = {2014},
-  doi     = {10.2466/11.IT.3.1}
+  journaltitle = {Comprehensive Psychology},
+  volume       = {3},
+  date         = {2014},
+  doi          = {10.2466/11.IT.3.1},
+  langid       = {english}
 }
 ```
 
@@ -352,15 +367,16 @@ Verwendung: Abgrenzung, nicht Quelle der verwendeten Schwellen. Das Maß A₁₂
 
 ```bibtex
 @article{vargha2000critique,
-  author  = {Vargha, Andr{\'a}s and Delaney, Harold D.},
-  title   = {A Critique and Improvement of the {CL} Common Language
+  author       = {Vargha, Andr{\'a}s and Delaney, Harold D.},
+  title        = {A Critique and Improvement of the {CL} Common Language
              Effect Size Statistics of {M}c{G}raw and Wong},
-  journal = {Journal of Educational and Behavioral Statistics},
-  volume  = {25},
-  number  = {2},
-  pages   = {101--132},
-  year    = {2000},
-  doi     = {10.3102/10769986025002101}
+  journaltitle = {Journal of Educational and Behavioral Statistics},
+  volume       = {25},
+  number       = {2},
+  pages        = {101--132},
+  date         = {2000},
+  doi          = {10.3102/10769986025002101},
+  langid       = {english}
 }
 ```
 
@@ -370,17 +386,18 @@ Verwendung: Abgrenzung, nicht Quelle der verwendeten Schwellen. Das Maß A₁₂
 
 Sture Holm. „A Simple Sequentially Rejective Multiple Test Procedure." *Scandinavian Journal of Statistics*, 6(2), 65–70, 1979.
 
-Verwendung: Korrektur je Testfamilie über 33 geplante Tests (11 Vergleiche × 3 Laststufen; DECISIONS.md 5.8, 5.15). Kontrolliert die familienweise Fehlerrate bei beliebiger Abhängigkeit der Tests und ist trennschärfer als die Bonferroni-Korrektur. Implementierung: `holmCorrection` in `tools/orchestrate/stats.js`.
+Verwendung: Korrektur je Testfamilie über 39 geplante Tests (13 Vergleiche × 3 Laststufen; DECISIONS.md 5.8, 5.15). Kontrolliert die familienweise Fehlerrate bei beliebiger Abhängigkeit der Tests und ist trennschärfer als die Bonferroni-Korrektur. Implementierung: `holmCorrection` in `tools/orchestrate/stats.js`.
 
 ```bibtex
 @article{holm1979simple,
-  author  = {Holm, Sture},
-  title   = {A Simple Sequentially Rejective Multiple Test Procedure},
-  journal = {Scandinavian Journal of Statistics},
-  volume  = {6},
-  number  = {2},
-  pages   = {65--70},
-  year    = {1979}
+  author       = {Holm, Sture},
+  title        = {A Simple Sequentially Rejective Multiple Test Procedure},
+  journaltitle = {Scandinavian Journal of Statistics},
+  volume       = {6},
+  number       = {2},
+  pages        = {65--70},
+  date         = {1979},
+  langid       = {english}
 }
 ```
 
@@ -397,8 +414,8 @@ Verwendung: 95-%-Konfidenzintervall für den Median der gepaarten Differenzen (n
   author    = {Efron, Bradley and Tibshirani, Robert J.},
   title     = {An Introduction to the Bootstrap},
   publisher = {Chapman \& Hall},
-  year      = {1993},
-  isbn      = {978-0-412-04231-7}
+  date      = {1993},
+  langid    = {english}
 }
 ```
 
@@ -416,8 +433,8 @@ Verwendung: Begründung des Mittelwerts pro Lauf als Testgröße (DECISIONS.md 5
   title     = {Quantization Noise: Roundoff Error in Digital Computation,
                Signal Processing, Control, and Communications},
   publisher = {Cambridge University Press},
-  year      = {2008},
-  isbn      = {978-0-521-88671-0}
+  date      = {2008},
+  langid    = {english}
 }
 ```
 
@@ -431,14 +448,15 @@ Verwendung: Begründung, den k6-Lauf statt des Einzelereignisses als Analyseeinh
 
 ```bibtex
 @article{hurlbert1984pseudoreplication,
-  author  = {Hurlbert, Stuart H.},
-  title   = {Pseudoreplication and the Design of Ecological Field
+  author       = {Hurlbert, Stuart H.},
+  title        = {Pseudoreplication and the Design of Ecological Field
              Experiments},
-  journal = {Ecological Monographs},
-  volume  = {54},
-  number  = {2},
-  pages   = {187--211},
-  year    = {1984}
+  journaltitle = {Ecological Monographs},
+  volume       = {54},
+  number       = {2},
+  pages        = {187--211},
+  date         = {1984},
+  langid       = {english}
 }
 ```
 
@@ -458,7 +476,8 @@ Verwendung: wiederholte Läufe, Ausschluss von Warm-up-Läufen und nicht normalv
                Object-Oriented Programming Systems and Applications
                (OOPSLA)},
   pages     = {57--76},
-  year      = {2007}
+  date      = {2007},
+  langid    = {english}
 }
 ```
 
@@ -475,8 +494,9 @@ Verwendung: Festlegung der Wiederholungszahl aus Pilotdaten statt pauschal (DECI
   booktitle = {Proceedings of the 2013 International Symposium on Memory
                Management (ISMM)},
   pages     = {63--74},
-  year      = {2013},
-  doi       = {10.1145/2464157.2464160}
+  date      = {2013},
+  doi       = {10.1145/2464157.2464160},
+  langid    = {english}
 }
 ```
 
@@ -490,14 +510,15 @@ Verwendung: Begründung, p95, p99 und Maximum zusätzlich zum Mittelwert pro Lau
 
 ```bibtex
 @article{dean2013tail,
-  author  = {Dean, Jeffrey and Barroso, Luiz Andr{\'e}},
-  title   = {The Tail at Scale},
-  journal = {Communications of the ACM},
-  volume  = {56},
-  number  = {2},
-  pages   = {74--80},
-  year    = {2013},
-  doi     = {10.1145/2408776.2408794}
+  author       = {Dean, Jeffrey and Barroso, Luiz Andr{\'e}},
+  title        = {The Tail at Scale},
+  journaltitle = {Communications of the ACM},
+  volume       = {56},
+  number       = {2},
+  pages        = {74--80},
+  date         = {2013},
+  doi          = {10.1145/2408776.2408794},
+  langid       = {english}
 }
 ```
 
@@ -512,9 +533,9 @@ Verwendung: Latenzgrenze von 1 000 ms im Sättigungskriterium (DECISIONS.md 5.17
   author    = {Nielsen, Jakob},
   title     = {Usability Engineering},
   publisher = {Academic Press},
-  address   = {Boston},
-  year      = {1993},
-  isbn      = {0-12-518405-0}
+  location  = {Boston},
+  date      = {1993},
+  langid    = {english}
 }
 ```
 
@@ -535,7 +556,8 @@ Verwendung: Docker führt einen messbaren, für PHP und Node.js aber symmetrisch
   booktitle = {Proceedings of the IEEE International Symposium on
                Performance Analysis of Systems and Software (ISPASS)},
   pages     = {171--172},
-  year      = {2015}
+  date      = {2015},
+  langid    = {english}
 }
 ```
 
@@ -553,8 +575,9 @@ Verwendung: formale Definition von WebSocket; Abgrenzung zum Pusher-Channels-Pro
   title       = {The WebSocket Protocol},
   institution = {IETF},
   number      = {RFC 6455},
-  year        = {2011},
-  doi         = {10.17487/RFC6455}
+  date        = {2011},
+  doi         = {10.17487/RFC6455},
+  langid      = {english}
 }
 ```
 
@@ -565,11 +588,12 @@ WHATWG. „9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.wh
 Verwendung: formale Definition von SSE. Anders als WebSocket ist SSE kein IETF-RFC, sondern Teil des WHATWG-Standards; dieser Unterschied im Publikationsstatus kann in der Arbeit kurz erwähnt werden.
 
 ```bibtex
-@misc{whatwg-sse,
-  author       = {{WHATWG}},
-  title        = {{HTML} Living Standard --- 9.2 Server-Sent Events},
-  howpublished = {\url{https://html.spec.whatwg.org/multipage/server-sent-events.html}},
-  note         = {Abgerufen 2026-08-25}
+@online{whatwg-sse,
+  author  = {{WHATWG}},
+  title   = {{HTML} Living Standard: 9.2 Server-Sent Events},
+  url     = {https://html.spec.whatwg.org/multipage/server-sent-events.html},
+  urldate = {2026-08-25},
+  langid  = {english}
 }
 ```
 
@@ -586,8 +610,389 @@ Verwendung: Begründung, warum Sende- und Empfangszeitstempel vom selben Gerät 
                  Specification},
   institution = {IETF},
   number      = {RFC 5905},
-  year        = {2010},
-  doi         = {10.17487/RFC5905}
+  date        = {2010},
+  doi         = {10.17487/RFC5905},
+  langid      = {english}
+}
+```
+
+### RFC 6202 — Long Polling und Streaming über HTTP
+
+S. Loreto, P. Saint-Andre, S. Salsano, G. Wilkins. „Known Issues and Best Practices for the Use of Long Polling and Streaming in Bidirectional HTTP." RFC 6202, IETF, April 2011. DOI: 10.17487/RFC6202.
+
+Verwendung: Definition und Grenzen von Long Polling und HTTP-Streaming im Grundlagenkapitel (Push-Verfahren vor SSE und WebSocket).
+
+```bibtex
+@techreport{loreto2011longpolling,
+  author      = {Loreto, S. and Saint-Andre, P. and Salsano, S. and Wilkins, G.},
+  title       = {Known Issues and Best Practices for the Use of Long Polling and Streaming in Bidirectional {HTTP}},
+  institution = {IETF},
+  number      = {RFC 6202},
+  date        = {2011-04},
+  doi         = {10.17487/RFC6202},
+  langid      = {english}
+}
+```
+
+### RFC 9110 und RFC 9112 — HTTP-Semantik und HTTP/1.1
+
+R. Fielding, M. Nottingham, J. Reschke (Hrsg.). „HTTP Semantics." RFC 9110, IETF, Juni 2022. DOI: 10.17487/RFC9110. Dieselben. „HTTP/1.1." RFC 9112, IETF, Juni 2022. DOI: 10.17487/RFC9112.
+
+Verwendung: HTTP-Grundlagen, auf denen SSE aufbaut; persistente Verbindungen und die Empfehlung an Clients, die Zahl gleichzeitiger Verbindungen zu einem Server zu begrenzen (RFC 9112, Abschnitt 9).
+
+```bibtex
+@techreport{fielding2022semantics,
+  author      = {Fielding, R. and Nottingham, M. and Reschke, J.},
+  title       = {{HTTP} Semantics},
+  institution = {IETF},
+  number      = {RFC 9110},
+  date        = {2022-06},
+  doi         = {10.17487/RFC9110},
+  langid      = {english}
+}
+
+@techreport{fielding2022http11,
+  author      = {Fielding, R. and Nottingham, M. and Reschke, J.},
+  title       = {{HTTP/1.1}},
+  institution = {IETF},
+  number      = {RFC 9112},
+  date        = {2022-06},
+  doi         = {10.17487/RFC9112},
+  langid      = {english}
+}
+```
+
+### RFC 9113 — HTTP/2
+
+M. Thomson, C. Benfield (Hrsg.). „HTTP/2." RFC 9113, IETF, Juni 2022. DOI: 10.17487/RFC9113.
+
+Verwendung: Multiplexing mehrerer Streams über eine Verbindung als Unterschied zu HTTP/1.1 (DECISIONS.md 5.2, 5.12; Grundlagenkapitel).
+
+```bibtex
+@techreport{thomson2022http2,
+  author      = {Thomson, M. and Benfield, C.},
+  title       = {{HTTP/2}},
+  institution = {IETF},
+  number      = {RFC 9113},
+  date        = {2022-06},
+  doi         = {10.17487/RFC9113},
+  langid      = {english}
+}
+```
+
+### MDN Web Docs — EventSource
+
+Mozilla. „EventSource." *MDN Web Docs*. https://developer.mozilla.org/en-US/docs/Web/API/EventSource
+
+Verwendung: Beleg für die Grenze von sechs gleichzeitigen SSE-Verbindungen je Browser und Domain ohne HTTP/2 (Grundlagenkapitel, DECISIONS.md 5.2). Die Grenze ist eine Eigenschaft der Browser, nicht der SSE-Spezifikation.
+
+```bibtex
+@online{mdn-eventsource,
+  author  = {{Mozilla}},
+  title   = {{EventSource}},
+  url     = {https://developer.mozilla.org/en-US/docs/Web/API/EventSource},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+## Dokumentation der eingesetzten Technologien
+
+Offizielle Dokumentation als Beleg für Funktionsweise und Konfiguration der eingesetzten Komponenten (Grundlagen, Umsetzung, Methodik). Alle Adressen wurden am 2026-10-16 abgerufen. Online-Dokumentation ändert sich; die zitierte Fassung ist durch das Abrufdatum bestimmt.
+
+### Nginx — Proxy-, FastCGI- und Verbindungsverarbeitung
+
+nginx.org. „Module ngx_http_proxy_module", „Module ngx_http_fastcgi_module" und „Connection processing methods". https://nginx.org/en/docs/
+
+Verwendung: ereignisgesteuerte Verbindungsverarbeitung von Nginx (Grundlagen, DECISIONS.md 5.1); Pufferung von Antworten (`proxy_buffering`, `fastcgi_buffering`, Header `X-Accel-Buffering`), die für SSE abgeschaltet sein muss (DECISIONS.md 5.6.1).
+
+```bibtex
+@online{nginx-proxy,
+  author  = {{nginx.org}},
+  title   = {Module ngx\_http\_proxy\_module},
+  url     = {https://nginx.org/en/docs/http/ngx_http_proxy_module.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{nginx-fastcgi,
+  author  = {{nginx.org}},
+  title   = {Module ngx\_http\_fastcgi\_module},
+  url     = {https://nginx.org/en/docs/http/ngx_http_fastcgi_module.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{nginx-events,
+  author  = {{nginx.org}},
+  title   = {Connection Processing Methods},
+  url     = {https://nginx.org/en/docs/events.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Apache HTTP Server — Multi-Processing-Module
+
+The Apache Software Foundation. „Multi-Processing Modules (MPMs)" und „Apache MPM event". *Apache HTTP Server Version 2.4 Documentation*.
+
+Verwendung: Prozess- und Thread-Modelle von Apache (prefork, worker, event) im Grundlagenkapitel und als Begründung für Nginx (DECISIONS.md 5.1, 5.11).
+
+```bibtex
+@online{apache-mpm,
+  author  = {{The Apache Software Foundation}},
+  title   = {Multi-Processing Modules ({MPMs})},
+  url     = {https://httpd.apache.org/docs/2.4/mpm.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{apache-event,
+  author  = {{The Apache Software Foundation}},
+  title   = {Apache {MPM} event},
+  url     = {https://httpd.apache.org/docs/2.4/mod/event.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Redis — Pub/Sub
+
+Redis Ltd. „Redis Pub/Sub." *Redis Documentation*. https://redis.io/docs/latest/develop/pubsub/
+
+Verwendung: Funktionsweise von Redis Pub/Sub und dessen Zustellsemantik (höchstens einmal, keine Speicherung für abwesende Abonnenten), DECISIONS.md 5.4, 5.17.
+
+```bibtex
+@online{redis-pubsub,
+  author  = {{Redis Ltd.}},
+  title   = {Redis {Pub/Sub}},
+  url     = {https://redis.io/docs/latest/develop/pubsub/},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### BullMQ
+
+Taskforce.sh. *BullMQ Documentation*. https://docs.bullmq.io/
+
+Verwendung: Queue der Node.js-Zelle mit Queue (Jobs, Worker, Speicherung in Redis), DECISIONS.md 5.19.
+
+```bibtex
+@online{bullmq-docs,
+  author  = {{Taskforce.sh}},
+  title   = {{BullMQ} Documentation},
+  url     = {https://docs.bullmq.io/},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Laravel — Queues, Broadcasting, Reverb, Deployment, Releases
+
+Laravel. *Laravel 13.x Documentation*, Kapitel „Queues", „Broadcasting", „Laravel Reverb", „Deployment" und „Release Notes". https://laravel.com/docs/13.x
+
+Verwendung: Queue-Worker und `block_for` (DECISIONS.md 5.19, 5.20), Broadcasting über Reverb (WebSocket-Zelle), Produktionskonfiguration mit Config-, Route- und Event-Cache (DECISIONS.md 5.5), Unterstützungszeiträume der Laravel-Versionen als Begründung für Laravel 13 (DECISIONS.md 5.23).
+
+```bibtex
+@online{laravel-queues,
+  author  = {{Laravel}},
+  title   = {Queues: Laravel 13.x Documentation},
+  url     = {https://laravel.com/docs/13.x/queues},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{laravel-broadcasting,
+  author  = {{Laravel}},
+  title   = {Broadcasting: Laravel 13.x Documentation},
+  url     = {https://laravel.com/docs/13.x/broadcasting},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{laravel-reverb,
+  author  = {{Laravel}},
+  title   = {Laravel Reverb: Laravel 13.x Documentation},
+  url     = {https://laravel.com/docs/13.x/reverb},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{laravel-deployment,
+  author  = {{Laravel}},
+  title   = {Deployment: Laravel 13.x Documentation},
+  url     = {https://laravel.com/docs/13.x/deployment},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{laravel-releases,
+  author  = {{Laravel}},
+  title   = {Release Notes: Laravel 13.x Documentation},
+  url     = {https://laravel.com/docs/13.x/releases},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### PHP-FPM und offizielles PHP-Image
+
+The PHP Group. „FastCGI Process Manager (FPM)" und „Configuration". *PHP Manual*. Docker Official Images. „php" (Image-Dokumentation).
+
+Verwendung: Prozessmodell von PHP-FPM, Pool-Konfiguration (`pm`, `pm.max_children`, `ping.path`), DECISIONS.md 5.5; Empfehlung des offiziellen Images, in Produktion `php.ini-production` zu verwenden (DECISIONS.md 5.5).
+
+```bibtex
+@online{php-fpm,
+  author  = {{The PHP Group}},
+  title   = {{FastCGI} Process Manager ({FPM})},
+  url     = {https://www.php.net/manual/en/install.fpm.php},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{php-fpm-config,
+  author  = {{The PHP Group}},
+  title   = {{FPM} Configuration},
+  url     = {https://www.php.net/manual/en/install.fpm.configuration.php},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{docker-php-image,
+  author  = {{Docker Official Images}},
+  title   = {php: Docker Official Image Documentation},
+  url     = {https://github.com/docker-library/docs/blob/master/php/README.md},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Symfony und Mercure
+
+Symfony SAS. „Pushing Data to Clients Using the Mercure Protocol." *Symfony Documentation*. https://symfony.com/doc/current/mercure.html — Mercure-Projekt. „Install the Mercure Hub." https://mercure.rocks/docs/hub/install
+
+Verwendung: Begründung, warum keine Symfony-Variante gemessen wird (DECISIONS.md 5.23). Symfony überträgt Push-Nachrichten über Mercure; die dauerhaften SSE-Verbindungen hält dabei ein eigener Hub-Server, der als Go-Programm bzw. Caddy-Modul ausgeliefert wird. Eine Symfony-Variante würde den Push-Pfad daher nicht in PHP messen.
+
+```bibtex
+@online{symfony-mercure,
+  author  = {{Symfony SAS}},
+  title   = {Pushing Data to Clients Using the Mercure Protocol},
+  url     = {https://symfony.com/doc/current/mercure.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{mercure-hub,
+  author  = {{Mercure}},
+  title   = {Install the Mercure Hub},
+  url     = {https://mercure.rocks/docs/hub/install},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Ratchet und ReactPHP
+
+Chris Boden u. a. *Ratchet Documentation*. http://socketo.me/docs/ — ReactPHP-Projekt. *ReactPHP*. https://reactphp.org/
+
+Verwendung: ereignisgesteuerter WebSocket-Server der PHP-Minimalvariante auf Basis der ReactPHP-Ereignisschleife (Grundlagen, Umsetzung).
+
+```bibtex
+@online{ratchet-docs,
+  author  = {{Ratchet}},
+  title   = {Ratchet Documentation},
+  url     = {http://socketo.me/docs/},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{reactphp,
+  author  = {{ReactPHP}},
+  title   = {{ReactPHP}: Event-Driven, Non-Blocking {I/O} with {PHP}},
+  url     = {https://reactphp.org/},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Node.js, Express und ws
+
+Node.js Project. „The Node.js Event Loop." *Node.js Learn*. — Express. „Production Best Practices: Performance and Reliability." — ws. *ws: a Node.js WebSocket library* (README).
+
+Verwendung: Ereignisschleife von Node.js (Grundlagen); Produktionsbetrieb von Express mit `NODE_ENV=production` (DECISIONS.md 5.5); WebSocket-Bibliothek der Node.js-Zellen.
+
+```bibtex
+@online{nodejs-event-loop,
+  author  = {{Node.js Project}},
+  title   = {The {Node.js} Event Loop},
+  url     = {https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{express-production,
+  author  = {{Express}},
+  title   = {Production Best Practices: Performance and Reliability},
+  url     = {https://expressjs.com/en/advanced/best-practice-performance.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{ws-library,
+  author  = {{ws}},
+  title   = {ws: A {Node.js} {WebSocket} Library},
+  url     = {https://github.com/websockets/ws},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### k6 und xk6-sse
+
+Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/ — Pierrick Hymbert. *xk6-sse: A k6 extension for Server-Sent Events*. https://github.com/phymbert/xk6-sse
+
+Verwendung: Lastwerkzeug, virtuelle Benutzer, Metriken und Zusammenfassungsexport (Methodik); SSE-Client der Messung (DECISIONS.md 3).
+
+```bibtex
+@online{k6-docs,
+  author  = {{Grafana Labs}},
+  title   = {Grafana k6 Documentation},
+  url     = {https://grafana.com/docs/k6/latest/},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{xk6-sse,
+  author  = {Hymbert, Pierrick},
+  title   = {xk6-sse: A k6 Extension for {Server-Sent} Events},
+  url     = {https://github.com/phymbert/xk6-sse},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+```
+
+### Linux cgroup v2 und docker stats
+
+The Linux Kernel Documentation. „Control Group v2." https://docs.kernel.org/admin-guide/cgroup-v2.html — Docker Inc. „docker container stats." *Docker Docs*. https://docs.docker.com/reference/cli/docker/container/stats/
+
+Verwendung: Ressourcenmessung aus `cpu.stat`, `memory.current` und `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`); Definition des Working Sets wie bei `docker stats` (Speicher abzüglich `inactive_file`).
+
+```bibtex
+@online{kernel-cgroup-v2,
+  author  = {{The Linux Kernel Documentation}},
+  title   = {Control Group v2},
+  url     = {https://docs.kernel.org/admin-guide/cgroup-v2.html},
+  urldate = {2026-10-16},
+  langid  = {english}
+}
+
+@online{docker-stats,
+  author  = {{Docker Inc.}},
+  title   = {docker container stats},
+  url     = {https://docs.docker.com/reference/cli/docker/container/stats/},
+  urldate = {2026-10-16},
+  langid  = {english}
 }
 ```
 
@@ -602,11 +1007,12 @@ Node.js-Projekt. „Debugger" und „Inspector", *Node.js API-Dokumentation*. ht
 Verwendung: Der Schritt-Debugger (`--inspect`, V8 Inspector / Chrome-DevTools-Protokoll) ist Bestandteil des Node.js-Kerns.
 
 ```bibtex
-@misc{nodejs-debugger,
-  author       = {{Node.js-Projekt}},
-  title        = {Debugger --- {N}ode.js {API} Documentation},
-  howpublished = {\url{https://nodejs.org/api/debugger.html}},
-  note         = {Abgerufen 2026-08-25}
+@online{nodejs-debugger,
+  author  = {{Node.js Project}},
+  title   = {Debugger: {N}ode.js {API} Documentation},
+  url     = {https://nodejs.org/api/debugger.html},
+  urldate = {2026-08-25},
+  langid  = {english}
 }
 ```
 
@@ -617,11 +1023,12 @@ Derick Rethans. *Xdebug Documentation — Installation*. https://xdebug.org/docs
 Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP ausgeliefert.
 
 ```bibtex
-@misc{xdebug-install,
-  author       = {Rethans, Derick},
-  title        = {Xdebug Documentation --- Installation},
-  howpublished = {\url{https://xdebug.org/docs/install}},
-  note         = {Abgerufen 2026-08-25}
+@online{xdebug-install,
+  author  = {Rethans, Derick},
+  title   = {Xdebug Documentation: Installation},
+  url     = {https://xdebug.org/docs/install},
+  urldate = {2026-08-25},
+  langid  = {english}
 }
 ```
 
@@ -653,3 +1060,14 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 | externe Validität | Docker als symmetrischer Einflussfaktor | Felter et al. (2015) |
 | Konstruktvalidität | Definition von WebSocket und SSE | RFC 6455; WHATWG HTML Living Standard |
 | 5.13 | Debugger und Profiler eingebaut bzw. Zusatzinstallation | Node.js-Dokumentation; Xdebug-Dokumentation |
+| Grundlagen | Polling, Long Polling, Streaming | RFC 6202 |
+| 5.2, 5.12 | HTTP/1.1, HTTP/2, Verbindungsgrenze im Browser | RFC 9110; RFC 9112; RFC 9113; MDN EventSource |
+| 5.1, 5.11 | Nginx ereignisgesteuert, Apache-MPMs | Nginx-Dokumentation; Apache-Dokumentation |
+| 5.6.1 | Pufferung im Front-Nginx für SSE abgeschaltet | Nginx-Dokumentation (Proxy, FastCGI) |
+| 5.4, 5.17 | Zustellsemantik von Redis Pub/Sub | Redis-Dokumentation |
+| 5.5 | Produktionsbetrieb (php.ini, Laravel-Caches, `NODE_ENV`) | PHP-Image-Dokumentation; Laravel Deployment; Express Production Best Practices |
+| 5.5 | PHP-FPM-Prozessmodell und Pool-Konfiguration | PHP-Handbuch (FPM) |
+| 5.19, 5.20 | Queues (BullMQ, Laravel Queue, `block_for`) | BullMQ-Dokumentation; Laravel Queues |
+| 5.16 | Ressourcenmessung über cgroup v2, Working Set | Kernel-Dokumentation cgroup v2; Docker-Dokumentation `docker stats` |
+| 3, 5.9 | Lastwerkzeug k6 und xk6-sse | k6-Dokumentation; xk6-sse |
+| 5.23 | Laravel 13 statt 12 (Unterstützungszeitraum) | Laravel Release Notes |

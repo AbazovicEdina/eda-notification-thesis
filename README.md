@@ -2,7 +2,7 @@
 
 Prototypen und Messumgebung zur Bachelorarbeit **„Event-driven Notification Systems: PHP vs. Node.js mit Server-Sent Events und WebSockets"**. Ausgangspunkt ist das Semesterprojekt Lokato (RFID-Scan → MQTT → Backend → Push an Clients).
 
-Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue.
+Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue. Verglichen wird entlang von vier Achsen: Sprache, Framework, Transport und Queue (DECISIONS.md 5.15).
 
 | | SSE | WebSockets | SSE mit Queue |
 | --- | --- | --- | --- |
@@ -49,6 +49,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 │   └── pi/                    #   Einrichtungsskript des Pi, cgroup-Slices, CPU-Governor, Belastungstest
 ├── tools/                     # Werkzeuge, nicht Teil der Prototypen
 │   ├── orchestrate/           #   Kampagnen, Zeitplan, Statusbericht, Statistik, Gesamtauswertung
+│   ├── code-metrics/          #   Code- und Betriebskennzahlen je Zelle (Komplexität, Wartbarkeit)
 │   ├── resource-sampler/      #   CPU und Speicher pro Lauf aus cgroup v2, Auslastung des Lastgenerators
 │   ├── event-simulator/       #   Lokato-Scan-Events mit fester Rate (Pub/Sub oder BullMQ)
 │   ├── redis-baseline/        #   isolierter Redis-Pub/Sub-Test ohne Prototyp
@@ -98,6 +99,8 @@ node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,mediu
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json
 node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
+node tools/orchestrate/series.js results/<skalierungs-und-saettigungskampagnen> ...
+node tools/code-metrics/metrics.js
 ```
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).
@@ -128,8 +131,8 @@ Keine Komponente läuft auf `latest` (Stand 2026-10-16):
 | ---------- | ------- | ------- |
 | PHP | 8.4-fpm-alpine | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
 | Node.js | 22.11-alpine | alle `Dockerfile` unter `prototypes/` und `tools/` |
-| Laravel | 12.61.1 | `composer.json` (exakt) + `composer.lock` |
-| Reverb | 1.11.0 | `composer.lock` |
+| Laravel | 13.34.0 | `composer.json` (exakt) + `composer.lock` |
+| Reverb | 1.12.0 | `composer.lock` |
 | Ratchet / clue/redis-react | 0.4.4 / 2.8.0 | `composer.json` (exakt) + `composer.lock` |
 | Express | 4.22.2 | `package.json` (exakt) + `package-lock.json` |
 | BullMQ | 5.81.2 | `package.json` (exakt) + `package-lock.json` |

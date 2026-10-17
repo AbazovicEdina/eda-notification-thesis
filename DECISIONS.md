@@ -126,7 +126,7 @@ Festlegungen:
 
 SSE läuft über PHP-FPM, WebSockets über einen separaten, langlaufenden Prozess. Durchgehend asynchrones PHP (Octane/Swoole) ist nicht vorgesehen. Gründe, warum PHP-FPM den höheren Vergleichswert hat:
 
-1. **Konstruktvalidität.** PHP-FPM mit einem Worker pro Verbindung ist die in der Praxis dominante Betriebsart. Ein Ergebnis mit Octane/Swoole wäre eine Aussage über asynchrones PHP, nicht über PHP in üblicher Betriebsweise.
+1. **Konstruktvalidität.** PHP-FPM mit einem Worker pro Verbindung ist die Standard-Betriebsart von PHP hinter einem Webserver: Das PHP-Handbuch beschreibt FPM als FastCGI-Implementierung für den Betrieb hinter Webservern, und die Nginx-Beispielkonfiguration der Laravel-Deployment-Dokumentation leitet Anfragen an PHP-FPM weiter (LITERATUR.md). Eine Erhebung zur Verbreitung in der Praxis liegt nicht vor; die Arbeit formuliert deshalb „Standard-Betriebsart laut Dokumentation", nicht „dominante Betriebsart". Ein Ergebnis mit Octane/Swoole wäre eine Aussage über asynchrones PHP, nicht über PHP in üblicher Betriebsweise.
 2. **Sichtbarer Architekturunterschied.** Worker pro Verbindung (PHP-FPM) gegenüber Event Loop (Node.js) ist der Kern des Vergleichs. Beide Seiten asynchron zu bauen, würde genau diesen Unterschied einebnen.
 3. **Nähe zum Ausgangsprojekt.** Lokato läuft unter klassischem PHP-FPM.
 
@@ -134,7 +134,7 @@ Umsetzung:
 
 - **PHP/SSE:** PHP-FPM mit `pm = static` und `pm.max_children = 550` (über der Zielzahl von 500 Clients), für `php-minimal` und `php-laravel`.
 - **PHP/WS:** Laravel Reverb (`php-laravel`) bzw. Ratchet auf ReactPHP mit asynchronem Redis-Client (`php-minimal`, `ws.php`).
-- **Speicher pro Verbindung ist eine Messgröße**, kein Störfaktor. Lokale Messung mit 500 SSE-Clients im Produktionsbetrieb (2026-10-16): Spitze des Working Sets bei php-laravel/SSE ca. 1 390 MiB, bei php-minimal/SSE ca. 375 MiB (Konsequenz für die Limits: 5.10).
+- **Speicher pro Verbindung ist eine Messgröße**, kein Störfaktor. Lokale Messung mit 500 SSE-Clients im Produktionsbetrieb (2026-10-16): Spitze des Working Sets bei php-laravel/SSE ca. 1 390 MiB, bei php-minimal/SSE ca. 375 MiB (Konsequenz für die Limits: 5.10). Nach dem Upgrade auf Laravel 13 (5.23) lag die Spitze in einem kürzeren Prüflauf (10 s Haltezeit) bei ca. 1 010 MiB; der maßgebliche Wert wird auf dem Pi erhoben.
 
 **Betriebsmodus: Produktion nach offizieller Dokumentation, ohne darüber hinausgehendes Tuning** (beschlossen am 2026-10-16). Die Begründung „PHP in üblicher Betriebsweise" trägt nur, wenn die Stacks auch so konfiguriert sind, wie sie produktiv betrieben werden:
 
@@ -241,9 +241,9 @@ Alle Festlegungen dieses Abschnitts sind vor der Hauptmessung getroffen und in `
 
 | Familie | Rolle | Tests |
 |---|---|---|
-| Latenz (Mittelwert pro Lauf) | primär | 11 Vergleiche × 3 Laststufen = 33 |
-| CPU-Zeit von Zelle und Redis pro Lauf | sekundär | 33 |
-| Spitze des Speicher-Working-Sets von Zelle und Redis pro Lauf | sekundär | 33 |
+| Latenz (Mittelwert pro Lauf) | primär | 13 Vergleiche × 3 Laststufen = 39 |
+| CPU-Zeit von Zelle und Redis pro Lauf | sekundär | 39 |
+| Spitze des Speicher-Working-Sets von Zelle und Redis pro Lauf | sekundär | 39 |
 
 Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vorab festgelegt sind. Die Korrektur erfolgt über alle Kampagnen hinweg in `tools/orchestrate/evaluate.js`. Geplante, aber nicht gemessene Tests gehen mit p = 1 ein, damit Weglassen die Korrektur nicht abschwächt. Block 2 (Replikation) wird beschreibend gegen Block 1 abgeglichen: gleiche Richtung, gleiche Effektklasse, überlappende Konfidenzintervalle. Skalierungsreihe, Sättigungstest und Kontrollmessungen werden nur beschreibend ausgewertet.
 
@@ -277,7 +277,7 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 |---|---|---|
 | 1. Belastungstest (24 h) | Nachweis, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen (`infra/pi/burn-in.sh`) | beschreibend |
 | 2. Pilot (`phase: pilot`) | Festlegung der Wiederholungszahl je Laststufe | Zwischenstände, nicht konfirmatorisch |
-| 3. Block 1 (`phase: main`, `block: 1`) | Hauptmessung aller 33 geplanten Tests | konfirmatorisch, Holm-Korrektur (5.8) |
+| 3. Block 1 (`phase: main`, `block: 1`) | Hauptmessung aller 39 geplanten Tests | konfirmatorisch, Holm-Korrektur (5.8) |
 | 4. Block 2 (`phase: main`, `block: 2`) | vollständige Wiederholung in anderer, zufälliger Reihenfolge | Replikationsabgleich (5.8) |
 | 5. Skalierungsreihe (`phase: scaling`) | 10, 50, 100, 250, 500, 750 und 1 000 Clients je Zelle | beschreibend (H4) |
 | 6. Sättigungstest (`phase: saturation`) | höchste nachhaltige Event-Rate je Zelle (5.17) | beschreibend |
@@ -293,7 +293,7 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 2. **Festlegung** der Wiederholungszahl je Laststufe für Block 1 und Block 2: mindestens 20 gültige Paare, höchstens so viele, wie in das Zeitbudget passen. Stabilisiert sich ein Vergleich innerhalb dieser Grenze nicht, wird das als Ergebnis berichtet („Unterschied unterhalb der Auflösung dieses Aufbaus").
 3. **Hauptmessung** mit fester Wiederholungszahl. Zwischenauswertungen dienen dort nur der Kontrolle, nicht als Abbruchkriterium: Wiederholtes Testen auf anwachsenden Daten mit Abbruch bei Signifikanz erhöht die Fehlerrate erheblich (Armitage, McPherson & Rowe 1969). Pilotdaten gehen nicht in die konfirmatorische Auswertung ein.
 
-**Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 33 Kampagnenpaaren entspräche das 18–25 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation. Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht; mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
+**Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 13 Vergleichen entspräche das rund 29–40 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation (bei der ursprünglichen Planung mit acht Vergleichen 18–25 Tage). Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht; mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
 
 ### 5.10 Ressourcenlimits — ENTSCHIEDEN (Endwerte nach Festlegung des Pi-Modells)
 
@@ -330,7 +330,7 @@ Befund: Debugger und Profiler sind bei Node.js ohne Zusatzinstallation nutzbar, 
 **3. Fehlersichtbarkeit in Queue-Workern**, geprüft mit einem absichtlich fehlschlagenden Job (`correlation_id="corr-test-abc123"`):
 
 - *BullMQ (Node.js):* Der vorhandene `worker.on('failed', …)`-Handler protokolliert Job-ID, Fehlermeldung und Stacktrace, nicht aber die Correlation-ID. Diese ist jedoch programmatisch abrufbar: `queue.getFailed()` liefert die vollständigen Job-Daten einschließlich `correlation_id`, dauerhaft in Redis gespeichert und ohne Zusatzkonfiguration. Für die Ausgabe im Log genügt die Änderung einer bestehenden Zeile (`job.data` im vorhandenen `console.error`-Aufruf).
-- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im verwendeten Laravel-12-Starter-Kit nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
+- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im damals verwendeten Laravel-12-Starter-Kit (seit 2026-10-16 Laravel 13, 5.23; vor dem Schreiben von Abschnitt 6.10 erneut prüfen) nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
 
 Einordnung: BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
@@ -370,7 +370,7 @@ Stand: Der Zwei-Rechner-Aufbau ist implementiert, aber noch nicht auf Pi-Hardwar
 
 ### 5.15 Geplante Vergleiche — ENTSCHIEDEN
 
-Geplant sind elf Vergleiche, nicht alle möglichen Paare der zehn Zellen. Ausgewählt sind nur jene, die eine der Forschungsfragen (Sprache, Framework-Overhead, Queue-Overhead) direkt beantworten. Das beantwortet die Betreuerfrage, was am Ende sinnvoll miteinander verglichen werden soll:
+Geplant sind dreizehn Vergleiche, nicht alle möglichen Paare der zehn Zellen. Ausgewählt sind nur jene, die eine der Fragen (Sprache, Framework-Overhead, Queue-Overhead, Transport) direkt beantworten. Das beantwortet die Betreuerfrage, was am Ende sinnvoll miteinander verglichen werden soll:
 
 | Nr. | Vergleich | Forschungsfrage |
 | - | --------- | ---------------- |
@@ -385,8 +385,21 @@ Geplant sind elf Vergleiche, nicht alle möglichen Paare der zehn Zellen. Ausgew
 | 9 | Node-express/SSE vs. Node-express/SSE mit Queue | Queue-Overhead (Node.js) |
 | 10 | PHP-laravel/SSE vs. PHP-laravel/SSE mit Queue | Queue-Overhead (PHP) |
 | 11 | Node-express/SSE mit Queue vs. PHP-laravel/SSE mit Queue | Sprache mit Queue |
+| 12 | Node-minimal/SSE vs. Node-minimal/WS | Transport (Node.js) |
+| 13 | PHP-minimal/SSE vs. PHP-minimal/WS | Transport (PHP) |
 
-Jeder Vergleich wird in eigenen Kampagnen über die drei Laststufen gemessen (5.6.3). Die Signifikanztests werden je Messgröße über alle 33 Tests (11 Vergleiche × 3 Laststufen) mit Holm korrigiert (5.8). SSE und WebSockets werden nicht gegeneinander getestet; die Transportart ist Kontext, keine Vergleichsachse.
+Jeder Vergleich wird in eigenen Kampagnen über die drei Laststufen gemessen (5.6.3). Die Signifikanztests werden je Messgröße über alle 39 Tests (13 Vergleiche × 3 Laststufen) mit Holm korrigiert (5.8).
+
+**Transport als Vergleichsachse** (beschlossen am 2026-10-16, ersetzt die frühere Festlegung „Transport ist Kontext, keine Vergleichsachse"; Begründung der Abweichung vom Exposé: 5.23). Der Transport wird auf zwei Ebenen verglichen:
+
+- **Gepaart und konfirmatorisch** nur in den Minimalvarianten (Vergleiche 12 und 13). Dort unterscheiden sich die beiden Zellen ausschließlich im Transport und in dem, was er in der jeweiligen Sprache mit sich bringt. In den Framework-Varianten käme bei Laravel ein anderes Protokoll (Pusher-Protokoll über Reverb) und ein zusätzlicher Prozess mit internem HTTP-Aufruf hinzu (H6). Ein Unterschied wäre dort nicht mehr dem Transport zuzuordnen.
+- **Beschreibend für alle vier Varianten mit beiden Transporten** über Skalierungsreihe und Sättigungstest, die ohnehin für alle Zellen laufen (`tools/orchestrate/series.js`). Das deckt die Erwartung des Exposés ab, dass WebSockets bei hoher Ereignisfrequenz im Vorteil sind (H11).
+
+Bei PHP ist der Transport nicht vom Laufzeitmodell zu trennen. SSE läuft in der üblichen Betriebsweise über PHP-FPM (ein Worker je Verbindung, 5.5), ein WebSocket-Server ist dagegen ein langlaufender Prozess mit Ereignisschleife (Ratchet). Vergleich 13 misst daher die praktische Entscheidung, vor der ein PHP-Team steht, und nicht das Protokoll allein (H10). Bei Node.js nutzen beide Transporte dieselbe Ereignisschleife; Vergleich 12 kommt einem reinen Protokollvergleich am nächsten (H9).
+
+Einschränkung: SSE wird mit der Erweiterung xk6-sse, WebSocket mit dem WebSocket-Modul von k6 gemessen. Beide laufen im selben k6-Prozess auf dem Lastgenerator, und beide Zeitstempel stammen von dort. Unterschiede in der clientseitigen Verarbeitung der beiden Module können dennoch in die Latenz eingehen. Die Arbeit nennt das als Bedrohung der Konstruktvalidität.
+
+Aufwand: zwei Vergleiche mehr je Block, also sechs Kampagnen. Bei den Beispiel-Wiederholungszahlen (80, 60 und 40 Läufe zuzüglich Warm-up) sind das rund 17 Stunden je Block. Die Holm-Korrektur wird geringfügig strenger (kleinste Schwelle α/39 statt α/33).
 
 ### 5.16 Messprotokoll und Telemetrie — ENTSCHIEDEN, umgesetzt
 
@@ -461,6 +474,11 @@ Die Hypothesen sind aus der Architektur der Stacks abgeleitet und vor der Datene
 | H6 | php-laravel/WS hat durchgehend höhere Latenz als node-express/WS. | Jedes Event durchläuft einen zusätzlichen internen HTTP-Aufruf (Listener → Reverb). |
 | H7 | Die Queue erhöht die Latenz in beiden Stacks, bei Laravel stärker als bei BullMQ. | Job-Serialisierung und ein schwergewichtigerer Worker bei Laravel. |
 | H8 | Bei PHP/SSE trägt Redis einen wesentlichen Teil der Gesamt-CPU, bei allen anderen Zellen nur einen geringen. | Verteilung an N Abonnenten (5.6.2). |
+| H9 | Bei Node.js, wo beide Transporte dasselbe Laufzeitmodell nutzen, verursacht SSE weniger Overhead als WebSockets: weniger CPU-Zeit und ein kleineres Working Set bei gleicher Last (Vergleich 12). | Erwartung aus dem Exposé. SSE ist reines HTTP ohne Protokollwechsel und ohne Rahmenformat; jedes Event ist eine Textzeile in einer offenen Antwort. |
+| H10 | Bei PHP bestimmt das Laufzeitmodell den Transportvergleich: PHP-FPM/SSE benötigt bei 500 Clients ein Vielfaches des Speichers des Ratchet-WebSocket-Servers (Vergleich 13, Stress). | Ein PHP-Prozess je SSE-Verbindung gegenüber einer Ereignisschleife für alle WebSocket-Verbindungen (5.5, 5.15). |
+| H11 | Bei hohen Event-Raten erreichen die WebSocket-Varianten eine höhere nachhaltige Rate als die SSE-Varianten derselben Sprache und Variante (Sättigungstest, beschreibend). | Erwartung aus dem Exposé. WebSocket-Rahmen sind kompakter als SSE-Textzeilen; bei PHP/SSE verteilen zudem viele Prozesse jedes Event einzeln. |
+
+H9 und H11 übernehmen die Erwartungen des Exposés zum Transportvergleich, H10 ergänzt die Besonderheit von PHP (5.23). Sie wurden am 2026-10-16 vor der Datenerhebung festgelegt, wie H1 bis H8.
 
 Transparenz: Lokale Funktionsprüfungen vor der Festlegung zeigten bei H6 bereits diese Richtung (2,2 ms gegenüber 1,1 ms bei 10 Clients, n = 3, nicht auf der Zielhardware). H6 wurde aus der Architektur abgeleitet, nicht aus diesen Werten. Gleiches gilt für Hinweise zu H4, H5 und H8 aus den Funktionsprüfungen (`results/2026-10-16_verification-2/`); die Arbeit nennt das offen.
 
@@ -477,7 +495,7 @@ Das Exposé fragt, wie ein ereignisgesteuertes Benachrichtigungssystem „mit SS
 - Der SSE-Endpunkt ist derselbe Code wie in der Zelle ohne Queue; er abonniert lediglich `notifications` statt `scan-events`.
 - Beschränkung auf SSE: Die Queue sitzt vor der Verteilung an die Clients; ihr Effekt sollte unabhängig von der Transportart sein. Diese Annahme wird in der Arbeit offen genannt.
 - Laravels Worker wartet mit `block_for` blockierend auf Jobs, statt bei leerer Queue 3 s zu schlafen (5.20). Ohne diese Einstellung würde bei 1 Event/s vor allem die Schlafpause gemessen.
-- Neue Vergleiche 9–11 (5.15); die Testfamilien wachsen auf 33 Tests (5.8).
+- Neue Vergleiche 9–11 (5.15); die Testfamilien wuchsen damit auf 33 Tests, mit den Transportvergleichen 12 und 13 auf 39 (5.8, 5.15).
 
 ### 5.20 Abweichungen von der Standardkonfiguration — ENTSCHIEDEN
 
@@ -509,10 +527,80 @@ Die Testlast bildet Lokato an zentralen Stellen nach und vereinfacht an anderen.
 | Anmeldung | keine (öffentlicher Kanal) | in Produktion üblich; zusätzlicher Aufwand beim Verbindungsaufbau nicht erfasst |
 | Verbindungsabbrüche | keine | Wiederverbindung (SSE: `Last-Event-ID`, WS: eigene Logik) nicht erfasst |
 
+### 5.22 Komplexität und Wartbarkeit — ENTSCHIEDEN (beschlossen am 2026-10-16)
+
+Das Exposé fragt nach Komplexität und Wartbarkeit der Umsetzungen. Für Wartbarkeit gibt es kein einzelnes anerkanntes Maß. Die Arbeit beantwortet die Frage deshalb aus zwei Richtungen, beide ohne zusätzliche Messzeit:
+
+1. **Statische Code- und Betriebskennzahlen je Zelle** (`tools/code-metrics`): eigener Anwendungscode (Dateien, Codezeilen ohne Leer- und Kommentarzeilen), Betriebskonfiguration (Dockerfile, FPM-Pool, Startskript), Zahl der Container, direkt genutzte Abhängigkeiten und alle davon abhängigen Pakete laut Lock-Datei, Systemerweiterungen außerhalb des Paketmanagers. Je Prototyp zusätzlich der Projektumfang ohne Abhängigkeiten und die Zahl installierter Produktionspakete. Welche Dateien zu einer Zelle gehören, legt `tools/code-metrics/variants.json` ausdrücklich fest.
+2. **Qualitativer Debugging- und Monitoring-Vergleich** (5.13): Werkzeuge, Correlation-ID über die Queue-Grenze, Sichtbarkeit von Fehlern im Worker.
+
+Die Kennzahlen zeigen einen Zielkonflikt, der ohne Gewichtung berichtet wird: Ein Framework verringert den eigenen Code (Laravel erledigt Routing, Broadcasting und Queue-Verarbeitung), erhöht aber die Zahl der Abhängigkeiten und den Projektumfang (vom Framework erzeugtes Gerüst). Codezeilen und Paketzahlen sind grobe Näherungen; sie erfassen weder Verständlichkeit noch Qualität der Dokumentation. Eine Gesamtnote wird daher nicht gebildet. Die Auswertung läuft auf dem Commit, mit dem gemessen wird.
+
+### 5.23 Abweichungen vom Exposé — ENTSCHIEDEN (Bestätigung durch den Betreuer ausstehend)
+
+Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, der Abstimmung mit dem Betreuer am 2026-10-16 und zwei Überprüfungen des Messaufbaus (Abschnitt 8) haben sich Abweichungen ergeben. Jede ist hier mit Begründung festgehalten. Das Methodikkapitel der Arbeit nennt sie in einer Tabelle, damit die Gutachter den Weg vom Exposé zur Umsetzung nachvollziehen können.
+
+| Nr. | Punkt | Exposé | Umsetzung |
+|---|---|---|---|
+| 1 | Titel | „Design and Implementation of an Event-Driven Notification System in PHP Using SSE and Queues: A Comparative Study with Node.js/Express" | Arbeitstitel „Event-driven Notification Systems: PHP vs. Node.js with Server-Sent Events and WebSockets"; endgültiger Titel mit dem Betreuer abzustimmen |
+| 2 | Forschungsfragen | eine Hauptfrage (Entwurf, Umsetzung, messbare Unterschiede) mit sechs Unterfragen | drei messbare Forschungsfragen und ein praktisches Ziel; Entwurf und Umsetzung als konstruktiver Teil |
+| 3 | SSE und WebSocket | direkter Vergleich mit Erwartung | Vergleiche 12 und 13 (gepaart), Skalierung und Sättigung (beschreibend), H9 bis H11 |
+| 4 | Symfony | EventDispatcher als zweite Referenz | nicht umgesetzt |
+| 5 | Komplexität und Wartbarkeit | Unterfrage | Code-Kennzahlen und Debugging-Vergleich (5.13, 5.22) |
+| 6 | Latenzmaß | p50, p95, p99 | Mittelwert pro Lauf als Testgröße, Perzentile beschreibend |
+| 7 | Durchsatz | Events pro Sekunde bei steigender Last | Zustellquote je Lauf und Sättigungstest |
+| 8 | Skalierung | 10, 50, 100 und 500 Clients | Laststufen 10, 50, 500; Skalierungsreihe 10 bis 1 000 |
+| 9 | Laravel-Version | 13.x | 13.34.0 (zwischenzeitlich 12.61.1) |
+| 10 | Literatur | u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside, Laravel- und Symfony-Dokumentation | LITERATUR.md; Übernahme der Exposé-Quellen offen (Abschnitt 6) |
+
+**1. Titel.** Die Studie ist symmetrischer geworden als geplant. Beide Sprachen werden jeweils ohne und mit Framework umgesetzt, beide Transporte gemessen, und die Queue ist eine von vier Achsen (Sprache, Framework, Transport, Queue). Ein Titel, der PHP mit SSE und Queues in den Mittelpunkt stellt und Node.js/Express nur als Vergleichsgröße nennt, beschreibt die Arbeit daher nicht mehr genau. Der Arbeitstitel ist ein Vorschlag. Ein Kompromiss, der die Formulierung des Exposés erhält, wäre „Design and Implementation of Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues".
+
+**2. Forschungsfragen.** Die Hauptfrage des Exposés verbindet eine konstruktive Frage (wie lässt sich ein solches System entwerfen und umsetzen) mit einer empirischen (welche messbaren Unterschiede gibt es). Die konstruktive Frage beantwortet die Arbeit durch den Entwurf und die zehn Umsetzungen (Kapitel zu Entwurf und Umsetzung). Die empirische Frage ist in messbare Forschungsfragen zerlegt, weil nur sie sich vor der Datenerhebung mit Messgrößen, Tests und Hypothesen festlegen lassen (5.8, 5.18):
+
+- RQ1: Wie groß sind die Unterschiede in Latenz, Verbindungsaufbau, Ressourcenverbrauch und Zustellung zwischen den Sprachen, den Transporten, mit und ohne Framework, mit und ohne Queue?
+- RQ2: Wo liegen die Grenzen der einzelnen Varianten bei steigender Clientzahl und Event-Rate unter gleichem Ressourcenbudget?
+- RQ3: Wie unterscheiden sich die Varianten in Umsetzungsaufwand und Betreibbarkeit (Code, Abhängigkeiten, Debugging und Monitoring)?
+- Praktisches Ziel: eine begründete Entscheidungshilfe, welche Kombination sich für welches Szenario eignet.
+
+Die Unterfragen des Exposés gehen darin auf: Latenz, Durchsatz und Skalierung in RQ1 und RQ2, der Transportvergleich in RQ1 und RQ2 (Punkt 3), Komplexität und Wartbarkeit in RQ3 (Punkt 5), die Frage nach Laravel und Symfony in der Framework-Achse (Punkt 4).
+
+**3. SSE und WebSocket.** Das Exposé vergleicht beide Transporte ausdrücklich und erwartet für SSE weniger Overhead, für WebSocket Vorteile bei hoher Ereignisfrequenz. Der Messaufbau behandelte den Transport bis zum 2026-10-16 nur als Kontext. Begründet war das damit, dass sich in den Framework-Varianten mit dem Transport auch Protokoll und Prozessaufbau ändern (Reverb, 5.15). Diese Begründung trägt für die Framework-Varianten weiterhin, nicht aber für die Minimalvarianten. Da der Transport im Titel des Exposés und der Arbeit steht und eine zentrale Erwartung des Exposés betrifft, wird er jetzt gemessen: gepaart in den Minimalvarianten, beschreibend für alle Varianten über Skalierung und Sättigung, mit den vorab festgelegten Hypothesen H9 bis H11 (5.15, 5.18). Der Zeitpunkt vor dem Pilot ist dafür der letzte, an dem die Erweiterung ohne Nachteil für die Vorabfestlegung möglich ist. Die Kosten sind gering: rund 17 Stunden Messzeit je Block und eine etwas strengere Holm-Korrektur.
+
+**4. Symfony.** Eine Symfony-Variante wird nicht umgesetzt:
+
+- Die Framework-Frage ist bereits durch den Vergleich von Laravel mit der Minimalvariante beantwortet (Vergleiche 7 und 8), auf Node.js-Seite durch Express (5 und 6). Ein zweites PHP-Framework würde die Frage „Laravel oder Symfony" beantworten, die nicht zu den Kernfragen der Arbeit gehört.
+- Für Push-Nachrichten setzt Symfony auf Mercure. Die dauerhaften SSE-Verbindungen hält dabei ein eigener Hub-Server, der als Go-Programm bzw. Caddy-Modul ausgeliefert wird (LITERATUR.md). Eine Symfony-Variante würde den Push-Pfad also nicht in PHP messen und wäre mit den übrigen Zellen nicht vergleichbar. Der EventDispatcher allein ist ein Ereignismechanismus innerhalb eines Prozesses und kein Transport zum Client.
+- Zwei bis drei zusätzliche Zellen mit mindestens vier Vergleichen hätten die Messzeit um rund ein Drittel und die Zahl der Tests deutlich erhöht.
+
+Die Arbeit nennt Symfony in der Abgrenzung und im Ausblick.
+
+**5. Komplexität und Wartbarkeit.** Wartbarkeit lässt sich nicht mit einer einzelnen Messgröße erfassen. Die Arbeit kombiniert objektive statische Kennzahlen mit dem qualitativen Debugging- und Monitoring-Vergleich und bildet keine Gesamtnote (5.22). Das ist belastbarer als eine subjektive Einschätzung und vermeidet eine scheinbare Genauigkeit.
+
+**6. Latenzmaß.** p50, p95 und p99 werden für jeden Lauf berichtet. Als Testgröße dient aber der Mittelwert pro Lauf. Die Zeitstempel haben eine Auflösung von 1 ms, daher ist der Median eines Laufs fast immer eine ganze Zahl. Im ersten lokalen Probelauf hatten deshalb alle Paare die Differenz 0 und fielen aus dem Wilcoxon-Test. Der Mittelwert ist dagegen fein aufgelöst und unverzerrt (Widrow & Kollár 2008). Perzentile über alle Events mehrerer Läufe zu bilden, wäre Pseudoreplikation (Hurlbert 1984). Begründung im Detail: 5.8.
+
+**7. Durchsatz.** Bei fester Senderate ist die Zahl empfangener Events pro Sekunde gleich Senderate mal Clientzahl, solange nichts verloren geht. Als Messgröße wäre sie daher wenig aussagekräftig. Aussagekräftig ist, ab welcher Rate die Zustellung zusammenbricht. Das misst der Sättigungstest (höchste nachhaltige Event-Rate), ergänzt um die Zustellquote je Lauf (5.17).
+
+**8. Skalierung.** Die Laststufen der Hauptmessung bleiben bei 10, 50 und 500 Clients. Die zusätzliche Skalierungsreihe bis 1 000 Clients ist eine Erweiterung: Die Grenze von PHP-FPM/SSE liegt bei der Zahl der Worker (550, 5.5). Ohne Stufen oberhalb von 500 Clients ließe sich RQ2 für diese Variante nicht beantworten (H4).
+
+**9. Laravel-Version.** Das Exposé nennt Laravel 13.x. Umgesetzt war zunächst Laravel 12.61.1. Am 2026-10-16 wurde vor dem Pilot auf Laravel 13.34.0 aktualisiert, mit Reverb 1.12.0 (unterstützt Laravel 13). Gründe:
+
+- Übereinstimmung mit dem Exposé.
+- Laravel 12 erhält seit dem 2026-08-13 keine Fehlerbehebungen mehr, nur noch Sicherheitsupdates bis 2027-02-24. Laravel 13 erhält Fehlerbehebungen bis Q3 2027 und Sicherheitsupdates bis 2028-03-17 (Laravel Release Notes, LITERATUR.md). Die Messung erfolgt damit mit einer Version, die aktiv gepflegt wird.
+- Gewählt wurde die neueste Version, die zum Zeitpunkt des Upgrades mindestens zwei Wochen alt war, um nicht eine gerade erschienene Version zu messen.
+- Nach dem Pilot ist ein Versionswechsel nicht mehr möglich, ohne die Vergleichbarkeit der Blöcke zu gefährden.
+
+Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 und 500 Clients) verlief ohne ungültige Läufe (`results/2026-10-16_verification-3/`).
+
+**10. Literatur.** LITERATUR.md enthält die Quellen, auf die sich die Entscheidungen stützen, sowie die Spezifikationen und Dokumentationen der eingesetzten Technologien. Die im Exposé genannten Quellen zu ereignisgesteuerten Architekturen werden übernommen, soweit die Arbeit sie zitiert; die Auswahl trifft die Autorin (Abschnitt 6).
+
 ## 6. Offene Punkte
 
 | Punkt | Stand | Klärung durch |
 |---|---|---|
+| Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version (5.23); Bestätigung ausstehend | Betreuer |
+| Quellen aus dem Exposé | Auswahl der zitierten Quellen (u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside) und Übernahme in LITERATUR.md | Autorin |
+| Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 | Befund aus 5.13 (Laravel 12) erneut prüfen | vor dem Schreiben von Abschnitt 6.10 |
+| Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
 | Auslegung „gleiches Budget pro Container" | als „pro Zelle" umgesetzt (5.6.2), Bestätigung ausstehend | Betreuer |
 | Frage 8: Telemetrie statt oder zusätzlich zum Werkzeugvergleich | beides umgesetzt (5.13, 5.16) | Betreuer |
@@ -540,3 +628,4 @@ Die Testlast bildet Lokato an zentralen Stellen nach und vereinfacht an anderen.
 | 2026-10-16 | Erste Überprüfung des Messaufbaus (zwölf Befunde): Skript und Messgröße pro Zelle (5.9), Reverb hinter dem Front-Nginx (5.6.1), Speicherlimit 2 GiB (5.10), paarweise Kampagnen (5.6.3), Paarbildung über die Laufnummer und Mittelwert pro Lauf (5.8), Durchsatz und Zustellung (5.17), Budget pro Zelle (5.6.2), Messprotokoll mit Ressourcenmessung (5.16), Pi mit separatem Lastgenerator (5.14), Holm je Messgröße, Pilot vor den Hauptkampagnen (5.8, 5.9). Frühere Prüfberichte: REVIEW.md, METHODOLOGY-REVIEW.md (historisch). |
 | 2026-10-16 | Zweite Überprüfung (Bewertung als Bachelorarbeit, neun Befunde): Produktionsbetrieb (5.5), Einschwingzeit und Verbindungsaufbau (5.9), Redis im Ressourcenvergleich (5.6.2, 5.8), Messphasen mit Replikation, Skalierungsreihe und Kontrollmessung (5.9), Queue-Achse mit Vergleichen 9–11 (5.15, 5.19), Hypothesen (5.18), verwandte Arbeiten (LITERATUR.md), ein Nginx pro Zelle ohne Brücke (5.6.1), Grenzen der Testlast (5.21), Abweichungen von der Standardkonfiguration (5.20). |
 | 2026-10-16 | Betrieb: Pilot-Kampagnen und Namenspräfix für Probeläufe in `plan-campaigns.js` (5.9), Statusbericht und Benachrichtigung für den Dauerbetrieb, Einrichtungsskript für den Pi (5.14). |
+| 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |

@@ -10,6 +10,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `status.js` | Statusbericht für den Dauerbetrieb: Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz; optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `evaluate.js` | Gesamtauswertung der Hauptkampagnen: Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2), Hypothesen |
+| `series.js` | beschreibende Auswertung von Skalierungsreihe und Sättigungstest über alle Zellen, SSE und WebSocket je Variante nebeneinander |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
 | `cells.json` | die zehn Messzellen: Container, Front-Nginx (Modus, Ziel), Ereignisquelle, k6-Skript, Messgröße |
@@ -38,8 +39,11 @@ node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut
 # einzelne Kampagne
 node tools/orchestrate/run.js <kampagne.json>
 
-# Gesamtauswertung
+# Gesamtauswertung der Hauptmessung
 node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
+
+# Skalierung und Sättigung über alle Zellen
+node tools/orchestrate/series.js results/<kampagne-1> results/<kampagne-2> ...
 
 # Tests
 node --test "tools/orchestrate/test/*.test.js"
@@ -51,7 +55,7 @@ Optionen von `plan-campaigns.js`:
 | --- | --- | --- |
 | `--runs` | alle | Wiederholungen je Konfiguration ohne Warm-up; bei `pilot` und `main` je Laststufe (`baseline=…,medium=…,stress=…`) |
 | `--block` | `main` | 1 = konfirmatorisch, 2 = Replikation |
-| `--comparisons` | `pilot`, `main` | Auswahl der Vergleiche aus `plan.json` (Standard: alle elf) |
+| `--comparisons` | `pilot`, `main` | Auswahl der Vergleiche aus `plan.json` (Standard: alle dreizehn) |
 | `--control` | `pilot`, `main` | Zelle der täglichen Kontrollmessung (Standard `node-minimal-sse`) |
 | `--report-every` | `pilot` | Zwischenauswertung alle n Läufe (Standard 10) |
 | `--cells` | `scaling`, `saturation` | Auswahl der Zellen (Standard: alle zehn) |
@@ -191,7 +195,9 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 - die Median-Differenz mit 95-%-Konfidenzintervall,
 - Startwert und Zahl der Resamples des Bootstraps.
 
-`schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Hypothesen; Dezimalkomma). Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen; `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
+`schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Hypothesen; Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen; `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
+
+`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`: je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
 
 ## Statistik
 
@@ -202,6 +208,6 @@ Verfahren und Begründung: DECISIONS.md 5.8. Kurzfassung:
 - **Test:** Wilcoxon-Vorzeichen-Rang-Test, zweiseitig. Exakt bis 50 Paare ohne Bindungen, sonst Normalapproximation mit Stetigkeits- und Bindungskorrektur.
 - **Effektmaße:** Cliff's Delta mit Einordnung nach Romano et al. (2006), zusätzlich die rangbiseriale Korrelation für gepaarte Daten.
 - **Konfidenzintervall:** 95-%-Bootstrap-Intervall (Perzentil-Methode) für den Median der gepaarten Differenzen, mit festem Startwert.
-- **Mehrfachtests:** Holm-Korrektur je Messgröße über alle 33 geplanten Tests in `evaluate.js` (Block 1); Block 2 wird beschreibend abgeglichen.
+- **Mehrfachtests:** Holm-Korrektur je Messgröße über alle 39 geplanten Tests in `evaluate.js` (Block 1); Block 2 wird beschreibend abgeglichen.
 
 Vorzeichenkonvention: Differenzen und Effektmaße beziehen sich auf A − B in der Reihenfolge des Vergleichs. Negative Werte bedeuten, dass A kleinere Werte hat (bei Latenz, CPU und Speicher: besser).
