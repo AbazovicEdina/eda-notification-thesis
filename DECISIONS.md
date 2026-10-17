@@ -26,7 +26,7 @@ Trennungsprinzip: `prototypes/` enthält ausschließlich minimalen, lesbaren Ver
 
 ## 2. Laufzeitumgebung: Docker Compose — ENTSCHIEDEN
 
-PHP, Node.js, Redis, Nginx und k6 laufen ausschließlich als Container. Ausgenommen sind die Steuerwerkzeuge `tools/orchestrate` und `tools/monitor`: Sie rufen selbst Docker auf und laufen deshalb direkt mit Node.js auf dem steuernden Rechner.
+PHP, Node.js, Redis, Nginx und k6 laufen ausschließlich als Container. Ausgenommen ist das Steuerwerkzeug `tools/orchestrate`: Es ruft selbst Docker auf und läuft deshalb direkt mit Node.js auf dem steuernden Rechner.
 
 Begründung:
 
@@ -224,7 +224,7 @@ Alle Festlegungen dieses Abschnitts sind vor der Hauptmessung getroffen und in `
 
 **Effektstärke.** Signifikanz allein sagt nichts über die praktische Größe eines Unterschieds; bei vielen Wiederholungen wird nahezu jeder Unterschied signifikant (Arcuri & Briand 2014).
 
-- **Cliff's Delta** (Cliff 1993) ist das eingeordnete Effektmaß. Die Schwellen nach Romano et al. (2006) sind vorab festgelegt:
+- **Cliff's Delta** (Cliff 1993) ist das eingeordnete Effektmaß und das einzige Effektmaß im Text der Arbeit; die rangbiseriale Korrelation steht nur in den Anhangstabellen (5.24). Die Schwellen nach Romano et al. (2006) sind vorab festgelegt:
 
   | \|δ\| | Einordnung |
   | --- | --- |
@@ -330,7 +330,7 @@ Befund: Debugger und Profiler sind bei Node.js ohne Zusatzinstallation nutzbar, 
 **3. Fehlersichtbarkeit in Queue-Workern**, geprüft mit einem absichtlich fehlschlagenden Job (`correlation_id="corr-test-abc123"`):
 
 - *BullMQ (Node.js):* Der vorhandene `worker.on('failed', …)`-Handler protokolliert Job-ID, Fehlermeldung und Stacktrace, nicht aber die Correlation-ID. Diese ist jedoch programmatisch abrufbar: `queue.getFailed()` liefert die vollständigen Job-Daten einschließlich `correlation_id`, dauerhaft in Redis gespeichert und ohne Zusatzkonfiguration. Für die Ausgabe im Log genügt die Änderung einer bestehenden Zeile (`job.data` im vorhandenen `console.error`-Aufruf).
-- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im damals verwendeten Laravel-12-Starter-Kit (seit 2026-10-16 Laravel 13, 5.23; vor dem Schreiben von Abschnitt 6.10 erneut prüfen) nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
+- *Laravel Queue:* `queue:work` zeigt in der Konsole nur `... FAIL`, ohne Fehlermeldung oder ID. Das Standard-Fehlerprotokoll (Tabelle `failed_jobs`, `DatabaseUuidFailedJobProvider`) ist im damals verwendeten Laravel-12-Starter-Kit (seit 2026-10-16 Laravel 13, 5.23; vor dem Schreiben des Abschnitts zu Komplexität und Wartbarkeit erneut prüfen) nicht sofort funktionsfähig: Die Migration für `failed_jobs` gehört nicht zu den Standard-Migrationen, und in der gewählten Konfiguration existiert keine SQLite-Datenbankdatei (`CACHE_STORE=file` und `SESSION_DRIVER=cookie` vermeiden SQLite bewusst im SSE-Pfad). Der Versuch, den fehlgeschlagenen Job zu protokollieren, scheitert daher mit einer zweiten Exception (`SQLiteDatabaseDoesNotExistException`), die die eigentliche Fehlermeldung verdeckt. Die Correlation-ID erscheint nur als Nebeneffekt im serialisierten Datenblock in `storage/logs/laravel.log`. Abhilfe: `php artisan queue:failed-table` mit funktionierender Datenbank (Betriebsschritt) oder eine `failed()`-Methode in der Job-Klasse (Laravels vorgesehener Hook, ca. drei Zeilen mit `Log::error(...)` und `$this->payload`).
 
 Einordnung: BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
@@ -439,7 +439,7 @@ Inhalt eines Lauf-Protokolls:
 
 Von zusätzlichen Umgebungsvariablen (z. B. dem Reverb-App-Key) werden nur die Namen protokolliert, nie die Werte. Liegt eine Kampagnendatei außerhalb des Repositorys, wird nur ihr Dateiname protokolliert.
 
-Ressourcenmessung: `tools/resource-sampler` liest die cgroup-v2-Dateien direkt. Er ersetzt für die Messungen `docker stats` (`tools/monitor`), das pro Abfrage ein bis drei Sekunden benötigt, selbst CPU auf dem gemessenen Rechner verbraucht und nicht an einzelne Läufe gekoppelt war. `tools/monitor` bleibt für manuelle Beobachtungen erhalten.
+Ressourcenmessung: `tools/resource-sampler` liest die cgroup-v2-Dateien direkt. Er ersetzt `docker stats`, das pro Abfrage ein bis drei Sekunden benötigt, selbst CPU auf dem gemessenen Rechner verbraucht und nicht an einzelne Läufe gekoppelt war. Das frühere Protokollwerkzeug für `docker stats` (`tools/monitor`) wurde am 2026-10-17 entfernt.
 
 Offen ist, ob die Betreuerantwort zu Frage 8 den Werkzeugvergleich (5.3, 5.13) ersetzt oder ergänzt (Abschnitt 6).
 
@@ -608,12 +608,43 @@ Der Bezug zu Lokato bleibt über das Ereignisformat, die Ereignisquelle und das 
 
 **13. Erwartung zur Latenz.** Das Exposé erwartet, dass Node.js unter hoher Last eine geringere Latenz und einen höheren Durchsatz erreicht. H3 lässt die Richtung offen, weil zwei Mechanismen gegeneinander wirken: PHP-FPM verteilt ein Ereignis parallel in vielen Prozessen, Node.js nacheinander in einem Thread (5.18). Die Erwartung des Exposés wird in der Diskussion den Ergebnissen gegenübergestellt; die Tests sind ohnehin zweiseitig. Die Erwartung zum Ressourcenverbrauch je Verbindung bei PHP ist in H1 und H10 enthalten.
 
+### 5.24 Schwerpunkte der schriftlichen Arbeit und Reihenfolge von Kürzungen — ENTSCHIEDEN (vor der Datenerhebung festgelegt am 2026-10-17)
+
+Zehn Varianten, dreizehn Vergleiche, elf Hypothesen, Replikation, Skalierung, Sättigung und Code-Kennzahlen erzeugen mehr Material, als sich in einer Bachelorarbeit gleich ausführlich darstellen lässt. Die Arbeit legt deshalb vor der Messung fest, welche Themen ausführlich und welche knapp behandelt werden. Vorrangiger Zweck ist eine fokussierte, kürzere schriftliche Arbeit. Erst in zweiter Linie regelt der Abschnitt, was bei Zeitmangel an Messzeit eingespart wird.
+
+**Schwerpunkte im Text.** Maßgeblich ist das Abstract des Exposés, das den Einfluss des Technologie-Stacks und des Transportprotokolls als Kern der Untersuchung nennt.
+
+| Stufe | Inhalt | Darstellung |
+|---|---|---|
+| Kern | Sprache und Laufzeitmodell unter Last: Vergleiche 1–4, H1, H3, H4, Skalierungsreihe | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
+| Kern | Transport: Vergleiche 12 und 13, H9–H11, SSE gegen WebSocket im Sättigungstest | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
+| Ergänzung | Kosten der Architektur: Framework (Vergleiche 5–8, H5, H6), Queue (Vergleiche 9–11, H7), Anteil von Redis (H8) | ein Abschnitt, je Achse eine Tabelle und wenige Absätze |
+| Ergänzung | Komplexität und Wartbarkeit (RQ3, 5.13, 5.22) | ein Abschnitt mit einer Tabelle der Kennzahlen und dem qualitativen Vergleich |
+| Ergänzung | Messbetrieb, Zustellung, Replikation | knapp, Zusammenfassung im Text |
+| Anhang | vollständige Tabellen aller 39 Tests je Messgröße, rangbiseriale Korrelation, Replikation je Vergleich, Stufen von Skalierung und Sättigung je Variante, Verlauf von Pilot und Kontrollmessung | nur Tabellen, im Text verwiesen |
+
+Regeln:
+
+- Alle vorab festgelegten Tests werden gemessen, ausgewertet und berichtet, mindestens im Anhang. Die Schwerpunkte bestimmen nur die Ausführlichkeit, nicht, was berichtet wird.
+- Die Zuordnung steht vor der Datenerhebung fest und wird nicht an Ergebnisse angepasst. Ein signifikantes Ergebnis in einem Ergänzungsthema rückt dadurch nicht in den Kern, ein fehlender Unterschied im Kern wird ebenso ausführlich berichtet wie ein vorhandener. Andernfalls entstünde selektives Berichten.
+- Die Holm-Korrektur gilt unverändert über alle 39 Tests je Messgröße (5.8).
+- Jede Hypothese erhält in der Hypothesentabelle eine Bewertung.
+- Als Effektmaß wird im Text Cliff's Delta berichtet; die rangbiseriale Korrelation steht nur in den Anhangstabellen (5.8).
+
+**Reihenfolge von Kürzungen bei Zeitmangel.** Reicht die Messzeit nicht, wird in dieser Reihenfolge gekürzt, und nur so weit wie nötig:
+
+1. Block 2 (Replikation) nur für die Kernvergleiche 1–4, 12 und 13 statt für alle dreizehn. Bei den Beispiel-Wiederholungszahlen spart das rund 2,5 Tage. Umsetzung: `plan-campaigns.js main --block 2 --comparisons 1,2,3,4,12,13`.
+2. Wiederholungszahlen je Laststufe auf das kleinste Maß senken, das der Pilot noch trägt, mindestens 20 gültige Paare (5.9).
+3. Block 2 ganz entfallen lassen. Die Arbeit berichtet dann die fehlende Replikation als Grenze.
+
+Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleichen, Kontrollmessung, Skalierungsreihe und Sättigungstest. Die beiden Reihen kosten zusammen weniger als einen Tag und tragen RQ2, H4 und H11. Jede Kürzung wird mit Umfang und Grund in der Arbeit genannt.
+
 ## 6. Offene Punkte
 
 | Punkt | Stand | Klärung durch |
 |---|---|---|
 | Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
-| Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 | Befund aus 5.13 (Laravel 12) erneut prüfen | vor dem Schreiben von Abschnitt 6.10 |
+| Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 | Befund aus 5.13 (Laravel 12) erneut prüfen | vor dem Schreiben des Abschnitts zu Komplexität und Wartbarkeit |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
 | Auslegung „gleiches Budget pro Container" | als „pro Zelle" umgesetzt (5.6.2), Bestätigung ausstehend | Betreuer |
@@ -644,3 +675,4 @@ Der Bezug zu Lokato bleibt über das Ereignisformat, die Ereignisquelle und das 
 | 2026-10-16 | Betrieb: Pilot-Kampagnen und Namenspräfix für Probeläufe in `plan-campaigns.js` (5.9), Statusbericht und Benachrichtigung für den Dauerbetrieb, Einrichtungsskript für den Pi (5.14). |
 | 2026-10-16 | Abgleich mit dem Exposé (5.23): Transportvergleiche 12 und 13 und Hypothesen H9 bis H11 (5.15, 5.18), Testfamilien mit 39 Tests (5.8), beschreibender Transportvergleich über Skalierung und Sättigung (`series.js`), Code-Kennzahlen zu Komplexität und Wartbarkeit (5.22), Upgrade auf Laravel 13.34.0 (5.23), Quellen zu Spezifikationen und eingesetzten Technologien (LITERATUR.md), Ergebnistabellen mit Dezimalpunkt. |
 | 2026-10-17 | Quellen des Exposés geprüft und übernommen, zwei Angaben korrigiert, eine verworfen (LITERATUR.md); weitere Abweichungen vom Exposé ergänzt: eigenständige Prototypen, Queue als Achse, Erwartung zur Latenz (5.23). |
+| 2026-10-17 | Schwerpunkte der schriftlichen Arbeit und Reihenfolge von Kürzungen festgelegt (5.24), Cliff's Delta als einziges Effektmaß im Text (5.8). Aufgeräumt: `tools/monitor` und `tools/redis-baseline` entfernt, frühere Prüfberichte nach `docs/archive/` verschoben. |
