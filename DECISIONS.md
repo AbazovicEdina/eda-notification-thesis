@@ -616,6 +616,8 @@ Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, de
 - RQ1: Wie groß sind die Unterschiede in Latenz, Verbindungsaufbau, Ressourcenverbrauch und Zustellung zwischen den Sprachen, den Transporten, mit und ohne Framework, mit und ohne Queue?
 - RQ2: Wo liegen die Grenzen der einzelnen Varianten bei steigender Clientzahl und Event-Rate unter gleichem Ressourcenbudget?
 - RQ3: Wie unterscheiden sich die Varianten in Umsetzungsaufwand und Betreibbarkeit (Code, Abhängigkeiten, Debugging und Monitoring)?
+
+Übergeordnete Frage in einem Satz (2026-10-18, Vorgabe der Lehrveranstaltung WIA4SE, Teil 3): „Wie wirken sich Sprache und Laufzeitmodell, Transportprotokoll, Framework und Message Queue auf Leistung, Skalierbarkeit und Umsetzungsaufwand eines ereignisgesteuerten Benachrichtigungssystems in PHP und Node.js bei gleichem Ressourcenbudget aus?" RQ1 bis RQ3 sind ihre Unterfragen.
 - Praktisches Ziel: eine begründete Entscheidungshilfe, welche Kombination sich für welches Szenario eignet.
 
 Die Unterfragen des Exposés gehen darin auf: Latenz, Durchsatz und Skalierung in RQ1 und RQ2, der Transportvergleich in RQ1 und RQ2 (Punkt 3), Komplexität und Wartbarkeit in RQ3 (Punkt 5), die Frage nach Laravel und Symfony in der Framework-Achse (Punkt 4).
@@ -736,6 +738,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-18 | Übergeordnete Forschungsfrage in einem Satz ergänzt, RQ1 bis RQ3 als Unterfragen (5.23). |
 | 2026-10-18 | Abweichungen vom Exposé nur in den Entwürfen für den Betreuer, nicht in der Abgabefassung (5.23); rangbiseriale Korrelation mit einem definierenden Satz in der Methodik (5.8, 5.24). |
 | 2026-10-18 | Frage 8 geklärt: Die Betreuerantwort betrifft das Messprotokoll (5.16), der Werkzeugvergleich bleibt als Teil von RQ3 (5.3) und ist mit den gemessenen Versionen wiederholt (5.13); erledigten Punkt zu den Literaturangaben aus den offenen Punkten entfernt. |
 | 2026-10-18 | Zwei Titelvorschläge an den Betreuer: „Event-Driven Notification Systems in PHP and Node.js: A Performance Comparison of Server-Sent Events, WebSockets and Queues" und „Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues under Load" (5.23). |

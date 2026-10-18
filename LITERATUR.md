@@ -1218,6 +1218,28 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 
 ---
 
+## Nachhaltigkeit
+
+### Vereinte Nationen (2015) — Agenda 2030 und Ziele für nachhaltige Entwicklung
+
+United Nations General Assembly. „Transforming our World: The 2030 Agenda for Sustainable Development." Resolution A/RES/70/1, angenommen im September 2015. https://sdgs.un.org/2030agenda
+
+Verwendung: Bezug der Arbeit zu den Zielen für nachhaltige Entwicklung (SDG 9, 11 und 12) in Einleitung und Diskussion, wie in der Lehrveranstaltung WIA4SE (Teil 5) verlangt.
+
+```bibtex
+@online{un2015agenda,
+  author  = {{United Nations General Assembly}},
+  title   = {Transforming our World: The 2030 Agenda for Sustainable Development},
+  note    = {Resolution A/RES/70/1},
+  date    = {2015},
+  url     = {https://sdgs.un.org/2030agenda},
+  urldate = {2026-10-18},
+  langid  = {english}
+}
+```
+
+---
+
 ## Übersicht: Quelle je Entscheidung
 
 | DECISIONS.md | Entscheidung | Quelle(n) |
@@ -1245,6 +1267,7 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 | Konstruktvalidität | Definition von WebSocket und SSE | RFC 6455; WHATWG HTML Living Standard |
 | 5.13 | Debugger und Profiler eingebaut bzw. Zusatzinstallation | Node.js-Dokumentation; Xdebug-Dokumentation |
 | Grundlagen | Polling, Long Polling, Streaming | RFC 6202 |
+| Einleitung, Diskussion | Bezug zu den Zielen für nachhaltige Entwicklung | Vereinte Nationen (2015) |
 | 5.2, 5.12 | HTTP/1.1, HTTP/2, Verbindungsgrenze im Browser | RFC 9110; RFC 9112; RFC 9113; MDN EventSource |
 | 5.1, 5.11 | Nginx ereignisgesteuert, Apache-MPMs | Nginx-Dokumentation; Apache-Dokumentation |
 | 5.6.1 | Pufferung im Front-Nginx für SSE abgeschaltet | Nginx-Dokumentation (Proxy, FastCGI) |
