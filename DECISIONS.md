@@ -108,7 +108,7 @@ Die Entwicklungswerkzeuge beider Stacks werden anhand von drei Kriterien verglic
 2. Nachvollziehbarkeit eines Events über Queue-Grenzen hinweg per Correlation-ID.
 3. Sichtbarkeit von Fehlern in Queue-Workern.
 
-Die Betreuerantwort zu Frage 8 des Abstimmungstermins betrifft das Telemetrie-Logging der Testläufe (5.16). Ob sie den Werkzeugvergleich ersetzt oder ergänzt, ist offen (Abschnitt 6).
+Die Betreuerantwort zu Frage 8 des Abstimmungstermins betrifft das Messprotokoll: Die Testläufe schreiben ihre Messwerte (Dauer, Bytes, Bytes pro Sekunde u. a.) als JSON-Dateien, und aus diesen Dateien werden die Technologien verglichen (5.16). Sie ersetzt den Werkzeugvergleich nicht. Der Werkzeugvergleich bleibt als qualitativer Teil der Wartbarkeit (RQ3, 5.22) in der Arbeit (Auslegung vom 2026-10-18).
 
 ### 5.4 Event-Backbone: Redis Pub/Sub — ENTSCHIEDEN (abgestimmt am 2026-10-16)
 
@@ -356,6 +356,8 @@ Befund: Debugger und Profiler sind bei Node.js ohne Zusatzinstallation nutzbar, 
 
 Wiederholung unter Laravel 13.34.0 (2026-10-17, Produktionsbetrieb, Fehler nur im laufenden Prüf-Container eingebaut): gleiches Ergebnis. `queue:work` meldet nur `FAIL`; das Protokollieren des fehlgeschlagenen Jobs scheitert an der fehlenden SQLite-Datenbank (`QueryException`), und `queue:failed` bricht mit derselben Meldung ab. Die eigentliche Fehlermeldung und die Correlation-ID stehen nur im Kontext dieses Folgefehlers in `storage/logs/laravel.log`. Der Befund gilt damit für die gemessene Version.
 
+Wiederholung der übrigen Punkte mit den gemessenen Versionen (2026-10-18, eigene Prüf-Queue, Prototypen unverändert): Unter BullMQ 5.81.2 und Node.js 22.11.0 meldet derselbe `failed`-Handler Job-ID und Fehlermeldung ohne Correlation-ID; `queue.getFailed()` liefert den Job mit `correlation_id`, Fehlergrund und Zahl der Versuche. Node.js 22.11.0 enthält `--inspect`, `--prof` und `--cpu-prof`. Im PHP-8.4-Image der Prototypen ist kein Xdebug installiert, Laravel 13 bringt Monolog 3.10 mit. Der gesamte Werkzeugvergleich gilt damit für die gemessenen Versionen.
+
 Einordnung: BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
 ### 5.14 Testumgebung: Raspberry Pi mit separatem Lastgenerator — ENTSCHIEDEN (Hardware offen)
@@ -465,7 +467,7 @@ Von zusätzlichen Umgebungsvariablen (z. B. dem Reverb-App-Key) werden nur die N
 
 Ressourcenmessung: `tools/resource-sampler` liest die cgroup-v2-Dateien direkt. Er ersetzt `docker stats`, das pro Abfrage ein bis drei Sekunden benötigt, selbst CPU auf dem gemessenen Rechner verbraucht und nicht an einzelne Läufe gekoppelt war. Das frühere Protokollwerkzeug für `docker stats` (`tools/monitor`) wurde am 2026-10-17 entfernt.
 
-Offen ist, ob die Betreuerantwort zu Frage 8 den Werkzeugvergleich (5.3, 5.13) ersetzt oder ergänzt (Abschnitt 6).
+Die Betreuerantwort zu Frage 8 betrifft dieses Messprotokoll und ersetzt den Werkzeugvergleich (5.3, 5.13) nicht (Auslegung vom 2026-10-18).
 
 ### 5.17 Durchsatz und Zustellung — ENTSCHIEDEN, umgesetzt
 
@@ -593,7 +595,7 @@ Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, de
 
 | Nr. | Punkt | Exposé | Umsetzung | Mehrwert für Entwickler |
 |---|---|---|---|---|
-| 1 | Titel | „Design and Implementation of an Event-Driven Notification System in PHP Using SSE and Queues: A Comparative Study with Node.js/Express" | Arbeitstitel „Event-driven Notification Systems: PHP vs. Node.js with Server-Sent Events and WebSockets"; endgültiger Titel mit dem Betreuer abzustimmen | Der Titel zeigt sofort, welche Entscheidungen die Arbeit unterstützt: Sprache, Transport, Framework und Queue |
+| 1 | Titel | „Design and Implementation of an Event-Driven Notification System in PHP Using SSE and Queues: A Comparative Study with Node.js/Express" | Vorschläge „Event-Driven Notification Systems in PHP and Node.js: A Performance Comparison of Server-Sent Events, WebSockets and Queues" oder „Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues under Load"; endgültiger Titel mit dem Betreuer abzustimmen | Der Titel zeigt sofort, welche Entscheidungen die Arbeit unterstützt: Sprache, Transport, Framework und Queue |
 | 2 | Forschungsfragen | eine Hauptfrage (Entwurf, Umsetzung, messbare Unterschiede) mit sechs Unterfragen | drei messbare Forschungsfragen und ein praktisches Ziel; Entwurf und Umsetzung als konstruktiver Teil | Antworten mit Zahlen und Effektstärken statt einer allgemeinen Beschreibung, dazu eine Entscheidungshilfe |
 | 3 | SSE und WebSocket | direkter Vergleich mit Erwartung | Vergleiche 12 und 13 (gepaart), Skalierung und Sättigung (beschreibend), H9 bis H11 | Die Wahl zwischen SSE und WebSocket ist eine der häufigsten Entscheidungen bei Benachrichtigungen; gemessene Unterschiede statt Erfahrungsberichten |
 | 4 | Symfony | EventDispatcher als zweite Referenz | nicht umgesetzt | Kein irreführendes Ergebnis über einen Go-Hub als „Symfony"; der Hinweis auf Mercure ist selbst eine praktische Information |
@@ -607,7 +609,7 @@ Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, de
 | 12 | Queue in den Varianten | Laravel-Queue und Event-Dispatcher als Teil der vollständigen Umsetzungen | Queue als eigene Achse in zwei Varianten (5.19) | Eigener Preis einer Queue, getrennt vom Framework; hilft bei der Entscheidung, ob sich eine Queue lohnt |
 | 13 | Erwartung zur Latenz | Node.js mit geringerer Latenz und höherem Durchsatz unter hoher Last | H3 mit offener Richtung | Keine vorweggenommene Antwort; die Erwartung des Exposés wird trotzdem geprüft |
 
-**1. Titel.** Die Studie ist symmetrischer geworden als geplant. Beide Sprachen werden jeweils ohne und mit Framework umgesetzt, beide Transporte gemessen, und die Queue ist eine von vier Achsen (Sprache, Framework, Transport, Queue). Ein Titel, der PHP mit SSE und Queues in den Mittelpunkt stellt und Node.js/Express nur als Vergleichsgröße nennt, beschreibt die Arbeit daher nicht mehr genau. Der Arbeitstitel ist ein Vorschlag. Ein Kompromiss, der die Formulierung des Exposés erhält, wäre „Design and Implementation of Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues".
+**1. Titel.** Die Studie ist symmetrischer geworden als geplant. Beide Sprachen werden jeweils ohne und mit Framework umgesetzt, beide Transporte gemessen, und die Queue ist eine von vier Achsen (Sprache, Framework, Transport, Queue). Ein Titel, der PHP mit SSE und Queues in den Mittelpunkt stellt und Node.js/Express nur als Vergleichsgröße nennt, beschreibt die Arbeit daher nicht mehr genau. Dem Betreuer sind zwei Titel vorgeschlagen (2026-10-18): „Event-Driven Notification Systems in PHP and Node.js: A Performance Comparison of Server-Sent Events, WebSockets and Queues" und „Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues under Load". Beide übernehmen den Anfang des Exposés und lassen „Design and Implementation" weg, weil der Beitrag der Arbeit der Vergleich unter Last ist. Der erste benennt, was verglichen wird, der zweite bleibt mit „Comparative Study" näher an der Formulierung des Exposés. Ein früherer Kompromissvorschlag („Design and Implementation of Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues") ist damit ersetzt.
 
 **2. Forschungsfragen.** Die Hauptfrage des Exposés verbindet eine konstruktive Frage (wie lässt sich ein solches System entwerfen und umsetzen) mit einer empirischen (welche messbaren Unterschiede gibt es). Die konstruktive Frage beantwortet die Arbeit durch den Entwurf und die zehn Umsetzungen (Kapitel zu Entwurf und Umsetzung). Die empirische Frage ist in messbare Forschungsfragen zerlegt, weil nur sie sich vor der Datenerhebung mit Messgrößen, Tests und Hypothesen festlegen lassen (5.8, 5.18):
 
@@ -706,11 +708,9 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
-| Frage 8: Telemetrie statt oder zusätzlich zum Werkzeugvergleich | beides umgesetzt (5.13, 5.16) | Betreuer |
 | Erprobung des Zwei-Rechner-Aufbaus | implementiert, nicht auf Pi-Hardware getestet (5.14) | nach Verfügbarkeit des Pi |
 | Belastungstest, Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17) | auf dem Pi |
 | Endwerte der Ressourcenlimits | Arbeitswerte 2 CPUs / 2 GiB (5.10); Speicherspitze von Laravel auf dem Pi prüfen | nach Festlegung des Pi-Modells |
-| Literaturangaben mit Prüfvermerk | DOIs bzw. Verlagsangaben einzelner Quellen bestätigen (LITERATUR.md) | vor Abgabe |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -736,4 +736,6 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-18 | Frage 8 geklärt: Die Betreuerantwort betrifft das Messprotokoll (5.16), der Werkzeugvergleich bleibt als Teil von RQ3 (5.3) und ist mit den gemessenen Versionen wiederholt (5.13); erledigten Punkt zu den Literaturangaben aus den offenen Punkten entfernt. |
+| 2026-10-18 | Zwei Titelvorschläge an den Betreuer: „Event-Driven Notification Systems in PHP and Node.js: A Performance Comparison of Server-Sent Events, WebSockets and Queues" und „Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues under Load" (5.23). |
 | 2026-10-18 | Bezug zu Lokato im Event-Weg dokumentiert: Lokato verteilt über Datenbank und Änderungssignal im 500-ms-Takt, MQTT nur als Geräteeingang; Gründe für einen Broker und für Redis statt MQTT (5.4). |
