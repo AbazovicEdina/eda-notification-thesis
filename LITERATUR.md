@@ -926,6 +926,24 @@ Verwendung: Funktionsweise von Redis Pub/Sub und dessen Zustellsemantik (höchst
 }
 ```
 
+### MQTT 5.0
+
+A. Banks, E. Briggs, K. Borgendale, R. Gupta (Hrsg.). „MQTT Version 5.0." OASIS Standard, 7. März 2019. https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
+
+Verwendung: MQTT als Geräteeingang von Lokato im Grundlagen- und Entwurfskapitel; Dienstgüten (QoS 0 bis 2) im Vergleich mit der Zustellsemantik von Redis Pub/Sub; MQTT als alternativer Verteilweg in der Diskussion (DECISIONS.md 5.4).
+
+```bibtex
+@online{oasis2019mqtt,
+  editor       = {Banks, Andrew and Briggs, Ed and Borgendale, Ken and Gupta, Rahul},
+  title        = {{MQTT} Version 5.0},
+  organization = {{OASIS}},
+  date         = {2019-03-07},
+  url          = {https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html},
+  urldate      = {2026-10-18},
+  langid       = {english}
+}
+```
+
 ### BullMQ
 
 Taskforce.sh. *BullMQ Documentation*. https://docs.bullmq.io/
@@ -1229,6 +1247,8 @@ Verwendung: Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP aus
 | 5.1, 5.11 | Nginx ereignisgesteuert, Apache-MPMs | Nginx-Dokumentation; Apache-Dokumentation |
 | 5.6.1 | Pufferung im Front-Nginx für SSE abgeschaltet | Nginx-Dokumentation (Proxy, FastCGI) |
 | 5.4, 5.17 | Zustellsemantik von Redis Pub/Sub | Redis-Dokumentation |
+| 5.4 | MQTT als Geräteeingang von Lokato, Dienstgüten, MQTT als alternativer Verteilweg | OASIS MQTT 5.0 |
+| 5.4 | Push über einen Broker statt Polling | Fowler (2017); Hohpe & Woolf (2003); RFC 6202 |
 | 5.5 | Produktionsbetrieb (php.ini, Laravel-Caches, `NODE_ENV`) | PHP-Image-Dokumentation; Laravel Deployment; Express Production Best Practices |
 | 5.5 | PHP-FPM-Prozessmodell und Pool-Konfiguration | PHP-Handbuch (FPM) |
 | 5.19, 5.20 | Queues (BullMQ, Laravel Queue, `block_for`) | BullMQ-Dokumentation; Laravel Queues |

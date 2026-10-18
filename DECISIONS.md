@@ -116,6 +116,21 @@ Alle Prototypen beziehen die Events aus Redis Pub/Sub. Den MQTT-Eingang des Ausg
 
 Auch die Minimalvariante nutzt Redis Pub/Sub; sie verzichtet nur auf Framework und Queue-Worker. Eine Variante ganz ohne Broker würde nur die Verbindungskosten pro Client messen, nicht den Zustellweg eines Events, und ist für die Fragestellung nicht ergiebig. Damit ist eine missverständliche Formulierung („Minimalvariante ohne Broker") in den Unterlagen zum Abstimmungstermin aufgelöst.
 
+**Bezug zu Lokato.** Lokato verteilt Scan-Ereignisse ohne Broker (Durchsicht des Lokato-Codes am 2026-10-18). Der MQTT-Subscriber verarbeitet einen Scan, speichert ihn in der relationalen Datenbank und aktualisiert ein Änderungssignal im Cache. Jede SSE-Verbindung prüft dieses Signal alle 500 ms und liest bei einer Änderung die betroffenen Daten aus der Datenbank. Redis und Laravel Broadcasting werden nicht verwendet. MQTT übernimmt in Lokato nur den Eingang, also den Weg von den ESP32-Geräten zum Backend. Die Verteilung an die Client-Verbindungen erfolgt durch Abfragen in festem Takt (Polling).
+
+Gründe für einen Broker in den Prototypen:
+
+- **Prozessgrenze.** Unter PHP-FPM belegt jede SSE-Verbindung einen eigenen Worker-Prozess, und der Empfänger der Ereignisse ist ein weiterer Prozess. Prozesse teilen keinen Speicher, ein Ereignis braucht deshalb einen Weg zwischen ihnen (Datenbank, Cache oder Broker). Ein Node.js-Prozess könnte die Ereignisse dagegen im eigenen Speicher verteilen.
+- **Gleicher Weg für alle Zellen.** Unterschiedliche Verteilungswege je Stack, etwa Polling bei PHP und Speicher bei Node.js, würden den Verteilungsweg messen statt Sprache und Laufzeitmodell. Ein gemeinsamer Broker gibt allen Zellen denselben Weg. Das Exposé sieht Redis aus diesem Grund vor („to keep infrastructure variables constant").
+- **Push statt Polling.** Polling verzögert jedes Ereignis um bis zu ein Abfrageintervall, bei Lokato bis zu 500 ms, und erzeugt Abfragen pro Verbindung auch ohne neue Ereignisse. Ein Broker stellt sofort zu und entspricht dem ereignisgesteuerten Ansatz, den die Arbeit untersucht (Fowler 2017; Hohpe & Woolf 2003). Für Lokato wäre Push über einen Broker damit die ereignisgesteuerte Weiterentwicklung. Der Ansatz von Lokato wird nicht gemessen, sondern in der Arbeit als Ausgangspunkt beschrieben. Bei wenigen Anzeigen wie im Einsatz von Lokato ist Polling im 500-ms-Takt praktisch ausreichend; der Unterschied wird bei vielen Clients und bei Anforderungen an sofortige Zustellung relevant.
+
+**Redis statt MQTT als Broker.** Technisch könnte auch der MQTT-Broker die Verteilung übernehmen. Jede Backend-Instanz bzw. jeder PHP-FPM-Worker würde dann das Scan-Topic abonnieren und bei Eingang sofort zustellen. Das wäre ebenso Push und ebenso ereignisgesteuert. MQTT bietet mit den Dienstgüten QoS 1 und 2 zusätzlich Zustellgarantien, die Redis Pub/Sub nicht hat (OASIS MQTT 5.0; 5.17). Redis ist aus zwei Gründen gewählt:
+
+- Die Queue-Zellen benötigen Redis ohnehin (BullMQ setzt Redis voraus, Laravel Queue nutzt es als Treiber). Ein Dienst deckt so Pub/Sub und Queue ab. MQTT kennt keine Job-Semantik wie Wiederholung oder ein Protokoll fehlgeschlagener Jobs.
+- Das Exposé legt Redis als Broker fest.
+
+Die Wahl des Brokers ist nicht Gegenstand des Vergleichs, er ist für alle Zellen gleich. MQTT als Verteilweg nennt die Arbeit in der Diskussion als gleichwertige Alternative, etwa für Systeme, die MQTT für den Geräteeingang bereits betreiben und keine Queue brauchen.
+
 Festlegungen:
 
 - Die Ereignisquelle setzt den Zeitstempel `ts` beim Senden. Die gemessene Latenz ist damit Ende-zu-Ende einschließlich der Verarbeitung im Backend. Ein Backend kann zusätzlich `sut_ts` (eigene Sendezeit) setzen; ausgewertet wird `ts`.
@@ -721,3 +736,4 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-18 | Bezug zu Lokato im Event-Weg dokumentiert: Lokato verteilt über Datenbank und Änderungssignal im 500-ms-Takt, MQTT nur als Geräteeingang; Gründe für einen Broker und für Redis statt MQTT (5.4). |
