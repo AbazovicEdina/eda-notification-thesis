@@ -2,6 +2,8 @@
 
 Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand: 2026-08-25, Ergänzungen 2026-10-16, 2026-10-17 und 2026-10-18). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Am 2026-10-17 wurden alle Fundstellen mit DOI über Crossref, Bücher ohne DOI über Open Library bzw. den Verlag bestätigt; offene Prüfvermerke gibt es nicht mehr. Online-Quellen tragen ihr Abrufdatum. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen; zitiert wird in der Arbeit nur, was selbst gelesen wurde.
 
+Aufnahme neuer Quellen: Eine Quelle wird erst eingetragen, wenn Existenz und Metadaten (Autoren, Titel, Jahr, Erscheinungsort, Band, Seiten, DOI) über Crossref, arXiv, Open Library, rfc-editor.org oder die Verlagsseite bestätigt sind. Der Eintrag nennt die Aussage, die die Quelle in der Arbeit stützt. Ob die Quelle diese Aussage tatsächlich enthält, wird vor dem Zitieren im Original geprüft. Nicht bestätigte Angaben werden nicht übernommen.
+
 ---
 
 ## Verwandte Arbeiten

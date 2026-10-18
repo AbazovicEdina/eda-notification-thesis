@@ -239,7 +239,7 @@ Alle Festlegungen dieses Abschnitts sind vor der Hauptmessung getroffen und in `
 
 **Effektstärke.** Signifikanz allein sagt nichts über die praktische Größe eines Unterschieds; bei vielen Wiederholungen wird nahezu jeder Unterschied signifikant (Arcuri & Briand 2014).
 
-- **Cliff's Delta** (Cliff 1993) ist das eingeordnete Effektmaß und das einzige Effektmaß im Text der Arbeit; die rangbiseriale Korrelation steht nur in den Anhangstabellen (5.24). Die Schwellen nach Romano et al. (2006) sind vorab festgelegt:
+- **Cliff's Delta** (Cliff 1993) ist das eingeordnete Effektmaß und das einzige Effektmaß im Text der Arbeit; die rangbiseriale Korrelation steht nur in den Anhangstabellen und in einem definierenden Satz der Methodik (5.24). Die Schwellen nach Romano et al. (2006) sind vorab festgelegt:
 
   | \|δ\| | Einordnung |
   | --- | --- |
@@ -591,7 +591,7 @@ Die Kennzahlen zeigen einen Zielkonflikt, der ohne Gewichtung berichtet wird: Ei
 
 Maßstab für jede Abweichung: Sie muss sinnvoll begründet sein und den Entwicklern, für die die Entscheidungshilfe gedacht ist, einen echten Mehrwert bringen (Vorgabe der Autorin, 2026-10-17). Die Tabelle nennt diesen Mehrwert je Punkt.
 
-Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, der Abstimmung mit dem Betreuer am 2026-10-16 und zwei Überprüfungen des Messaufbaus (Abschnitt 8) haben sich Abweichungen ergeben. Jede ist hier mit Begründung festgehalten. Das Methodikkapitel der Arbeit nennt sie in einer Tabelle, damit die Gutachter den Weg vom Exposé zur Umsetzung nachvollziehen können.
+Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, der Abstimmung mit dem Betreuer am 2026-10-16 und zwei Überprüfungen des Messaufbaus (Abschnitt 8) haben sich Abweichungen ergeben. Jede ist hier mit Begründung festgehalten. In den Entwürfen für den Betreuer stehen sie als Tabelle in einem eigenen Abschnitt der Methodik, der vor der Abgabe entfernt wird. Die Abgabefassung beschreibt die Methode, wie sie durchgeführt wurde, und bezeichnet methodische Änderungen wie das Latenzmaß nicht als Abweichung. Dieses Protokoll bleibt als Nachweis im Repository.
 
 | Nr. | Punkt | Exposé | Umsetzung | Mehrwert für Entwickler |
 |---|---|---|---|---|
@@ -683,7 +683,7 @@ Regeln:
 - Die Zuordnung steht vor der Datenerhebung fest und wird nicht an Ergebnisse angepasst. Ein signifikantes Ergebnis in einem Ergänzungsthema rückt dadurch nicht in den Kern, ein fehlender Unterschied im Kern wird ebenso ausführlich berichtet wie ein vorhandener. Andernfalls entstünde selektives Berichten.
 - Die Holm-Korrektur gilt unverändert über alle 39 Tests je Messgröße (5.8).
 - Jede Hypothese erhält in der Hypothesentabelle eine Bewertung.
-- Als Effektmaß wird im Text Cliff's Delta berichtet; die rangbiseriale Korrelation steht nur in den Anhangstabellen (5.8).
+- Als Effektmaß wird im Text Cliff's Delta berichtet; die rangbiseriale Korrelation steht nur in den Anhangstabellen und in einem definierenden Satz der Methodik (5.8).
 
 **Reihenfolge von Kürzungen bei Zeitmangel.** Reicht die Messzeit nicht, wird in dieser Reihenfolge gekürzt, und nur so weit wie nötig:
 
@@ -736,6 +736,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-18 | Abweichungen vom Exposé nur in den Entwürfen für den Betreuer, nicht in der Abgabefassung (5.23); rangbiseriale Korrelation mit einem definierenden Satz in der Methodik (5.8, 5.24). |
 | 2026-10-18 | Frage 8 geklärt: Die Betreuerantwort betrifft das Messprotokoll (5.16), der Werkzeugvergleich bleibt als Teil von RQ3 (5.3) und ist mit den gemessenen Versionen wiederholt (5.13); erledigten Punkt zu den Literaturangaben aus den offenen Punkten entfernt. |
 | 2026-10-18 | Zwei Titelvorschläge an den Betreuer: „Event-Driven Notification Systems in PHP and Node.js: A Performance Comparison of Server-Sent Events, WebSockets and Queues" und „Event-Driven Notification Systems in PHP and Node.js: A Comparative Study of Server-Sent Events, WebSockets and Queues under Load" (5.23). |
 | 2026-10-18 | Bezug zu Lokato im Event-Weg dokumentiert: Lokato verteilt über Datenbank und Änderungssignal im 500-ms-Takt, MQTT nur als Geräteeingang; Gründe für einen Broker und für Redis statt MQTT (5.4). |
