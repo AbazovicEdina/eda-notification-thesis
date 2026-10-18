@@ -880,12 +880,20 @@ function scalingSummary(scenarios, configs, scenarioAggs, criteria) {
       return {
         scenario: s.name,
         clients: s.vus,
+        runs: d.latency_mean_ms.n,
         served_ratio_median: d.served_ratio.median,
         connect_mean_median_ms: d.connect_mean_ms.median,
         latency_mean_median_ms: d.latency_mean_ms.median,
         latency_p95_median_ms: d.latency_p95_ms.median,
         cpu_cores_avg_median: d.cpu_cores_avg.median,
         working_set_peak_total_median_bytes: d.working_set_peak_bytes_total.median,
+        // Spannweite der Läufe je Stufe für die Fehlerbalken der Abbildungen (DECISIONS.md 5.25)
+        served_ratio_min: d.served_ratio.min,
+        served_ratio_max: d.served_ratio.max,
+        latency_mean_min_ms: d.latency_mean_ms.min,
+        latency_mean_max_ms: d.latency_mean_ms.max,
+        working_set_peak_total_min_bytes: d.working_set_peak_bytes_total.min,
+        working_set_peak_total_max_bytes: d.working_set_peak_bytes_total.max,
       };
     });
     const limit = steps.find((st) => st.served_ratio_median == null || st.served_ratio_median < criteria.minServedRatio);
