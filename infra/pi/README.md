@@ -11,20 +11,20 @@ Einrichtung des Messaufbaus für die Messungen der Arbeit (DECISIONS.md 5.14).
 
 Beide Geräte sind per Kabel im selben, nach Möglichkeit isolierten Netz verbunden.
 
-Begründung der Trennung: Der Pi hat vier Kerne, das Budget einer Zelle beträgt zwei. Liefen k6 (bei 500 und mehr Clients selbst rechenintensiv), Ereignisquellen und Orchestrator auf demselben Gerät, könnte das Lastwerkzeug zum Engpass werden; gemessen würde dann dessen Grenze statt der des Systems. Die Auslastung des Lastgenerators wird in jedem Lauf gemessen; liegt sie im Mittel über 80 %, ist der Lauf ungültig.
+**Begründung der Trennung.** Der Pi hat vier Kerne, das Budget einer Zelle beträgt zwei. Liefen k6 (bei 500 und mehr Clients selbst rechenintensiv), Ereignisquellen und Orchestrator auf demselben Gerät, könnte das Lastwerkzeug zum Engpass werden. Gemessen würde dann dessen Grenze statt der des Systems. Die Auslastung des Lastgenerators wird in jedem Lauf gemessen. Liegt sie im Mittel über 80 %, ist der Lauf ungültig.
 
-Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Sendezeitstempel (Ereignisquelle) und der Empfangszeitpunkt (k6) stammen beide vom Lastgenerator. Die Netzwerkstrecke ist in jeder gemessenen Latenz enthalten, für alle Zellen gleich und verzerrt den Vergleich daher nicht.
+Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Sendezeitstempel (Ereignisquelle) und der Empfangszeitpunkt (k6) stammen beide vom Lastgenerator. Die Netzwerkstrecke ist in jeder gemessenen Latenz enthalten, für alle Zellen gleich und verzerrt den Vergleich daher nicht.
 
 ## Hardware
 
-- **Testserver:** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem; mit 8 GB wären 2 GiB je Zelle möglich), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
-- **Lastgenerator:** Linux-Rechner mit mindestens vier Kernen und 8 GB RAM, z. B. ein Mini-PC. Ein zweiter Pi 5 kann bei 1 000 Clients selbst zum Engpass werden. Ein Windows-Rechner mit Docker Desktop ist möglich, bringt durch die zusätzliche Virtualisierungsschicht aber mehr Schwankung.
-- **Netz:** Gigabit-Switch oder direkte Verbindung, Cat-6-Kabel, kein WLAN.
-- **Optional:** kleine USV; ein Stromausfall kostet sonst bis zu eine Laststufe.
+- **Testserver.** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem, mit 8 GB wären 2 GiB je Zelle möglich), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
+- **Lastgenerator.** Linux-Rechner mit mindestens vier Kernen und 8 GB RAM, z. B. ein Mini-PC. Ein zweiter Pi 5 kann bei 1 000 Clients selbst zum Engpass werden. Ein Windows-Rechner mit Docker Desktop ist möglich, bringt durch die zusätzliche Virtualisierungsschicht aber mehr Schwankung.
+- **Netz.** Gigabit-Switch oder direkte Verbindung, Cat-6-Kabel, kein WLAN für den Messverkehr. Für die Messung hängen nur Pi und Lastgenerator am Switch, beide mit fester Adresse. Der Lastgenerator darf für Benachrichtigungen zusätzlich im WLAN sein.
+- **Optional.** Eine kleine USV. Ein Stromausfall kostet sonst bis zu eine Laststufe.
 
 ## Einrichtung des Pi
 
-1. **Betriebssystem:** Raspberry Pi OS Lite (64 Bit) auf der SSD, ssh aktiviert.
+1. **Betriebssystem.** Raspberry Pi OS Lite (64 Bit) mit dem Raspberry Pi Imager auf SSD oder USB-Festplatte schreiben (Hostname `eda-pi`, Benutzer `pi`, ssh aktiviert, kein WLAN). Ohne SD-Karte startet der Pi 5 vom USB-Datenträger. Das setzt das offizielle 5-A-Netzteil voraus. Die tatsächlich eingesetzten Geräte nennt DECISIONS.md 5.14.
 
 2. **Docker** nach der offiziellen Anleitung für Debian installieren (docs.docker.com, „Install Docker Engine on Debian"), einschließlich Compose-Plugin.
 
@@ -57,7 +57,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Send
 
    Erwartet werden `"memory_controller":true`, `"cpu_governor":"performance"`, `"swap_total_bytes":0` und `"throttled":"0x0"`. `docker_disk_free_bytes` zeigt den freien Platz des Datenträgers, auf dem Docker liegt.
 
-9. **Belastungstest (24 h)** vor dem Pilot: zeigt, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen.
+9. **Belastungstest (24 h)** vor dem Pilot. Er zeigt, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen.
 
    ```bash
    sudo apt install stress-ng
@@ -72,12 +72,12 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Send
 |---|---|---|
 | Architektur prüfen | 64-Bit-System erforderlich | `uname -m` liefert `aarch64` |
 | automatische Updates abschalten | Docker und Kernel dürfen sich in der Messphase nicht ändern | `systemctl disable --now unattended-upgrades apt-daily.timer apt-daily-upgrade.timer` |
-| Swap abschalten | ausgelagerter Speicher verzerrt Latenz- und Speichermessung | `dphys-swapfile` bzw. `zramswap` abschalten, systemd-Swap-Units (z. B. zram) maskieren, `swapoff -a`; `swapon --show` liefert danach keine Ausgabe |
+| Swap abschalten | ausgelagerter Speicher verzerrt Latenz- und Speichermessung | `dphys-swapfile` bzw. `zramswap` abschalten, systemd-Swap-Units (z. B. zram) maskieren, `swapoff -a`. `swapon --show` liefert danach keine Ausgabe |
 | CPU-Governor `performance` | feste Taktfrequenz statt lastabhängiger Anpassung | `cpu-performance.service` nach `/etc/systemd/system/` kopieren und aktivieren |
 | memory-cgroup aktivieren | ohne den memory-Controller ignoriert Docker alle Speicherlimits | `cgroup_enable=memory cgroup_memory=1` an die bestehende Zeile in `/boot/firmware/cmdline.txt` anhängen, Neustart |
 | Docker prüfen | Docker und Compose-Plugin vorhanden, Benutzer in der Gruppe `docker` (Orchestrator ohne `sudo`) | `usermod -aG docker <benutzer>` |
 | `.env` anlegen | `COMPOSE_FILE=docker-compose.yml:docker-compose.pi.yml` lädt die Pi-Ergänzung bei jedem `docker compose`-Aufruf | `.env.example` kopieren, Zeile einkommentieren |
-| Schlüsseldatei prüfen | `APP_KEY` und `REVERB_APP_KEY` gesetzt; Werte werden nicht ausgegeben | — |
+| Schlüsseldatei prüfen | `APP_KEY` und `REVERB_APP_KEY` gesetzt. Werte werden nicht ausgegeben | — |
 | cgroup-Töpfe anlegen | gemeinsames Budget je Zelle (DECISIONS.md 5.6.2) | `sudo bash infra/pi/setup-slices.sh` |
 | stress-ng prüfen | Voraussetzung des Belastungstests | `sudo apt install stress-ng` |
 
@@ -85,7 +85,7 @@ Docker installiert das Skript bewusst nicht selbst, damit die Installation der o
 
 ## Einrichtung des Lastgenerators
 
-1. Docker und Node.js (Version 22 oder neuer; Tests und Kampagnenplanung mit 22 und 24 geprüft) installieren, Repository auf denselben Commit auschecken. Node.js läuft nur auf dem Lastgenerator für den Orchestrator; die Prototypen haben ihre eigene Version im Container.
+1. Docker und Node.js (Version 22 oder neuer, Tests und Kampagnenplanung mit 22 und 24 geprüft) installieren, Repository auf denselben Commit auschecken. Node.js läuft nur auf dem Lastgenerator für den Orchestrator. Die Prototypen haben ihre eigene Version im Container.
 2. Schlüsselbasierten ssh-Zugang zum Pi einrichten (`ssh-copy-id pi@<adresse>`). Der Orchestrator verwendet `BatchMode`, eine Passwortabfrage ist nicht möglich.
 3. `prototypes/php-laravel/.env` ebenfalls bereitstellen. Sie wird für den Reverb-App-Key (k6) und für die Laravel-Ereignisquelle (`laravel-producer`) gebraucht und muss mit der Datei auf dem Pi übereinstimmen.
 4. Images für k6, die Ereignisquellen und den Sampler bauen (`laravel-producer` nutzt das Laravel-Image):
@@ -126,9 +126,9 @@ node tools/orchestrate/schedule.js campaigns/smoke/schedule.json
 node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut sut.pi.json --hours 2
 ```
 
-Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf; ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit von 1,5 GiB bleiben (DECISIONS.md 5.10). Danach die erste Lauf-Datei prüfen: `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
+Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit von 1,5 GiB bleiben (DECISIONS.md 5.10). Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
 
-Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen: DECISIONS.md 5.9):
+Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen in DECISIONS.md 5.9):
 
 ```bash
 node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --sut sut.pi.json --out campaigns/pilot
@@ -140,13 +140,13 @@ Für den mehrwöchigen Betrieb empfiehlt sich `tmux` oder ein systemd-User-Diens
 
 ## Überwachung im Dauerbetrieb
 
-`tools/orchestrate/status.js` fasst den Zustand zusammen: Fortschritt des Zeitplans, laufende Kampagne, ungültige Läufe und ihre Gründe, Höchsttemperatur, Auslastung des Lastgenerators, Verlauf der Kontrollmessung, freier Speicherplatz auf beiden Geräten. Mit `--sut` fragt es den Pi zusätzlich direkt ab (Temperatur, Drosselstatus, Governor, Docker-Datenträger).
+`tools/orchestrate/status.js` fasst den Zustand zusammen, also Fortschritt des Zeitplans, laufende Kampagne, ungültige Läufe und ihre Gründe, Höchsttemperatur, Auslastung des Lastgenerators, Verlauf der Kontrollmessung und freien Speicherplatz auf beiden Geräten. Mit `--sut` fragt es den Pi zusätzlich direkt ab (Temperatur, Drosselstatus, Governor, Docker-Datenträger).
 
 ```bash
 node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json
 ```
 
-Für unbeaufsichtigte Phasen empfiehlt sich die Benachrichtigung über `NOTIFY_URL` (z. B. ein ntfy-Thema mit schwer zu erratendem Namen): `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans, ein stündlicher cron-Job mit `status.js --notify` meldet Warnungen wie fehlende Aktivität, Drosselung, hohe Temperatur oder knappen Speicherplatz. Einrichtung und Schwellenwerte: tools/orchestrate/README.md, Abschnitt zu Überwachung und Benachrichtigung.
+Für unbeaufsichtigte Phasen empfiehlt sich die Benachrichtigung über `NOTIFY_URL` (z. B. ein ntfy-Thema mit schwer zu erratendem Namen). `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans, ein stündlicher cron-Job mit `status.js --notify` meldet Warnungen wie fehlende Aktivität, Drosselung, hohe Temperatur oder knappen Speicherplatz. Einrichtung und Schwellenwerte beschreibt tools/orchestrate/README.md im Abschnitt zu Überwachung und Benachrichtigung.
 
 ## Automatische Prüfungen
 

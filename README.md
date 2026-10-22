@@ -2,7 +2,7 @@
 
 Prototypen und Messumgebung zur Bachelorarbeit **„Event-driven Notification Systems: PHP vs. Node.js mit Server-Sent Events und WebSockets"** (Arbeitstitel, Titelvorschläge in DECISIONS.md 5.23). Ausgangspunkt ist das Semesterprojekt Lokato (RFID-Scan → MQTT → Backend → Push an Clients).
 
-Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue. Verglichen wird entlang von vier Achsen: Sprache, Framework, Transport und Queue (DECISIONS.md 5.15).
+Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue. Verglichen wird entlang von vier Achsen, nämlich Sprache, Framework, Transport und Queue (DECISIONS.md 5.15).
 
 | | SSE | WebSockets | SSE mit Queue |
 | --- | --- | --- | --- |
@@ -86,11 +86,11 @@ Einzelne Zellen manuell starten, z. B. die Node-Minimalvariante:
 docker compose --profile node-minimal up -d
 ```
 
-Profile: `node-minimal`, `node-express`, `node-express-queue`, `php-minimal`, `php-laravel`, `php-laravel-queue`, dazu `tools` (Ereignisquellen, Sampler) und `load` (k6). Für Messungen startet und stoppt der Orchestrator die benötigten Container selbst. Für die Fehlersuche lässt sich der Produktionsbetrieb lokal per `.env` abschalten (`LARAVEL_APP_ENV=local`, `LARAVEL_APP_DEBUG=true`, `SUT_NODE_ENV=development`); Pilot- und Hauptkampagnen brechen dann ab.
+**Profile.** `node-minimal`, `node-express`, `node-express-queue`, `php-minimal`, `php-laravel`, `php-laravel-queue`, dazu `tools` (Ereignisquellen, Sampler) und `load` (k6). Für Messungen startet und stoppt der Orchestrator die benötigten Container selbst. Für die Fehlersuche lässt sich der Produktionsbetrieb lokal per `.env` abschalten (`LARAVEL_APP_ENV=local`, `LARAVEL_APP_DEBUG=true`, `SUT_NODE_ENV=development`). Pilot- und Hauptkampagnen brechen dann ab.
 
 ## Messungen
 
-Gemessen wird in Phasen (DECISIONS.md 5.9): Belastungstest, Pilot, Hauptmessung (Block 1), Replikation (Block 2), Skalierungsreihe, Sättigungstest, dazu eine tägliche Kontrollmessung. Die Kampagnen einer Phase erzeugt `plan-campaigns.js` aus dem Auswerteplan, `schedule.js` arbeitet sie unbeaufsichtigt ab:
+Gemessen wird in Phasen (DECISIONS.md 5.9), nämlich Belastungstest, Pilot, Hauptmessung (Block 1), Replikation (Block 2), Skalierungsreihe, Sättigungstest, dazu eine tägliche Kontrollmessung. Die Kampagnen einer Phase erzeugt `plan-campaigns.js` aus dem Auswerteplan, `schedule.js` arbeitet sie unbeaufsichtigt ab:
 
 ```bash
 node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
@@ -111,15 +111,15 @@ docker compose --profile tools up -d event-simulator
 docker compose --profile load run --rm -e K6_TARGET_BASE_URL=http://nginx -e K6_VUS=10 -e K6_HOLD_SECONDS=20 -e K6_SETTLE_SECONDS=5 k6 run scripts/sse-feasibility.js
 ```
 
-Die gemessene Zelle wählen `SUT_MODE`, `SUT_HOST` und `SUT_PORT` in der `.env`; gültige Werte listet `.env.example`.
+Die gemessene Zelle wählen `SUT_MODE`, `SUT_HOST` und `SUT_PORT` in der `.env`. Gültige Werte listet `.env.example`.
 
 ## Hinweise zu den Prototypen
 
 - **Reverb verwendet das Pusher-Channels-Protokoll**, nicht rohes JSON wie die übrigen WebSocket-Zellen. Clients durchlaufen vor der ersten Nachricht einen Verbindungs-Handshake und abonnieren einen Kanal. Das ist ein Unterschied der Bibliothekswahl und bei der Interpretation der WebSocket-Latenzen zu berücksichtigen (`prototypes/php-laravel/README.md`).
 - **Der Reverb-Kanal `scans` ist öffentlich** und hat keine Authentifizierung. So bleibt die Zelle strukturell mit den übrigen WebSocket-Zellen vergleichbar, ohne zusätzlichen Auth-Roundtrip, der nur Laravel beträfe.
 - **php-laravel nutzt `SESSION_DRIVER=cookie` und `CACHE_STORE=file`** statt des Laravel-Standards `database`. Das vermeidet SQLite-Zugriffe im SSE-Pfad, die die FPM-Messung verzerren würden. Der übrige `web`-Middleware-Stack (Session, CSRF) bleibt aktiv, um Laravel im Auslieferungszustand abzubilden.
-- **php-laravel/WS besteht aus zwei Prozessen:** Der Listener abonniert Redis und sendet jedes Event an Reverb, Reverb verteilt es an die Clients. Beide Container zählen zum Ressourcenbudget der Zelle (DECISIONS.md 5.6.2).
-- **Alle SSE-Endpunkte senden beim Verbindungsaufbau einen SSE-Kommentar** (`: connected`). So ist der Zeitpunkt messbar, zu dem der Server die Verbindung angenommen hat; Clients ignorieren Kommentarzeilen.
+- **php-laravel/WS besteht aus zwei Prozessen.** Der Listener abonniert Redis und sendet jedes Event an Reverb, Reverb verteilt es an die Clients. Beide Container zählen zum Ressourcenbudget der Zelle (DECISIONS.md 5.6.2).
+- **Alle SSE-Endpunkte senden beim Verbindungsaufbau einen SSE-Kommentar** (`: connected`). So ist der Zeitpunkt messbar, zu dem der Server die Verbindung angenommen hat. Clients ignorieren Kommentarzeilen.
 - **Die Queue-Zellen** verwenden denselben SSE-Code wie die Zellen ohne Queue, abonnieren aber den Kanal `notifications`, auf dem der jeweilige Worker veröffentlicht (DECISIONS.md 5.19). Der Laravel-Worker wartet mit `block_for` blockierend auf Jobs.
 
 ## Versionen
@@ -138,11 +138,11 @@ Keine Komponente läuft auf `latest` (Stand 2026-10-17):
 | `ws`, `redis` (npm) | 8.21.1 / 4.7.0 | `package.json` (exakt) + `package-lock.json` |
 | Redis | 7.4-alpine | `docker-compose.yml` |
 | Nginx | 1.27-alpine | `docker-compose.yml` |
-| k6 / xk6-sse | 1.2.1 / 0.1.12 | `k6/Dockerfile` (Begründung: DECISIONS.md, Abschnitt 3) |
+| k6 / xk6-sse | 1.2.1 / 0.1.12 | `k6/Dockerfile` (Begründung in DECISIONS.md, Abschnitt 3) |
 | xk6-Builder / k6-Laufzeit | 1.4.7 / Alpine 3.20 | `k6/Dockerfile` |
 | Composer (nur Build) | 2.8 | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
 
-Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind zusätzlich zum Tag auf den Digest ihres Multi-Arch-Index gepinnt (`image:tag@sha256:…` in den Dockerfiles und in `docker-compose.yml`, festgelegt am 2026-10-17). Derselbe Digest gilt für amd64 und arm64; Lastgenerator und Pi bauen damit aus identischen Basis-Images. Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
+Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind zusätzlich zum Tag auf den Digest ihres Multi-Arch-Index gepinnt (`image:tag@sha256:…` in den Dockerfiles und in `docker-compose.yml`, festgelegt am 2026-10-17). Derselbe Digest gilt für amd64 und arm64. Lastgenerator und Pi bauen damit aus identischen Basis-Images. Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
 
 ## PHP-FPM-Dimensionierung
 
@@ -155,19 +155,19 @@ Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 
 | php-minimal/SSE | ca. 375 MiB |
 | php-laravel/SSE | ca. 1 390 MiB |
 
-Das Speicherbudget pro Zelle beträgt 1,5 GiB (DECISIONS.md 5.10), passend zum Raspberry Pi 5 mit 4 GB; die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Auf dem Pi ist der Wert zu bestätigen. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
+Das Speicherbudget pro Zelle beträgt 1,5 GiB (DECISIONS.md 5.10), passend zum Raspberry Pi 5 mit 4 GB. Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Auf dem Pi ist der Wert zu bestätigen. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
 
 ## Dateideskriptor-Limits
 
 Jede offene SSE- oder WebSocket-Verbindung belegt mehrere Dateideskriptoren (Client- und Upstream-Socket). Übliche Linux-Standardwerte (1024) reichen für 500 und mehr Verbindungen nicht. Gesetzt sind:
 
-- Front-Nginx (`infra/nginx/nginx.conf`): `worker_rlimit_nofile 8192`, `worker_connections 4096`.
-- Alle Prototyp-Container: `ulimits.nofile` 8192 in `docker-compose.yml`.
-- Host: Docker benötigt in der Regel keine Anpassung. Bei sehr vielen Verbindungen über mehrere Container ist `sysctl fs.file-max` zu prüfen; der Wert sollte deutlich über der Summe der Container-Limits liegen.
+- **Front-Nginx (`infra/nginx/nginx.conf`).** `worker_rlimit_nofile 8192`, `worker_connections 4096`.
+- **Alle Prototyp-Container.** `ulimits.nofile` 8192 in `docker-compose.yml`.
+- **Host.** Docker benötigt in der Regel keine Anpassung. Bei sehr vielen Verbindungen über mehrere Container ist `sysctl fs.file-max` zu prüfen. Der Wert sollte deutlich über der Summe der Container-Limits liegen.
 
 ## Lange Messkampagnen
 
-Ein Zeitplan läuft über Tage bis Wochen. `schedule.js` setzt nach einem Abbruch an der nächsten unvollständigen Kampagne fort; eine unterbrochene ssh-Sitzung darf den Zeitplan trotzdem nicht beenden. Möglichkeiten auf dem Lastgenerator:
+Ein Zeitplan läuft über Tage bis Wochen. `schedule.js` setzt nach einem Abbruch an der nächsten unvollständigen Kampagne fort. Eine unterbrochene ssh-Sitzung darf den Zeitplan trotzdem nicht beenden. Möglichkeiten auf dem Lastgenerator:
 
 **tmux:**
 
@@ -201,10 +201,10 @@ journalctl --user -u eda-campaign -f
 loginctl enable-linger $USER   # sonst endet der Dienst beim Abmelden
 ```
 
-Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet; bereits gemessene Läufe bleiben erhalten, die Kampagne wird beim nächsten Start des Zeitplans wiederholt.
+Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet. Bereits gemessene Läufe bleiben erhalten, die Kampagne wird beim nächsten Start des Zeitplans wiederholt.
 
-**Überwachung:** `node tools/orchestrate/status.js --schedule <schedule.json> --sut sut.pi.json` zeigt Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung und Speicherplatz. Als stündlicher cron-Job mit `--notify` meldet es Auffälligkeiten aufs Handy, `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans (beides über `NOTIFY_URL` in der `.env`, siehe [tools/orchestrate/README.md](tools/orchestrate/README.md)).
+**Überwachung.** `node tools/orchestrate/status.js --schedule <schedule.json> --sut sut.pi.json` zeigt Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung und Speicherplatz. Als stündlicher cron-Job mit `--notify` meldet es Auffälligkeiten aufs Handy, `schedule.js` meldet abgebrochene Kampagnen und das Ende des Zeitplans (beides über `NOTIFY_URL` in der `.env`, siehe [tools/orchestrate/README.md](tools/orchestrate/README.md)).
 
 ## Ergebnisse
 
-`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau: DECISIONS.md 5.16). Die Ergebnisse werden versioniert. `results/2026-10-16_verification/` und `results/2026-10-16_verification-2/` enthalten die lokalen Funktionsprüfungen des Messaufbaus, `results/xk6-sse-feasibility-*.txt` die Machbarkeitsprüfung von xk6-sse.
+`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. `results/2026-10-16_verification/` und `results/2026-10-16_verification-2/` enthalten die lokalen Funktionsprüfungen des Messaufbaus, `results/xk6-sse-feasibility-*.txt` die Machbarkeitsprüfung von xk6-sse.

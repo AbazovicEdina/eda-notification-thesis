@@ -6,15 +6,15 @@ Misst CPU-Zeit und Speicher der Container pro Lauf (DECISIONS.md 5.16). Auf der 
 
 | Größe | Quelle | Verfahren |
 | --- | --- | --- |
-| CPU-Zeit | `cpu.stat`, Zähler `usage_usec` | Differenz zwischen Beginn und Ende des Laufs; exakt, ohne Abtastfehler |
+| CPU-Zeit | `cpu.stat`, Zähler `usage_usec` | Differenz zwischen Beginn und Ende des Laufs. Exakt, ohne Abtastfehler |
 | mittlere CPU-Auslastung | CPU-Zeit / Wanduhrzeit | in Kernen |
 | Speicher | `memory.current` | abgetastet (Standard 250 ms), Mittel und Spitze |
-| Working Set | `memory.current` − `inactive_file` (`memory.stat`) | wie `memory.current`; dieselbe Definition wie bei `docker stats` |
+| Working Set | `memory.current` − `inactive_file` (`memory.stat`) | wie `memory.current`. Dieselbe Definition wie bei `docker stats` |
 | Temperatur | `/sys/class/thermal/thermal_zone0/temp` | Beginn, Ende, Maximum |
 | Drosselstatus | Raspberry-Pi-Firmware (`get_throttled`) | Beginn und Ende |
 | CPU-Auslastung des Hosts (`--host-cpu`) | `/proc/stat` | Mittel über den Lauf und höchster Wert je Abtastintervall |
 
-Die Werte werden pro Container, pro Gruppe (`--cell`, z. B. die Zelle und Redis) und als Gesamtsumme über alle übergebenen Container (`total`) ausgegeben. Die Speicherspitze der Gesamtsumme wird aus der Summe je Abtastung gebildet, nicht als Summe der Einzelspitzen. Auf dem Pi liegen die Container einer Zelle in der Slice `eda_<zelle>.slice`; der Pfad der cgroup steht im Ergebnis und wird vom Orchestrator geprüft.
+Die Werte werden pro Container, pro Gruppe (`--cell`, z. B. die Zelle und Redis) und als Gesamtsumme über alle übergebenen Container (`total`) ausgegeben. Die Speicherspitze der Gesamtsumme wird aus der Summe je Abtastung gebildet, nicht als Summe der Einzelspitzen. Auf dem Pi liegen die Container einer Zelle in der Slice `eda_<zelle>.slice`. Der Pfad der cgroup steht im Ergebnis und wird vom Orchestrator geprüft.
 
 ## Aufruf
 
@@ -38,4 +38,4 @@ docker compose --profile tools exec -T resource-sampler node sampler.js measure 
 
 ## Abgrenzung zu docker stats
 
-`docker stats` braucht je Abfrage ein bis drei Sekunden, verbraucht selbst CPU auf dem gemessenen Rechner und lässt sich keinem einzelnen Lauf zuordnen. Für Messungen wird daher ausschließlich `resource-sampler` verwendet; die Definition des Working Sets ist dieselbe.
+`docker stats` braucht je Abfrage ein bis drei Sekunden, verbraucht selbst CPU auf dem gemessenen Rechner und lässt sich keinem einzelnen Lauf zuordnen. Für Messungen wird daher ausschließlich `resource-sampler` verwendet. Die Definition des Working Sets ist dieselbe.
