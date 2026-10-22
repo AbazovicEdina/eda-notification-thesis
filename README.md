@@ -61,7 +61,7 @@ Der Code unter `prototypes/` dient in der Arbeit als Anschauungsbeispiel und ist
 ## Voraussetzungen
 
 - **Docker mit Compose v2** für alle Prototypen und Messungen. PHP, Node.js und Go müssen dafür nicht lokal installiert sein (DECISIONS.md, Abschnitt 2).
-- **Node.js 22** für `tools/orchestrate` und `tools/code-metrics`. Der Orchestrator ruft selbst `docker compose` auf und läuft daher direkt auf dem steuernden Rechner.
+- **Node.js 22 oder neuer** (geprüft mit 22 und 24) für `tools/orchestrate` und `tools/code-metrics`. Der Orchestrator ruft selbst `docker compose` auf und läuft daher direkt auf dem steuernden Rechner.
 - **PHP und Composer** nur für die einmalige Einrichtung von `prototypes/php-laravel` (Schlüssel erzeugen, siehe unten). Alternativ läuft diese Einrichtung in einem temporären Container mit dem Image `eda-thesis-php-laravel`.
 
 ## Lokale Einrichtung

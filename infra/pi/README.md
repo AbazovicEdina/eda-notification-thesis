@@ -85,7 +85,7 @@ Docker installiert das Skript bewusst nicht selbst, damit die Installation der o
 
 ## Einrichtung des Lastgenerators
 
-1. Docker und Node.js (Version 22) installieren, Repository auf denselben Commit auschecken.
+1. Docker und Node.js (Version 22 oder neuer; Tests und Kampagnenplanung mit 22 und 24 geprüft) installieren, Repository auf denselben Commit auschecken. Node.js läuft nur auf dem Lastgenerator für den Orchestrator; die Prototypen haben ihre eigene Version im Container.
 2. Schlüsselbasierten ssh-Zugang zum Pi einrichten (`ssh-copy-id pi@<adresse>`). Der Orchestrator verwendet `BatchMode`, eine Passwortabfrage ist nicht möglich.
 3. `prototypes/php-laravel/.env` ebenfalls bereitstellen. Sie wird für den Reverb-App-Key (k6) und für die Laravel-Ereignisquelle (`laravel-producer`) gebraucht und muss mit der Datei auf dem Pi übereinstimmen.
 4. Images für k6, die Ereignisquellen und den Sampler bauen (`laravel-producer` nutzt das Laravel-Image):
