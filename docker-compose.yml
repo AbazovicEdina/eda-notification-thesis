@@ -17,15 +17,15 @@ x-high-nofile: &high-nofile
 # Identische Ressourcen-Limits für die gemessenen Container (DECISIONS.md
 # 5.6.2, 5.10). `cpus`/`mem_limit` (nicht `deploy.resources.limits`) wirken
 # unter reinem `docker compose up`; `deploy.*` greift nur im Swarm-Modus.
-# Speicher bewusst großzügig (2g): RAM ist eine gemessene Größe, keine
-# Obergrenze, die einzelne Zellen per OOM-Kill aus dem Vergleich wirft.
+# Speicher 1536m (Raspberry Pi 5 mit 4 GB, DECISIONS.md 5.10): mit Abstand
+# über den gemessenen Spitzen, damit keine Zelle per OOM-Kill ausfällt.
 # Auf dem Pi begrenzt zusätzlich ein gemeinsamer cgroup-Topf pro ZELLE
 # (docker-compose.pi.yml), da Zellen aus mehreren Containern bestehen können.
 # memswap_limit = mem_limit: kein zusätzlicher Swap für den Container.
 x-sut-resources: &sut-resources
   cpus: "${SUT_CPU_LIMIT:-2}"
-  mem_limit: "${SUT_MEM_LIMIT:-2g}"
-  memswap_limit: "${SUT_MEM_LIMIT:-2g}"
+  mem_limit: "${SUT_MEM_LIMIT:-1536m}"
+  memswap_limit: "${SUT_MEM_LIMIT:-1536m}"
 
 # Log-Rotation für alle Dienste: Ohne Begrenzung wachsen die Container-Logs
 # bei wochenlangen Kampagnen unbegrenzt (DECISIONS.md 5.14).

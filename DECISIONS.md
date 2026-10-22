@@ -317,13 +317,15 @@ Validitätsrahmen der Gesamtmethodik: Wohlin et al. (2024).
 
 **Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 13 Vergleichen entspräche das rund 29–40 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation (bei der ursprünglichen Planung mit acht Vergleichen 18–25 Tage). Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht; mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
 
-### 5.10 Ressourcenlimits — ENTSCHIEDEN (Endwerte nach Festlegung des Pi-Modells)
+### 5.10 Ressourcenlimits — ENTSCHIEDEN (Endwerte festgelegt am 2026-10-22)
 
-Arbeitswerte: **2 CPUs und 2 GiB Speicher pro Zelle** (`SUT_CPU_LIMIT`, `SUT_MEM_LIMIT` in `.env`), kein Swap.
+Endwerte: **2 CPUs und 1 536 MiB (1,5 GiB) Speicher pro Zelle** (`SUT_CPU_LIMIT=2`, `SUT_MEM_LIMIT=1536m` in `.env`), kein Swap. Grundlage ist der geliehene Raspberry Pi 5 mit 4 GB (2026-10-22). Bis dahin galten 2 GiB als Arbeitswert; die lokalen Prüfläufe liefen damit.
 
 Der Speicher ist bewusst großzügig bemessen, weil RAM eine gemessene Größe ist und keine Obergrenze, die einzelne Zellen per OOM-Kill aus dem Vergleich entfernt. Das frühere Limit von 512 MiB hätte php-laravel/SSE bei 500 Clients abgebrochen. Im Produktionsbetrieb erreichte diese Zelle lokal eine Spitze von ca. 1 390 MiB (5.5); unter 2 GiB lief der Stresstest ohne OOM, ohne verlorene Events und mit allen Clients innerhalb der Einschwingzeit verbunden (2026-10-16). Der Abstand zum Limit ist damit kleiner als im früheren Entwicklungsbetrieb (ca. 1 035 MiB) und auf dem Pi erneut zu prüfen. Der Orchestrator wertet jeden Lauf als ungültig, in dem ein Container der Zelle per OOM beendet wurde.
 
 Die Endwerte hängen vom Pi-Modell ab. Ein Pi 5 hat vier Kerne. Bei paarweisen Kampagnen laufen zwei Zellen gleichzeitig; mit 2 GiB je Zelle sind 8 GB RAM erforderlich.
+
+Begründung des Endwerts für den Pi 5 mit 4 GB (festgelegt 2026-10-22, vorbereitet am 2026-10-19): **1,5 GiB je Zelle**. Zwei Limits von 1,5 GiB und rund 0,6 GiB für Betriebssystem, Docker, Redis, Nginx und `resource-sampler` bleiben unter 4 GB, sodass das Budget ohne Swap tatsächlich verfügbar ist. Die lokal gemessenen Spitzen (Working Set von Zelle und Redis) liegen darunter: php-laravel-sse bei 500 Clients 1 030 MiB, php-laravel-sse-queue 1 056 MiB (Laravel 13, 2026-10-16), php-minimal-sse 391 MiB; eine ruhende Zelle belegt bis etwa 340 MiB. Oberhalb von 550 Clients wächst PHP-FPM nicht weiter, weil keine weiteren Worker entstehen. Der Wert wird im Probelauf auf dem Pi mit der Stress-Stufe geprüft, bevor der Pilot beginnt. Ein Unsicherheitsfaktor ist die Seitengröße: Raspberry Pi OS verwendet auf dem Pi 5 standardmäßig einen Kernel mit 16-KB-Speicherseiten (`kernel_2712.img`), die lokalen Werte stammen von einem Kernel mit 4-KB-Seiten. Viele kleine Prozesse wie die 550 FPM-Worker können dadurch mehr Speicher belegen. Reicht der Abstand im Probelauf nicht, wird mit `kernel=kernel8.img` in `config.txt` der Kernel mit 4-KB-Seiten gewählt und in der Arbeit genannt. Die Kerne bleiben bei zwei je Zelle, weil auch der 4-GB-Pi vier Kerne hat.
 
 ### 5.11 Apache-Vergleich — ENTFÄLLT (5.1)
 
@@ -587,7 +589,7 @@ Das Exposé fragt nach Komplexität und Wartbarkeit der Umsetzungen. Für Wartba
 
 Die Kennzahlen zeigen einen Zielkonflikt, der ohne Gewichtung berichtet wird: Ein Framework verringert den eigenen Code (Laravel erledigt Routing, Broadcasting und Queue-Verarbeitung), erhöht aber die Zahl der Abhängigkeiten und den Projektumfang (vom Framework erzeugtes Gerüst). Codezeilen und Paketzahlen sind grobe Näherungen; sie erfassen weder Verständlichkeit noch Qualität der Dokumentation. Eine Gesamtnote wird daher nicht gebildet. Die Auswertung läuft auf dem Commit, mit dem gemessen wird.
 
-### 5.23 Abweichungen vom Exposé — ENTSCHIEDEN (Bestätigung durch den Betreuer ausstehend)
+### 5.23 Abweichungen vom Exposé — ENTSCHIEDEN (vom Betreuer bestätigt am 2026-10-19)
 
 Maßstab für jede Abweichung: Sie muss sinnvoll begründet sein und den Entwicklern, für die die Entscheidungshilfe gedacht ist, einen echten Mehrwert bringen (Vorgabe der Autorin, 2026-10-17). Die Tabelle nennt diesen Mehrwert je Punkt.
 
@@ -708,12 +710,12 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 
 | Punkt | Stand | Klärung durch |
 |---|---|---|
-| Abweichungen vom Exposé | Titel, Forschungsfragen, Transportvergleich, Symfony, Laravel-Version, eigenständige Prototypen ohne Lokato-Backend (5.23); Bestätigung ausstehend | Betreuer |
+| Titel | zwei Vorschläge (5.23); der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
-| Hardware beschaffen | Bedarf an den Betreuer gemeldet (5.14); Bereitstellung durch die FH oder Eigenbeschaffung offen | Betreuer, Autorin |
+| Hardware | Vom Betreuer geliehen und erhalten (2026-10-22): Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
 | Erprobung des Zwei-Rechner-Aufbaus | implementiert, nicht auf Pi-Hardware getestet (5.14) | nach Verfügbarkeit des Pi |
 | Belastungstest, Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17) | auf dem Pi |
-| Endwerte der Ressourcenlimits | Arbeitswerte 2 CPUs / 2 GiB (5.10); Speicherspitze von Laravel auf dem Pi prüfen | nach Festlegung des Pi-Modells |
+| Speicherspitze auf dem Pi | Endwerte 2 CPUs / 1,5 GiB (5.10); Spitze von Laravel bei 500 Clients und Wirkung der 16-KB-Seiten im Probelauf prüfen | Probelauf |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -739,6 +741,8 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt; alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst; Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | Prüfung durch den Schreib-Chat umgesetzt: Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25); Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2); Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-22 | Hardware erhalten, Raspberry Pi 5 mit 4 GB: Endwerte 2 CPUs / 1,5 GiB je Zelle (5.10); `setup-slices.sh` prüft, dass zwei Zellen plus Reserve in den Arbeitsspeicher passen, `setup.sh` meldet die Seitengröße des Kernels. |
+| 2026-10-19 | Antwort des Betreuers: Messaufbau, Vergleiche und Abweichungen vom Exposé bestätigt (5.23), KI-Nutzung einschließlich Programmierunterstützung und Textentwürfen bestätigt, Hardware wird geliehen; Ausweichwert von 1,5 GiB je Zelle für einen Pi mit 4 GB (5.10). |
 | 2026-10-18 | Darstellung der Abbildungen überarbeitet: Einzelläufe, Cliff's Delta, Achsen ab null, Streuung und logarithmische Achse in der Skalierungsreihe, Punktdiagramm für den Sättigungstest, Hinweise für Bildunterschriften; Stufen der Skalierungsreihe mit Zahl, Minimum und Maximum der Läufe (5.25). |
 | 2026-10-18 | Abbildungen an die TikZ-Diagramme angeglichen: Palette A, Linienart nach Transport, Schrift Latin Modern der Vorlage als TrueType (5.25). |
 | 2026-10-18 | Übergeordnete Forschungsfrage in einem Satz ergänzt, RQ1 bis RQ3 als Unterfragen (5.23). |

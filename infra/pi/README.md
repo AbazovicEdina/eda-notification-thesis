@@ -17,7 +17,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Send
 
 ## Hardware
 
-- **Testserver:** Raspberry Pi 5 mit 8 GB RAM (zwei Zellen à 2 GB Budget gleichzeitig plus Redis, Nginx und Betriebssystem), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
+- **Testserver:** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem; mit 8 GB wären 2 GiB je Zelle möglich), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
 - **Lastgenerator:** Linux-Rechner mit mindestens vier Kernen und 8 GB RAM, z. B. ein Mini-PC. Ein zweiter Pi 5 kann bei 1 000 Clients selbst zum Engpass werden. Ein Windows-Rechner mit Docker Desktop ist möglich, bringt durch die zusätzliche Virtualisierungsschicht aber mehr Schwankung.
 - **Netz:** Gigabit-Switch oder direkte Verbindung, Cat-6-Kabel, kein WLAN.
 - **Optional:** kleine USV; ein Stromausfall kostet sonst bis zu eine Laststufe.
@@ -40,7 +40,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich: Der Send
 
    Das Skript führt die unten beschriebenen Einzelschritte aus, überspringt bereits erledigte und sichert geänderte Systemdateien (`<datei>.bak-<zeitstempel>`). Am Ende steht eine Zusammenfassung mit den Kategorien „ok", „geändert" und „offen". Exit-Code 2 bedeutet, dass ein Neustart nötig ist (memory-cgroup). In diesem Fall `sudo reboot` und das Skript erneut ausführen, bis es mit Exit-Code 0 endet. Nach der Aufnahme in die Gruppe `docker` ist eine erneute Anmeldung nötig.
 
-6. **Limits** `SUT_CPU_LIMIT` und `SUT_MEM_LIMIT` in `.env` auf die endgültigen Werte setzen. Nach jeder Änderung `sudo bash infra/pi/setup-slices.sh` ausführen, damit die cgroup-Töpfe dieselben Werte erhalten.
+6. **Limits** `SUT_CPU_LIMIT=2` und `SUT_MEM_LIMIT=1536m` in `.env` prüfen (Endwerte für 4 GB, DECISIONS.md 5.10). `setup-slices.sh` bricht ab, wenn zwei Zellen plus Reserve nicht in den Arbeitsspeicher passen. Nach jeder Änderung `sudo bash infra/pi/setup-slices.sh` ausführen, damit die cgroup-Töpfe dieselben Werte erhalten.
 
 7. **Images bauen:**
 
@@ -121,12 +121,12 @@ Den Block `sut` in eine eigene Datei schreiben, z. B. `sut.pi.json`:
 **Probelauf** vor dem Pilot, mit eigenem Namensraum, damit die echten Kampagnen später nicht als erledigt gelten (tools/orchestrate/README.md, Abschnitt zu Probeläufen):
 
 ```bash
-node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=3,medium=3,stress=3 --hold 10 --warmup 1 --comparisons 1,4 --prefix smoke- --sut sut.pi.json --out campaigns/smoke
+node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=3,medium=3,stress=3 --hold 10 --warmup 1 --comparisons 1,4,10 --prefix smoke- --sut sut.pi.json --out campaigns/smoke
 node tools/orchestrate/schedule.js campaigns/smoke/schedule.json
 node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut sut.pi.json --hours 2
 ```
 
-Danach die erste Lauf-Datei prüfen: `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
+Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf; ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit von 1,5 GiB bleiben (DECISIONS.md 5.10). Danach die erste Lauf-Datei prüfen: `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
 
 Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen: DECISIONS.md 5.9):
 

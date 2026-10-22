@@ -16,10 +16,29 @@ fi
 
 value() { grep -E "^$1=" .env | tail -1 | cut -d= -f2- | tr -d '\r"' ; }
 cpu="$(value SUT_CPU_LIMIT)"; cpu="${cpu:-2}"
-mem="$(value SUT_MEM_LIMIT)"; mem="${mem:-2g}"
+mem="$(value SUT_MEM_LIMIT)"; mem="${mem:-1536m}"
+
+# Bei paarweisen Kampagnen laufen zwei Zellen gleichzeitig. Zwei Limits plus
+# Reserve für System, Docker, Redis, Nginx und Sampler müssen in den
+# Arbeitsspeicher passen, sonst wäre das Budget ohne Swap nicht garantiert.
+to_bytes() {
+  awk -v v="$1" 'BEGIN {
+    n = v + 0; u = tolower(substr(v, length(v)))
+    f = (u == "k") ? 1024 : (u == "m") ? 1048576 : (u == "g") ? 1073741824 : 1
+    printf "%.0f", n * f }'
+}
+reserve_mib=600
+limit_bytes="$(to_bytes "$mem")"
+total_bytes="$(awk '/^MemTotal:/ { printf "%.0f", $2 * 1024 }' /proc/meminfo)"
+need_bytes="$(awk -v l="$limit_bytes" -v r="$reserve_mib" 'BEGIN { printf "%.0f", 2 * l + r * 1048576 }')"
+if [ "$need_bytes" -gt "$total_bytes" ]; then
+  echo "Fehler: SUT_MEM_LIMIT=${mem} ist zu groß für $((total_bytes / 1048576)) MiB Arbeitsspeicher." >&2
+  echo "Zwei Zellen plus ${reserve_mib} MiB Reserve brauchen $((need_bytes / 1048576)) MiB. Wert in .env verkleinern (DECISIONS.md 5.10)." >&2
+  exit 1
+fi
 
 # systemd erwartet CPUQuota in Prozent eines Kerns und Speicher mit
-# Großbuchstaben-Suffix (2g -> 2G).
+# Großbuchstaben-Suffix (1536m -> 1536M).
 quota="$(awk -v c="$cpu" 'BEGIN { printf "%d", c * 100 }')"
 mem_sd="$(echo "$mem" | tr 'kmg' 'KMG')"
 

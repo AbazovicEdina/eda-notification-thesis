@@ -158,8 +158,20 @@ else
 fi
 
 say "cgroup-Töpfe der Zellen"
-bash infra/pi/setup-slices.sh
-ok+=("Slices eda_<zelle>.slice angelegt (Werte aus .env)")
+if bash infra/pi/setup-slices.sh; then
+  ok+=("Slices eda_<zelle>.slice angelegt (Werte aus .env)")
+else
+  open+=("Speicherbudget passt nicht zum Arbeitsspeicher: SUT_MEM_LIMIT in .env verkleinern, danach sudo bash infra/pi/setup-slices.sh")
+fi
+
+# Seitengröße des Kernels: Der Pi 5 nutzt standardmäßig 16-KB-Seiten, die
+# lokalen Vergleichswerte stammen von 4-KB-Seiten (DECISIONS.md 5.10).
+pagesize="$(getconf PAGESIZE 2>/dev/null || echo unbekannt)"
+if [ "$pagesize" = "16384" ]; then
+  ok+=("Kernel mit 16-KB-Seiten; reicht der Speicher im Probelauf nicht, kernel=kernel8.img in /boot/firmware/config.txt (4 KB)")
+else
+  ok+=("Kernel mit ${pagesize}-Byte-Seiten")
+fi
 
 if ! command -v stress-ng >/dev/null 2>&1; then
   open+=("stress-ng fehlt für den Belastungstest (sudo apt install stress-ng)")
