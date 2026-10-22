@@ -168,6 +168,8 @@ if (!recent.length) {
   }
   const throttled = recent.filter((r) => String(r.invalid_reason).startsWith('host_throttled')).length;
   if (throttled) warn(`${throttled} Läufe wegen Drosselung des Testservers ungültig`);
+  const unknown = recent.filter((r) => String(r.invalid_reason).startsWith('host_throttle_unknown')).length;
+  if (unknown) warn(`${unknown} Läufe ohne lesbaren Drosselstatus ungültig (vcgencmd auf dem Testserver prüfen)`);
 }
 
 // 3. Temperatur und Lastgenerator aus den Lauf-Protokollen des Zeitfensters
@@ -232,13 +234,16 @@ if (sutPath) {
   const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
   const r = sut?.ssh && sut.repoDir
     ? spawnSync('ssh', ['-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', sut.ssh,
-      `cd ${q(sut.repoDir)} && docker compose --profile tools exec -T resource-sampler node sampler.js info`],
+      // vcgencmd ergänzt den Drosselstatus, den der Sampler auf dem Pi 5 nicht lesen kann
+      `cd ${q(sut.repoDir)} && docker compose --profile tools exec -T resource-sampler node sampler.js info && (vcgencmd get_throttled 2>/dev/null || true)`],
     { encoding: 'utf-8', timeout: 30000 })
     : null;
   let info = null;
   if (r?.status === 0) {
     try {
-      info = JSON.parse(r.stdout.trim().split(/\r?\n/).pop());
+      info = JSON.parse(r.stdout.split(/\r?\n/).filter((l) => l.trim().startsWith('{')).pop());
+      const m = r.stdout.match(/throttled=(0x[0-9a-f]+)/i);
+      if (info.throttled == null && m) info.throttled = m[1];
     } catch { /* unvollständige Ausgabe */ }
   }
   if (!sut?.ssh || !sut?.repoDir) {
@@ -251,6 +256,7 @@ if (sutPath) {
     if (info.temp_c != null && info.temp_c > LIMITS.tempC) warn(`Testserver aktuell ${info.temp_c.toFixed(1)} °C warm`);
     // Bits 0 bis 3: aktuell Unterspannung, Takt begrenzt, gedrosselt, Temperaturgrenze.
     if (!Number.isNaN(bits) && (bits & 0xF) !== 0) warn(`Testserver aktuell gedrosselt (${info.throttled})`);
+    if (sut.pi && info.throttled == null) warn('Drosselstatus des Testservers nicht lesbar (vcgencmd get_throttled)');
     if (info.docker_disk_free_bytes != null && info.docker_disk_total_bytes) {
       const free = info.docker_disk_free_bytes / info.docker_disk_total_bytes;
       out(`  Docker-Datenträger: ${(info.docker_disk_free_bytes / 1e9).toFixed(1)} GB frei (${pct(free)})`);

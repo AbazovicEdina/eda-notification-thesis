@@ -55,7 +55,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Send
    docker compose --profile tools exec resource-sampler node sampler.js info
    ```
 
-   Erwartet werden `"memory_controller":true`, `"cpu_governor":"performance"`, `"swap_total_bytes":0` und `"throttled":"0x0"`. `docker_disk_free_bytes` zeigt den freien Platz des Datenträgers, auf dem Docker liegt.
+   Erwartet werden `"memory_controller":true`, `"cpu_governor":"performance"`, `"swap_total_bytes":0` und das Modell des Pi. `docker_disk_free_bytes` zeigt den freien Platz des Datenträgers, auf dem Docker liegt. Auf dem Pi 5 steht `"throttled":null`, weil die Firmware den Drosselstatus dort nicht in sysfs bereitstellt. Der Orchestrator liest ihn in diesem Fall per ssh mit `vcgencmd` auf dem Pi. Die Kontrolle dafür ist `vcgencmd get_throttled` mit der Ausgabe `throttled=0x0`.
 
 9. **Belastungstest (24 h)** vor dem Pilot. Er zeigt, dass Kühlung und Netzteil Dauerlast ohne Drosselung tragen.
 
@@ -64,7 +64,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Send
    bash infra/pi/burn-in.sh 24
    ```
 
-   Das Skript protokolliert jede Minute Temperatur, Takt und Drosselstatus nach `results/<zeitstempel>_burn-in.csv` und meldet am Ende Höchsttemperatur und ob eine Drosselung aufgetreten ist. Tritt eine Drosselung auf, ist die Kühlung zu verbessern, bevor gemessen wird.
+   Das Skript protokolliert jede Minute Temperatur, Takt und Drosselstatus nach `results/<zeitstempel>_burn-in.csv` und meldet am Ende Höchsttemperatur und ob eine Drosselung aufgetreten ist. Tritt eine Drosselung auf, ist die Kühlung zu verbessern, bevor gemessen wird. Damit der Test eine getrennte ssh-Verbindung übersteht, läuft er in `tmux` (`sudo apt install tmux`, dann `tmux new -s burnin 'bash infra/pi/burn-in.sh 24; bash'`). Während des Tests laufen auf dem Pi keine Messcontainer.
 
 ### Was setup.sh einrichtet
 
@@ -155,13 +155,13 @@ Mit `"pi": true` bricht der Orchestrator vor Beginn ab, wenn eine der folgenden 
 - memory-cgroup-Controller vorhanden
 - CPU-Governor `performance`
 - kein Swap
-- keine aktuelle Drosselung (`get_throttled`)
+- Drosselstatus lesbar und keine aktuelle Drosselung (`vcgencmd get_throttled`)
 - Code-Stand auf beiden Geräten identisch
 - Container jeder Zelle liegen im zugehörigen Slice `eda_<zelle>.slice`
 - alle Zellen im Produktionsbetrieb (Pilot, Hauptmessung, Kontrollmessung)
 
-Pro Lauf werden Temperatur (Beginn, Ende, Maximum), Drosselstatus und die Auslastung des Lastgenerators protokolliert. Ein Lauf, in dem die Firmware Unterspannung, Taktbegrenzung oder thermische Drosselung meldet, gilt als ungültig (`host_throttled`), ebenso ein Lauf mit einer mittleren Auslastung des Lastgenerators über 80 % (`loadgen_saturated`).
+Pro Lauf werden Temperatur (Beginn, Ende, Maximum), Drosselstatus und die Auslastung des Lastgenerators protokolliert. Ein Lauf, in dem die Firmware Unterspannung, Taktbegrenzung oder thermische Drosselung meldet, gilt als ungültig (`host_throttled`), ebenso ein Lauf ohne lesbaren Drosselstatus (`host_throttle_unknown`) und ein Lauf mit einer mittleren Auslastung des Lastgenerators über 80 % (`loadgen_saturated`). Den Drosselstatus liest der Orchestrator auf dem Pi 5 per ssh mit `vcgencmd get_throttled` direkt vor und nach der Messung, weil der Sampler im Container ihn dort nicht sieht (DECISIONS.md 5.14).
 
 ## Stand
 
-Der Zwei-Rechner-Aufbau (ssh-Steuerung, veröffentlichte Ports, cgroup-Slices, Drosselprüfung, Auslastung des Lastgenerators), `setup.sh` und die direkte Abfrage des Pi durch `status.js` sind implementiert, aber noch nicht auf realer Pi-Hardware erprobt. `setup.sh` ist nur syntaktisch geprüft (`bash -n`), da es systemd und die Pi-Firmware voraussetzt. Der Probelauf (Abschnitt „Kampagnen starten") ist daher vor dem Pilot verbindlich.
+Am 2026-10-22 auf dem eingesetzten Pi 5 erprobt (DECISIONS.md 5.14). `setup.sh` lief nach einem Neustart mit Exit-Code 0, alle Images ließen sich bauen, und `sampler.js info` lieferte die erwarteten Werte. Dabei zeigte sich, dass der Pi 5 den Drosselstatus nicht in sysfs bereitstellt. Er wird seitdem per `vcgencmd` auf dem Pi gelesen. Noch nicht erprobt sind der Zwei-Rechner-Aufbau (ssh-Steuerung, veröffentlichte Ports, cgroup-Slices im Lauf, Auslastung des Lastgenerators) und die direkte Abfrage des Pi durch `status.js`. Der Probelauf (Abschnitt „Kampagnen starten") ist daher vor dem Pilot verbindlich.

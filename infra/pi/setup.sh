@@ -190,4 +190,4 @@ if [ "${#open[@]}" -gt 0 ]; then
   exit 1
 fi
 echo
-echo "Einrichtung vollständig. Weiter mit README.md Schritt 10 (Images bauen)."
+echo "Einrichtung vollständig. Weiter mit infra/pi/README.md, Schritt 6 (Limits prüfen) und 7 (Images bauen)."

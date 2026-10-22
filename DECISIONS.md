@@ -362,7 +362,7 @@ Wiederholung der übrigen Punkte mit den gemessenen Versionen (2026-10-18, eigen
 
 **Einordnung.** BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
-### 5.14 Testumgebung, Raspberry Pi mit separatem Lastgenerator — ENTSCHIEDEN (Hardware offen)
+### 5.14 Testumgebung, Raspberry Pi mit separatem Lastgenerator — ENTSCHIEDEN (Hardware im Einsatz seit 2026-10-22)
 
 **Vorgabe vom 2026-10-16.** Die Messungen laufen auf einem selbst aufgesetzten Raspberry Pi. Erwogen wurden auch mehrere Pis für unterschiedliche Vergleiche.
 
@@ -392,6 +392,8 @@ Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 - **USB-Festplatte statt SSD.** Ausreichend, weil auf dem Pi während der Messung wenig geschrieben wird. Die Container-Logs sind begrenzt (Log-Rotation), die Ergebnisdateien schreibt der Orchestrator auf dem Lastgenerator. Wie eine SSD vermeidet die Festplatte den Verschleiß einer SD-Karte. Eine Festplatte, die im Leerlauf den Motor abschaltet, könnte einzelne Schreibzugriffe um Sekunden verzögern. Der Probelauf zeigt, ob das auftritt.
 - **Node.js 24 statt 22 auf dem Lastgenerator.** Node.js läuft dort nur für den Orchestrator. Tests und Kampagnenplanung sind mit Node.js 24 geprüft (2026-10-22). Die Prototypen behalten ihre Version im Container.
 - **Messnetz mit zwei Kabeln (geplant).** Für die Einrichtung hängt der Switch am Router. Für die Messung hängen nur Pi und Lastgenerator am Switch, beide mit fester Adresse. Der Lastgenerator erreicht das Internet dann nur noch über WLAN, für die Benachrichtigungen. Der Messverkehr läuft ausschließlich über das Kabel.
+
+**Erste Erprobung auf dem Pi (2026-10-22).** `setup.sh` lief nach einem Neustart mit Exit-Code 0, und alle Images ließen sich auf dem Pi bauen. Der Sampler meldet den memory-Controller, den Governor `performance` und keinen Swap. Den Drosselstatus der Firmware stellt der Pi 5 mit Kernel 6.18 nicht in sysfs bereit, der Sampler im Container kann ihn daher nicht lesen. Der Orchestrator liest ihn stattdessen per ssh mit `vcgencmd get_throttled` direkt vor und nach jeder Messung, wie es auch der Belastungstest tut. Ist der Status auf dem Pi nicht lesbar, bricht die Vorabprüfung ab, und ein betroffener Lauf gilt als ungültig (`host_throttle_unknown`).
 
 Bekannte Risiken auf dem Pi und ihre Behandlung:
 
@@ -471,7 +473,7 @@ Inhalt eines Lauf-Protokolls:
   - CPU-Zeit als Differenz des cgroup-Zählers `usage_usec` zwischen Beginn und Ende des Laufs (exakt) sowie mittlere CPU-Auslastung in Kernen,
   - Speicher (`memory.current` und Working Set = `memory.current` − `inactive_file`, wie bei `docker stats`) als Mittel und Spitze, alle 250 ms abgetastet. Die Spitze von Zelle und Redis zusammen wird aus der Summe je Abtastung gebildet.
 - **Lastgenerator.** CPU-Auslastung des Hosts (Mittel und höchster Wert je Sekunde).
-- **Host des Testservers.** Temperatur zu Beginn, am Ende und als Maximum. Drosselstatus zu Beginn und am Ende.
+- **Host des Testservers.** Temperatur zu Beginn, am Ende und als Maximum. Drosselstatus der Firmware zu Beginn und am Ende (auf dem Pi 5 per `vcgencmd`, 5.14).
 - **Container.** Status, OOM-Kennzeichen, Image.
 - **Kontext:**
   - Code-Stand (Git-Commit beider Seiten, Anzahl nicht committeter Änderungen),
@@ -728,7 +730,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
-| Erprobung des Zwei-Rechner-Aufbaus | implementiert, nicht auf Pi-Hardware getestet (5.14) | nach Verfügbarkeit des Pi |
+| Erprobung des Zwei-Rechner-Aufbaus | Einrichtung auf dem Pi erprobt (2026-10-22). ssh-Steuerung, veröffentlichte Ports und Auslastung des Lastgenerators noch nicht getestet (5.14) | Probelauf |
 | Belastungstest, Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17) | auf dem Pi |
 | Speicherspitze auf dem Pi | Endwerte 2 CPUs / 1,5 GiB (5.10). Spitze von Laravel bei 500 Clients und Wirkung der 16-KB-Seiten im Probelauf prüfen | Probelauf |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
@@ -756,6 +758,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-22 | **Einrichtung auf dem Pi erprobt (5.14).** `setup.sh`, Images und Sampler laufen. Den Drosselstatus liest der Orchestrator auf dem Pi 5 per `vcgencmd`, weil sysfs ihn nicht bereitstellt. Ein nicht lesbarer Status macht einen Lauf ungültig. |
 | 2026-10-22 | **Eingesetzte Hardware dokumentiert (5.14).** USB-Festplatte statt SSD, Laptop mit Debian Testing und Node.js 24 als Lastgenerator, Messnetz mit zwei Kabeln. |
 | 2026-10-22 | Hardware erhalten (Raspberry Pi 5 mit 4 GB), Endwerte 2 CPUs / 1,5 GiB je Zelle (5.10). `setup-slices.sh` prüft, dass zwei Zellen plus Reserve in den Arbeitsspeicher passen, `setup.sh` meldet die Seitengröße des Kernels. |
 | 2026-10-19 | **Antwort des Betreuers.** Messaufbau, Vergleiche und Abweichungen vom Exposé bestätigt (5.23), KI-Nutzung einschließlich Programmierunterstützung und Textentwürfen bestätigt, Hardware wird geliehen. Ausweichwert von 1,5 GiB je Zelle für einen Pi mit 4 GB (5.10). |

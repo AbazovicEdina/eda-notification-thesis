@@ -132,6 +132,15 @@ function createSides(sut = {}) {
       const [head, ...dirty] = r.stdout.split(/\r?\n/).filter(Boolean);
       return { commit: head.trim(), dirty_files: dirty.length };
     },
+    // Drosselstatus per vcgencmd auf dem Host der SUT-Seite. Der Sampler im
+    // Container liest ihn aus sysfs, die Datei fehlt aber auf dem Pi 5.
+    // Lokal (ein Rechner, kein Pi) null.
+    async sutThrottled() {
+      if (!remote) return null;
+      const r = await exec('ssh', sshArgs('vcgencmd get_throttled'), { timeoutMs: 15000 });
+      const m = r.status === 0 ? r.stdout.match(/throttled=(0x[0-9a-f]+)/i) : null;
+      return m ? m[1] : null;
+    },
     loadCompose(args, env = {}, opts = {}) {
       return exec('docker', ['compose', ...args], { ...opts, env });
     },
@@ -266,7 +275,12 @@ async function k6Version(sides) {
 async function samplerInfo(sides) {
   const r = await sides.sutCompose(['--profile', 'tools', 'exec', '-T', 'resource-sampler', 'node', 'sampler.js', 'info']);
   if (r.status !== 0) throw new CampaignError(`resource-sampler info fehlgeschlagen: ${r.stderr.trim() || r.stdout.trim()}`);
-  return JSON.parse(r.stdout.trim().split(/\r?\n/).pop());
+  const info = JSON.parse(r.stdout.trim().split(/\r?\n/).pop());
+  if (info.throttled == null) {
+    info.throttled = await sides.sutThrottled();
+    if (info.throttled != null) info.throttled_source = 'vcgencmd';
+  }
+  return info;
 }
 
 function throttleBits(value) {
@@ -294,6 +308,7 @@ function checkHost(info, settings, log) {
   if (!info.memory_controller) problems.push('memory-cgroup-Controller fehlt — Speicherlimits wären wirkungslos (infra/pi/README.md, Boot-Parameter)');
   const bits = throttleBits(info.throttled);
   const target = settings.sut.pi ? problems : warnings;
+  if (settings.sut.pi && bits == null) problems.push('Drosselstatus nicht lesbar (vcgencmd get_throttled auf dem Pi)');
   if (info.cpu_governor != null && info.cpu_governor !== 'performance') target.push(`CPU-Governor "${info.cpu_governor}" statt "performance"`);
   if (info.swap_total_bytes) target.push(`Swap aktiv (${info.swap_total_bytes} Bytes) — verzerrt Speicher- und Latenzmessung`);
   if (bits != null && (bits & 0xF) !== 0) target.push(`Host aktuell gedrosselt (get_throttled=${info.throttled})`);
@@ -630,9 +645,11 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   const missing = config.services.filter((s) => !ids[s]);
   let sampler = null;
   let loadSampler = null;
+  let throttledStart = null;
   if (missing.length || !redisId) {
     invalid(`container_not_running:${[...missing, ...(redisId ? [] : ['redis'])].join(',')}`);
   } else {
+    throttledStart = await sides.sutThrottled();
     sampler = startSampler((a) => sides.sutSpawnCompose(a), {
       [config.cell]: config.services.map((s) => ids[s]),
       redis: [redisId],
@@ -691,6 +708,12 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       sampler.kill();
       invalid(`resource_sampler:${err.message}`);
     }
+    // Liefert der Sampler keinen Drosselstatus (Pi 5), gelten die Werte
+    // von vcgencmd direkt vor dem Start und direkt nach dem Ende der Messung.
+    const host = record.resources?.host;
+    if (host && host.throttled_start == null && host.throttled_end == null) {
+      Object.assign(host, { throttled_start: throttledStart, throttled_end: await sides.sutThrottled(), throttled_source: 'vcgencmd' });
+    }
   }
   if (loadSampler) {
     try {
@@ -719,8 +742,11 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   const failed = record.containers.filter((c) => c.status !== 'running' || c.oom_killed);
   if (failed.length) invalid(`sut_container_failed:${failed.map((c) => `${c.service}${c.oom_killed ? '(OOM)' : ''}`).join(',')}`);
 
-  if (record.resources && throttledDuring(record.resources.host.throttled_start, record.resources.host.throttled_end)) {
+  const hostState = record.resources?.host;
+  if (hostState && throttledDuring(hostState.throttled_start, hostState.throttled_end)) {
     invalid('host_throttled');
+  } else if (hostState && settings.sut.pi && (throttleBits(hostState.throttled_start) == null || throttleBits(hostState.throttled_end) == null)) {
+    invalid('host_throttle_unknown');
   }
   if (sides.remote && settings.requireAllConnected && (record.measures.loadgen_cpu_util_avg ?? 0) > LOADGEN_UTIL_LIMIT) {
     invalid(`loadgen_saturated:${record.measures.loadgen_cpu_util_avg.toFixed(2)}`);

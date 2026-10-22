@@ -11,7 +11,7 @@ Misst CPU-Zeit und Speicher der Container pro Lauf (DECISIONS.md 5.16). Auf der 
 | Speicher | `memory.current` | abgetastet (Standard 250 ms), Mittel und Spitze |
 | Working Set | `memory.current` − `inactive_file` (`memory.stat`) | wie `memory.current`. Dieselbe Definition wie bei `docker stats` |
 | Temperatur | `/sys/class/thermal/thermal_zone0/temp` | Beginn, Ende, Maximum |
-| Drosselstatus | Raspberry-Pi-Firmware (`get_throttled`) | Beginn und Ende |
+| Drosselstatus | Raspberry-Pi-Firmware (`get_throttled` in sysfs). Fehlt die Datei wie auf dem Pi 5, steht hier `null`, und `tools/orchestrate` liest den Status per `vcgencmd` auf dem Host | Beginn und Ende |
 | CPU-Auslastung des Hosts (`--host-cpu`) | `/proc/stat` | Mittel über den Lauf und höchster Wert je Abtastintervall |
 
 Die Werte werden pro Container, pro Gruppe (`--cell`, z. B. die Zelle und Redis) und als Gesamtsumme über alle übergebenen Container (`total`) ausgegeben. Die Speicherspitze der Gesamtsumme wird aus der Summe je Abtastung gebildet, nicht als Summe der Einzelspitzen. Auf dem Pi liegen die Container einer Zelle in der Slice `eda_<zelle>.slice`. Der Pfad der cgroup steht im Ergebnis und wird vom Orchestrator geprüft.

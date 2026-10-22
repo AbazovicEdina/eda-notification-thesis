@@ -53,12 +53,23 @@ function tempC() {
 }
 
 // Drosselstatus der Raspberry-Pi-Firmware (Bitmaske wie `vcgencmd
-// get_throttled`; 0x0 = nie gedrosselt). Auf anderen Rechnern null.
+// get_throttled`; 0x0 = nie gedrosselt). Auf anderen Rechnern null, ebenso
+// auf dem Pi 5 (Kernel 6.18), der die Datei nicht in sysfs bereitstellt.
+// tools/orchestrate liest den Status dann per vcgencmd auf dem Host.
 function throttled() {
   return readFirst([
     '/sys/devices/platform/soc/soc:firmware/get_throttled',
     '/sys/devices/platform/soc@107c000000/soc@107c000000:firmware/get_throttled',
   ]);
+}
+
+// Modell aus dem Device Tree. Docker sperrt /sys/firmware im Container,
+// daher ersatzweise die Zeile "Model" aus /proc/cpuinfo (Raspberry-Pi-Kernel).
+function model() {
+  const dt = readFirst(['/proc/device-tree/model', '/sys/firmware/devicetree/base/model']);
+  if (dt) return dt;
+  const m = (readText('/proc/cpuinfo') ?? '').match(/^Model\s*:\s*(.+)$/m);
+  return m ? m[1].trim() : null;
 }
 
 function meminfo() {
@@ -87,7 +98,7 @@ function info() {
   const mem = meminfo();
   const disk = dockerDisk();
   return {
-    model: readFirst(['/proc/device-tree/model', '/sys/firmware/devicetree/base/model']),
+    model: model(),
     kernel: readText('/proc/sys/kernel/osrelease'),
     arch: os.arch(),
     cpus: os.cpus().length,
