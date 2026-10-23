@@ -395,6 +395,8 @@ Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 
 **Erste Erprobung auf dem Pi (2026-10-22).** `setup.sh` lief nach einem Neustart mit Exit-Code 0, und alle Images ließen sich auf dem Pi bauen. Der Sampler meldet den memory-Controller, den Governor `performance` und keinen Swap. Den Drosselstatus der Firmware stellt der Pi 5 mit Kernel 6.18 nicht in sysfs bereit, der Sampler im Container kann ihn daher nicht lesen. Der Orchestrator liest ihn stattdessen per ssh mit `vcgencmd get_throttled` direkt vor und nach jeder Messung, wie es auch der Belastungstest tut. Ist der Status auf dem Pi nicht lesbar, bricht die Vorabprüfung ab, und ein betroffener Lauf gilt als ungültig (`host_throttle_unknown`).
 
+**Alle Zellen auf dem Pi gestartet (2026-10-23).** Alle zehn Zellen liefen gleichzeitig ohne Neustarts, auch Redis und PHP-FPM mit dem Kernel mit 16-KB-Seiten. Das Working Set im Leerlauf betrug 328 MiB für php-laravel-sse, 359 MiB für php-laravel-sse-queue und 330 MiB für php-minimal-sse, bei allen übrigen Zellen weniger als 100 MiB. Das entspricht den lokalen Werten mit 4-KB-Seiten (bis etwa 340 MiB, 5.10). Die Spitze unter Last zeigt erst der Probelauf. Ein Durchlauf von der Ereignisquelle über Redis und den Front-Nginx bis zu einem SSE-Client lieferte ein Event pro Sekunde.
+
 **Belastungstest bestanden (2026-10-22 bis 2026-10-23).** Alle vier Kerne liefen 24 Stunden unter Volllast (`infra/pi/burn-in.sh`), protokolliert wurde jede Minute, insgesamt 1 440 Messpunkte. Der Takt lag durchgehend bei 2 400 MHz. Die Temperatur erreichte höchstens 67,2 °C, im Mittel 64,4 °C. Der Drosselstatus war bei jedem Messpunkt `0x0`, es traten also weder Unterspannung noch Taktbegrenzung oder thermische Drosselung auf. Kühlung und Netzteil tragen die Dauerlast damit auch mit der über USB versorgten Festplatte. Die Rohdaten liegen in `results/2026-10-22T13-43-23Z_burn-in.csv`.
 
 Bekannte Risiken auf dem Pi und ihre Behandlung:
@@ -734,7 +736,8 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
 | Erprobung des Zwei-Rechner-Aufbaus | Einrichtung auf dem Pi erprobt (2026-10-22). ssh-Steuerung, veröffentlichte Ports und Auslastung des Lastgenerators noch nicht getestet (5.14) | Probelauf |
 | Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Der Belastungstest ist bestanden (2026-10-23, 5.14) | auf dem Pi |
-| Speicherspitze auf dem Pi | Endwerte 2 CPUs / 1,5 GiB (5.10). Spitze von Laravel bei 500 Clients und Wirkung der 16-KB-Seiten im Probelauf prüfen | Probelauf |
+| Speicherspitze auf dem Pi | Endwerte 2 CPUs / 1,5 GiB (5.10). Im Leerlauf belegen die Zellen mit 16-KB-Seiten so viel wie lokal (2026-10-23, 5.14). Spitze von Laravel bei 500 Clients im Probelauf prüfen | Probelauf |
+| Redis-Persistenz | Redis läuft in der Standardeinstellung, die Schnappschüsse auf den Datenträger schreibt, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue. Im Probelauf prüfen, ob und wie oft das geschieht, danach entscheiden (5.20) | Probelauf |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -760,6 +763,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-23 | **Alle Zellen auf dem Pi gestartet (5.14).** Kein Neustart, Working Set im Leerlauf wie lokal, SSE-Durchlauf bis zum Client funktioniert. Redis-Persistenz als offener Punkt aufgenommen. |
 | 2026-10-23 | **Belastungstest bestanden (5.14).** 24 Stunden Volllast, Takt durchgehend 2 400 MHz, höchstens 67,2 °C, keine Drosselung. Rohdaten in `results/`. |
 | 2026-10-22 | **Einrichtung auf dem Pi erprobt (5.14).** `setup.sh`, Images und Sampler laufen. Den Drosselstatus liest der Orchestrator auf dem Pi 5 per `vcgencmd`, weil sysfs ihn nicht bereitstellt. Ein nicht lesbarer Status macht einen Lauf ungültig. |
 | 2026-10-22 | **Eingesetzte Hardware dokumentiert (5.14).** USB-Festplatte statt SSD, Laptop mit Debian Testing und Node.js 24 als Lastgenerator, Messnetz mit zwei Kabeln. |
