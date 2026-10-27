@@ -1,0 +1,52 @@
+{
+  "name": "v-update-all-cells",
+  "phase": "pilot",
+  "configs": [
+    "node-minimal-sse",
+    "node-minimal-ws",
+    "node-express-sse",
+    "node-express-ws",
+    "php-minimal-sse",
+    "php-minimal-ws",
+    "php-laravel-sse",
+    "php-laravel-ws",
+    "node-express-sse-queue",
+    "php-laravel-sse-queue"
+  ],
+  "comparisons": [
+    [
+      "node-minimal-sse",
+      "php-minimal-sse"
+    ],
+    [
+      "node-express-sse",
+      "php-laravel-sse"
+    ],
+    [
+      "php-laravel-sse",
+      "php-laravel-sse-queue"
+    ]
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 8,
+      "runsPerConfig": 2,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "stress",
+      "vus": 500,
+      "holdSeconds": 10,
+      "runsPerConfig": 1,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "minPairs": 1,
+  "bootstrap": {
+    "resamples": 1000
+  }
+}
