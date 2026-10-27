@@ -383,8 +383,8 @@ Mehrere Pis parallel (je ein Vergleichspaar pro Gerät) wurden verworfen. Zwei G
 | Rolle | Gerät |
 |---|---|
 | Testserver | Raspberry Pi 5 mit 4 GB RAM, Gehäuse mit Kühler, offizielles 27-W-Netzteil. Raspberry Pi OS Lite 64 Bit (Debian 13 „trixie"), gestartet von einer 1,8-TB-USB-Festplatte (2,5 Zoll, Strom über USB) |
-| Lastgenerator | Laptop mit Intel Core i7-9750H (6 Kerne, 12 Threads) und 32 GB RAM, Debian Testing („forky"), Node.js 24 |
-| Netz | Gigabit-Switch (ein Uplink, vier Anschlüsse), zwei LAN-Kabel |
+| Lastgenerator | Laptop mit Intel Core i7-9750H (6 Kerne, 12 Threads) und 32 GB RAM, Debian Testing („forky"), Node.js 24. Docker 29.9.2 mit Compose 5.6.1 wie auf dem Pi, aus der Docker-Paketquelle für Debian 13, weil es für Debian Testing keine eigene gibt |
+| Netz | Gigabit-Switch (ein Uplink, vier Anschlüsse), zwei LAN-Kabel. Messnetz 192.168.50.0/24 mit fester Adresse 192.168.50.20 für den Laptop und 192.168.50.10 für den Pi |
 
 Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 
@@ -763,6 +763,7 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-27 | **Lastgenerator eingerichtet (5.14).** Docker 29.9.2 und Compose 5.6.1 wie auf dem Pi, Versionen festgehalten, automatische Updates und Ruhezustand abgeschaltet, feste Adresse im Messnetz. |
 | 2026-10-23 | **Alle Zellen auf dem Pi gestartet (5.14).** Kein Neustart, Working Set im Leerlauf wie lokal, SSE-Durchlauf bis zum Client funktioniert. Redis-Persistenz als offener Punkt aufgenommen. |
 | 2026-10-23 | **Belastungstest bestanden (5.14).** 24 Stunden Volllast, Takt durchgehend 2 400 MHz, höchstens 67,2 °C, keine Drosselung. Rohdaten in `results/`. |
 | 2026-10-22 | **Einrichtung auf dem Pi erprobt (5.14).** `setup.sh`, Images und Sampler laufen. Den Drosselstatus liest der Orchestrator auf dem Pi 5 per `vcgencmd`, weil sysfs ihn nicht bereitstellt. Ein nicht lesbarer Status macht einen Lauf ungültig. |

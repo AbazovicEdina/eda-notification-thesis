@@ -85,7 +85,7 @@ Docker installiert das Skript bewusst nicht selbst, damit die Installation der o
 
 ## Einrichtung des Lastgenerators
 
-1. Docker und Node.js (Version 22 oder neuer, Tests und Kampagnenplanung mit 22 und 24 geprüft) installieren, Repository auf denselben Commit auschecken. Node.js läuft nur auf dem Lastgenerator für den Orchestrator. Die Prototypen haben ihre eigene Version im Container.
+1. Docker und Node.js (Version 22 oder neuer, Tests und Kampagnenplanung mit 22 und 24 geprüft) installieren, Repository auf denselben Commit auschecken. Node.js läuft nur auf dem Lastgenerator für den Orchestrator. Die Prototypen haben ihre eigene Version im Container. Für Debian Testing bietet Docker keine eigene Paketquelle an, dort wird die Quelle für Debian 13 (`trixie`) eingetragen. Der eigene Benutzer kommt in die Gruppe `docker`, damit der Orchestrator ohne `sudo` läuft.
 2. Schlüsselbasierten ssh-Zugang zum Pi einrichten (`ssh-copy-id pi@<adresse>`). Der Orchestrator verwendet `BatchMode`, eine Passwortabfrage ist nicht möglich.
 3. `prototypes/php-laravel/.env` ebenfalls bereitstellen. Sie wird für den Reverb-App-Key (k6) und für die Laravel-Ereignisquelle (`laravel-producer`) gebraucht und muss mit der Datei auf dem Pi übereinstimmen.
 4. Images für k6, die Ereignisquellen und den Sampler bauen (`laravel-producer` nutzt das Laravel-Image):
@@ -94,7 +94,22 @@ Docker installiert das Skript bewusst nicht selbst, damit die Installation der o
    docker compose --profile load --profile tools --profile php-laravel build k6 event-simulator resource-sampler php-laravel-fpm
    ```
 
-5. Automatische Updates wie auf dem Pi abschalten.
+5. Automatische Updates wie auf dem Pi abschalten und die Docker-Pakete festhalten, damit sich ihre Version in der Messphase nicht ändert:
+
+   ```bash
+   sudo systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+   sudo apt-mark hold docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   ```
+
+6. Bei einem Laptop den Ruhezustand abschalten, auch bei zugeklapptem Deckel. Dazu `sleep.target`, `suspend.target`, `hibernate.target` und `hybrid-sleep.target` maskieren (`systemctl mask`) und in einer Datei unter `/etc/systemd/logind.conf.d/` im Abschnitt `[Login]` die Einstellungen `HandleLidSwitch`, `HandleLidSwitchExternalPower` und `HandleLidSwitchDocked` auf `ignore` setzen.
+
+7. Feste Adresse im Messnetz am LAN-Anschluss. Das Profil setzt keine Standardroute, das Internet für die Benachrichtigungen bleibt so beim WLAN:
+
+   ```bash
+   sudo nmcli con add type ethernet ifname <anschluss> con-name messnetz ipv4.method manual ipv4.addresses 192.168.50.20/24 ipv4.never-default yes ipv6.method disabled connection.autoconnect-priority 10
+   ```
+
+8. `sudo loginctl enable-linger <benutzer>`, damit ein systemd-User-Dienst für den Zeitplan auch nach dem Abmelden weiterläuft. `tmux` und `cron` installieren, falls sie fehlen.
 
 ## Kampagnen starten
 
