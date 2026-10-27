@@ -62,6 +62,7 @@ Optionen von `plan-campaigns.js`:
 | `--steps`, `--clients`, `--rates` | `scaling`, `saturation` | Clientzahlen bzw. feste Clientzahl und Event-Raten |
 | `--prefix` | alle | Präfix aller Kampagnennamen, z. B. `smoke-` |
 | `--hold`, `--settle`, `--warmup` | alle | Haltezeit (Standard 60 s), Einschwingzeit (Standard 10 s), Warm-up-Läufe (Standard 5 bei `pilot` und `main`, sonst 1) |
+| `--connect-spread` | alle | Verbindungsaufbau der Clients über so viele Sekunden verteilen (Standard 0, alle gleichzeitig, DECISIONS.md 5.10) |
 | `--sut` | alle | Datei mit dem sut-Block für den Zwei-Rechner-Aufbau (siehe unten) |
 | `--seed` | alle | Startwert der zufälligen Reihenfolge in `schedule.js` (Standard 20261016) |
 
@@ -144,6 +145,7 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
 | `script`, `metric` | aus `cells.json` | kampagnenweite Überschreibung mit dem Vorrang Konfiguration > Kampagne > Zelle |
 | `warmupRuns` | 5 | Läufe pro Konfiguration, die nicht ausgewertet werden |
 | `settleSeconds` | 10 | Einschwingzeit je Lauf. Events davor werden nicht gewertet |
+| `connectSpreadSeconds` | 0 | Verbindungsaufbau gleichmäßig über so viele Sekunden verteilt, Client n startet nach (n − 1) / Clients mal diesem Wert. 0 heißt, alle verbinden sich gleichzeitig. Muss kleiner als `settleSeconds` sein. Der Wert steht in jedem Lauf-Protokoll (`load.connect_spread_seconds`) |
 | `pauseMinMs`, `pauseMaxMs` | 100, 500 | zufällige Pause zwischen den Läufen |
 | `reportEvery` | 0 | Zwischenauswertung alle N Laufnummern (0 = aus) |
 | `maxFailureRate` | 0,05 (bei `scaling` und `saturation` 1) | Anteil ungültiger Läufe pro Konfiguration, ab dem die Kampagne abbricht |

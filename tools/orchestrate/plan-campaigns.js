@@ -17,6 +17,8 @@
 //                          Namen die echte Phase als erledigt markieren.
 //   --hold <s>             Haltezeit je Lauf (Standard 60)
 //   --settle <s>           Einschwingzeit je Lauf (Standard 10)
+//   --connect-spread <s>   Verbindungsaufbau der Clients über s Sekunden verteilen
+//                          (Standard 0 = alle gleichzeitig, DECISIONS.md 5.10)
 //   --warmup <n>           Warm-up-Läufe je Konfiguration (Standard: pilot/main 5, sonst 1)
 //   --sut <datei>          JSON mit dem sut-Block für den Zwei-Rechner-Aufbau
 //   --seed <n>             Startwert der zufälligen Reihenfolge in schedule.js
@@ -59,9 +61,10 @@ mkdirSync(outDir, { recursive: true });
 const prefix = opt('prefix', '');
 const hold = Number(opt('hold', 60));
 const settle = Number(opt('settle', 10));
+const spread = Number(opt('connect-spread', 0));
 const warmup = Number(opt('warmup', kind === 'pilot' || kind === 'main' ? 5 : 1));
 const sut = opt('sut') ? JSON.parse(readFileSync(path.resolve(opt('sut')), 'utf-8')) : undefined;
-const common = { warmupRuns: warmup, settleSeconds: settle, ...(sut ? { sut } : {}) };
+const common = { warmupRuns: warmup, settleSeconds: settle, ...(spread ? { connectSpreadSeconds: spread } : {}), ...(sut ? { sut } : {}) };
 
 const files = [];
 function write(name, campaign) {

@@ -223,12 +223,20 @@ function resolveSettings(campaign) {
   // In beschreibenden Phasen jenseits der Kapazität sind ausgefallene Läufe
   // Messergebnisse und kein Abbruchgrund (DECISIONS.md 5.9).
   const descriptiveOverload = phase === 'scaling' || phase === 'saturation';
+  // Verteilter Verbindungsaufbau (DECISIONS.md 5.10, Möglichkeit 5). 0 heißt,
+  // alle Clients verbinden sich gleichzeitig (5.9). Die Verteilung muss vor
+  // dem Ende der Einschwingzeit abgeschlossen sein.
+  const connectSpreadSeconds = campaign.connectSpreadSeconds ?? 0;
+  if (!(connectSpreadSeconds >= 0 && connectSpreadSeconds < (campaign.settleSeconds ?? 10))) {
+    throw new CampaignError(`connectSpreadSeconds muss mindestens 0 und kleiner als settleSeconds sein, nicht ${connectSpreadSeconds}`);
+  }
   return {
     name: campaign.name ?? 'kampagne',
     phase,
     block: campaign.block ?? (phase === 'main' ? 1 : null),
     warmupRuns: campaign.warmupRuns ?? 5,
     settleSeconds: campaign.settleSeconds ?? 10,
+    connectSpreadSeconds,
     pauseMinMs: campaign.pauseMinMs ?? 100,
     pauseMaxMs: campaign.pauseMaxMs ?? 500,
     reportEvery: campaign.reportEvery ?? 0,
@@ -617,6 +625,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     load: {
       vus: scenario.vus,
       settle_seconds: settings.settleSeconds,
+      connect_spread_seconds: settings.connectSpreadSeconds,
       hold_seconds: scenario.holdSeconds,
       event_rate_nominal_per_s: scenario.eventRatePerSecond,
       producer: config.producer,
@@ -692,6 +701,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     K6_VUS: String(scenario.vus),
     K6_HOLD_SECONDS: String(scenario.holdSeconds),
     K6_SETTLE_SECONDS: String(settings.settleSeconds),
+    K6_CONNECT_SPREAD_SECONDS: String(settings.connectSpreadSeconds),
     ...config.env,
   };
   const k6Args = ['--profile', 'load', 'run', '--rm', '--no-deps'];
@@ -816,6 +826,7 @@ function aggregateScenario(scenario, configs, comparisons, results, settings) {
   const agg = {
     vus: scenario.vus,
     settle_seconds: settings.settleSeconds,
+    connect_spread_seconds: settings.connectSpreadSeconds,
     hold_seconds: scenario.holdSeconds,
     event_rate_nominal_per_s: scenario.eventRatePerSecond,
     runs_per_config: scenario.runsPerConfig,
@@ -967,8 +978,9 @@ function interimReport(scenario, comparisons, results, settings, runIndex) {
 
 async function runScenario(ctx, scenario, configs, comparisons, interim) {
   const { settings, sides, log } = ctx;
+  const spread = settings.connectSpreadSeconds ? `, Verbindungsaufbau über ${settings.connectSpreadSeconds} s verteilt` : '';
   console.log(`\n=== Laststufe "${scenario.name}": ${scenario.vus} Clients, ${settings.settleSeconds} s + ${scenario.holdSeconds} s, `
-    + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration ===`);
+    + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration${spread} ===`);
   log('scenario_started', { scenario });
   await startProducers(sides, settings, configs, scenario.eventRatePerSecond, log);
 

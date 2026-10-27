@@ -12,7 +12,7 @@
 import ws from 'k6/ws';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
-import { BASE_URL, holdScenario, measurementWindow } from '../lib/config.js';
+import { BASE_URL, holdScenario, measurementWindow, staggerStart } from '../lib/config.js';
 import { deliveryMetrics, newTracker, markConnected, track, flush } from '../lib/delivery.js';
 
 const eventLatency = new Trend('ws_event_latency_ms');
@@ -25,6 +25,7 @@ const CHANNEL = __ENV.REVERB_CHANNEL || 'scans';
 export const options = holdScenario();
 
 export default function () {
+  staggerStart();
   const url = `${BASE_URL.replace(/^http/, 'ws')}/app/${REVERB_APP_KEY}?protocol=7&client=k6&version=1.0`;
   const window = measurementWindow();
   const tracker = newTracker();
