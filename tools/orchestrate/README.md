@@ -10,7 +10,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `status.js` | Statusbericht für den Dauerbetrieb (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz), optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Hypothesen |
-| `series.js` | beschreibende Auswertung von Skalierungsreihe und Sättigungstest über alle Zellen, SSE und WebSocket je Variante nebeneinander |
+| `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
 | `cells.json` | die zehn Messzellen mit Container, Front-Nginx (Modus, Ziel), Ereignisquelle, k6-Skript und Messgröße |
@@ -58,11 +58,12 @@ Optionen von `plan-campaigns.js`:
 | `--comparisons` | `pilot`, `main` | Auswahl der Vergleiche aus `plan.json` (Standard sind alle dreizehn) |
 | `--control` | `pilot`, `main` | Zelle der täglichen Kontrollmessung (Standard `node-minimal-sse`) |
 | `--report-every` | `pilot` | Zwischenauswertung alle n Läufe (Standard 10) |
-| `--cells` | `scaling`, `saturation` | Auswahl der Zellen (Standard sind alle zehn) |
+| `--cells` | `scaling`, `saturation`, `storm` | Auswahl der Zellen (Standard sind alle zehn) |
+| `--clients` | `saturation`, `storm` | Zahl der Clients (Standard 50 beim Sättigungstest, 500 beim Ansturm) |
 | `--steps`, `--clients`, `--rates` | `scaling`, `saturation` | Clientzahlen bzw. feste Clientzahl und Event-Raten |
 | `--prefix` | alle | Präfix aller Kampagnennamen, z. B. `smoke-` |
 | `--hold`, `--settle`, `--warmup` | alle | Haltezeit (Standard 60 s), Einschwingzeit (Standard 10 s), Warm-up-Läufe (Standard 5 bei `pilot` und `main`, sonst 1) |
-| `--connect-spread` | alle | Verbindungsaufbau der Clients über so viele Sekunden verteilen (Standard 0, alle gleichzeitig, DECISIONS.md 5.10) |
+| `--connect-spread` | alle außer `storm` | Verbindungsaufbau der Clients über so viele Sekunden verteilen (Standard 5, kleiner als `--settle`, DECISIONS.md 5.10). `storm` verbindet immer alle gleichzeitig |
 | `--sut` | alle | Datei mit dem sut-Block für den Zwei-Rechner-Aufbau (siehe unten) |
 | `--seed` | alle | Startwert der zufälligen Reihenfolge in `schedule.js` (Standard 20261016) |
 
@@ -115,6 +116,7 @@ Das Protokoll liegt bewusst außerhalb von `results/`, damit es nicht versehentl
 | `control` | tägliche Kontrollmessung einer festen Zelle zur Erkennung von Drift | ≥ 1 | beschreibend |
 | `scaling` | Clientzahl stufenweise steigern | ≥ 1 | beschreibend, inklusive erster Clientzahl mit weniger als 99 % bedienten Clients |
 | `saturation` | Event-Rate stufenweise steigern bei fester Clientzahl | ≥ 1 | beschreibend, inklusive höchster nachhaltiger Rate |
+| `storm` | alle Clients verbinden sich im selben Moment, je Zelle einzeln | ≥ 1 | beschreibend, rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel, Gründe ungültiger Läufe |
 
 In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufen und alle Clients bis zum Ende der Einschwingzeit verbunden sein. In `scaling` und `saturation` sind ausgefallene Läufe Messergebnisse und kein Abbruchgrund. Zwischenauswertungen der Hauptmessung dienen nur der Kontrolle, nicht als Abbruchkriterium (DECISIONS.md 5.9).
 
@@ -145,7 +147,7 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
 | `script`, `metric` | aus `cells.json` | kampagnenweite Überschreibung mit dem Vorrang Konfiguration > Kampagne > Zelle |
 | `warmupRuns` | 5 | Läufe pro Konfiguration, die nicht ausgewertet werden |
 | `settleSeconds` | 10 | Einschwingzeit je Lauf. Events davor werden nicht gewertet |
-| `connectSpreadSeconds` | 0 | Verbindungsaufbau gleichmäßig über so viele Sekunden verteilt, Client n startet nach (n − 1) / Clients mal diesem Wert. 0 heißt, alle verbinden sich gleichzeitig. Muss kleiner als `settleSeconds` sein. Der Wert steht in jedem Lauf-Protokoll (`load.connect_spread_seconds`) |
+| `connectSpreadSeconds` | 0 (`plan-campaigns.js` setzt 5) | Verbindungsaufbau gleichmäßig über so viele Sekunden verteilt, Client n startet nach (n − 1) / Clients mal diesem Wert. 0 heißt, alle verbinden sich gleichzeitig, in der Phase `storm` Pflicht. Muss kleiner als `settleSeconds` sein. Der Wert steht in jedem Lauf-Protokoll (`load.connect_spread_seconds`) |
 | `pauseMinMs`, `pauseMaxMs` | 100, 500 | zufällige Pause zwischen den Läufen |
 | `reportEvery` | 0 | Zwischenauswertung alle N Laufnummern (0 = aus) |
 | `maxFailureRate` | 0,05 (bei `scaling` und `saturation` 1) | Anteil ungültiger Läufe pro Konfiguration, ab dem die Kampagne abbricht |
@@ -199,7 +201,7 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 
 `schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Hypothesen, Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen. `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
 
-**`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
+**`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate, beim Ansturm rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe, sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
 
 ## Statistik
 

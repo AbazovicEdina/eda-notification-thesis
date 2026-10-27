@@ -10,6 +10,7 @@
 //   node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
 //   node tools/orchestrate/plan-campaigns.js scaling --steps 10,50,100,250,500,750,1000 --runs 3 --out campaigns/scaling
 //   node tools/orchestrate/plan-campaigns.js saturation --clients 50 --rates 10,50,100,200,500 --runs 6 --out campaigns/saturation
+//   node tools/orchestrate/plan-campaigns.js storm --clients 500 --runs 3 --hold 20 --out campaigns/storm
 // Gemeinsame Optionen:
 //   --prefix <text>        Präfix aller Kampagnennamen, z. B. "smoke-" für einen
 //                          Probelauf. schedule.js erkennt erledigte Kampagnen am
@@ -18,7 +19,8 @@
 //   --hold <s>             Haltezeit je Lauf (Standard 60)
 //   --settle <s>           Einschwingzeit je Lauf (Standard 10)
 //   --connect-spread <s>   Verbindungsaufbau der Clients über s Sekunden verteilen
-//                          (Standard 0 = alle gleichzeitig, DECISIONS.md 5.10)
+//                          (Standard 5, muss kleiner als --settle sein,
+//                          DECISIONS.md 5.10). storm verbindet immer gleichzeitig.
 //   --warmup <n>           Warm-up-Läufe je Konfiguration (Standard: pilot/main 5, sonst 1)
 //   --sut <datei>          JSON mit dem sut-Block für den Zwei-Rechner-Aufbau
 //   --seed <n>             Startwert der zufälligen Reihenfolge in schedule.js
@@ -26,8 +28,10 @@
 //   --comparisons <ids>    Auswahl der Vergleiche aus plan.json (Standard: alle)
 //   --control <zelle>      Zelle der täglichen Kontrollmessung (Standard node-minimal-sse)
 //   --report-every <n>     nur pilot: Zwischenauswertung alle n Läufe (Standard 10)
-// Nur scaling und saturation:
+// Nur scaling, saturation und storm:
 //   --cells <namen>        Auswahl der Zellen (Standard: alle)
+// Nur storm:
+//   --clients <n>          Zahl der Clients, die sich gleichzeitig verbinden (Standard 500)
 //
 // Ergebnis: eine Datei je Kampagne und eine schedule.json für schedule.js.
 
@@ -40,7 +44,7 @@ const plan = JSON.parse(readFileSync(path.join(__dirname, 'plan.json'), 'utf-8')
 const cells = JSON.parse(readFileSync(path.join(__dirname, 'cells.json'), 'utf-8'));
 const allCells = Object.keys(cells).filter((c) => !c.startsWith('_'));
 
-const KINDS = ['pilot', 'main', 'scaling', 'saturation'];
+const KINDS = ['pilot', 'main', 'scaling', 'saturation', 'storm'];
 const [kind, ...rest] = process.argv.slice(2);
 const opt = (name, fallback) => {
   const i = rest.indexOf(`--${name}`);
@@ -61,16 +65,21 @@ mkdirSync(outDir, { recursive: true });
 const prefix = opt('prefix', '');
 const hold = Number(opt('hold', 60));
 const settle = Number(opt('settle', 10));
-const spread = Number(opt('connect-spread', 0));
+// Verteilter Verbindungsaufbau als Standard aller Messphasen (DECISIONS.md
+// 5.10): Die Clients verbinden sich über die erste Hälfte der Einschwingzeit
+// verteilt, damit vor dem Messfenster ein eingeschwungener Zustand herrscht.
+const spread = Number(opt('connect-spread', 5));
+if (!(spread >= 0 && spread < settle)) fail(`--connect-spread muss mindestens 0 und kleiner als --settle (${settle}) sein`);
 const warmup = Number(opt('warmup', kind === 'pilot' || kind === 'main' ? 5 : 1));
 const sut = opt('sut') ? JSON.parse(readFileSync(path.resolve(opt('sut')), 'utf-8')) : undefined;
-const common = { warmupRuns: warmup, settleSeconds: settle, ...(spread ? { connectSpreadSeconds: spread } : {}), ...(sut ? { sut } : {}) };
+const common = { warmupRuns: warmup, settleSeconds: settle, connectSpreadSeconds: spread, ...(sut ? { sut } : {}) };
 
 const files = [];
+// Einstellungen der Kampagne gehen den gemeinsamen vor (z. B. storm ohne Verteilung).
 function write(name, campaign) {
   const fullName = `${prefix}${name}`;
   const file = `${fullName}.json`;
-  writeFileSync(path.join(outDir, file), `${JSON.stringify({ name: fullName, ...campaign, ...common }, null, 2)}\n`);
+  writeFileSync(path.join(outDir, file), `${JSON.stringify({ name: fullName, ...common, ...campaign }, null, 2)}\n`);
   files.push(file);
 }
 
@@ -140,6 +149,20 @@ if (kind === 'pilot' || kind === 'main') {
       phase: 'scaling',
       configs: [cell],
       scenarios: steps.map((vus) => ({ name: `clients-${String(vus).padStart(4, '0')}`, vus, holdSeconds: hold, runsPerConfig: runs + warmup, eventRatePerSecond: 1 })),
+    });
+  }
+} else if (kind === 'storm') {
+  // Ansturm (DECISIONS.md 5.10): Alle Clients verbinden sich im selben
+  // Moment, etwa nach einem Neustart des Servers. Jede Zelle einzeln,
+  // beschreibend, ohne Hypothesentest.
+  const clients = Number(opt('clients', 500));
+  const runs = Number(opt('runs', 3));
+  for (const cell of selectedCells()) {
+    write(`storm-${cell}`, {
+      phase: 'storm',
+      configs: [cell],
+      connectSpreadSeconds: 0,
+      scenarios: [{ name: `storm-${String(clients).padStart(4, '0')}`, vus: clients, holdSeconds: hold, runsPerConfig: runs + warmup, eventRatePerSecond: 1 }],
     });
   }
 } else {

@@ -17,9 +17,9 @@ x-high-nofile: &high-nofile
 # Identische Ressourcen-Limits für die gemessenen Container (DECISIONS.md
 # 5.6.2, 5.10). `cpus`/`mem_limit` (nicht `deploy.resources.limits`) wirken
 # unter reinem `docker compose up`; `deploy.*` greift nur im Swarm-Modus.
-# Speicher 1536m (Raspberry Pi 5 mit 4 GB, DECISIONS.md 5.10). Für
-# php-laravel/SSE bei 500 Clients reicht das auf dem Pi nicht, die
-# Entscheidung über Hardware und Budget ist offen.
+# Speicher 1536m (Raspberry Pi 5 mit 4 GB, DECISIONS.md 5.10). Mit über
+# 5 s verteiltem Verbindungsaufbau bleibt auch php-laravel/SSE bei 500
+# Clients mit rund 30 % Abstand darunter.
 # Auf dem Pi begrenzt zusätzlich ein gemeinsamer cgroup-Topf pro ZELLE
 # (docker-compose.pi.yml), da Zellen aus mehreren Containern bestehen können.
 # memswap_limit = mem_limit: kein zusätzlicher Swap für den Container.

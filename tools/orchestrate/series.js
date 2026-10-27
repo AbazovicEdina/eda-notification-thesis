@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Beschreibende Auswertung der Skalierungsreihe und des Sättigungstests über
-// alle Zellen (DECISIONS.md 5.9, 5.17, 5.23). Je Zelle: die Stufen mit
-// bedienten Clients, Verbindungsaufbau, Latenz, CPU und Speicher bzw. mit
-// Zustellquote und p95-Latenz, dazu Kapazitätsgrenze und höchste nachhaltige
-// Event-Rate. Zusätzlich stehen SSE und WebSocket je Sprache und Variante
-// nebeneinander (Hypothesen H4 und H11). Keine Signifikanztests: Jede Zelle
-// wird in einer eigenen Kampagne gemessen, die Werte sind nicht gepaart.
+// Beschreibende Auswertung der Skalierungsreihe, des Sättigungstests und des
+// Ansturms über alle Zellen (DECISIONS.md 5.9, 5.10, 5.17, 5.23). Je Zelle: die
+// Stufen mit bedienten Clients, Verbindungsaufbau, Latenz, CPU und Speicher
+// bzw. mit Zustellquote und p95-Latenz, dazu Kapazitätsgrenze und höchste
+// nachhaltige Event-Rate, beim Ansturm rechtzeitig verbundene und bediente
+// Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe. Zusätzlich
+// stehen SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen
+// H4 und H11). Keine Signifikanztests: Jede Zelle wird in einer eigenen
+// Kampagne gemessen, die Werte sind nicht gepaart.
 //
 // Aufruf: node tools/orchestrate/series.js <kampagnen-verzeichnis>... [--include-aborted]
 // Ergebnis: results/<zeitstempel>_series/series.json und series.md
@@ -27,7 +29,7 @@ if (dirs.length === 0) {
 }
 
 const notes = [];
-const series = { scaling: {}, saturation: {} };
+const series = { scaling: {}, saturation: {}, storm: {} };
 const duplicates = [];
 
 for (const dir of dirs) {
@@ -37,7 +39,7 @@ for (const dir of dirs) {
     continue;
   }
   const agg = JSON.parse(readFileSync(file, 'utf-8'));
-  if (agg.phase !== 'scaling' && agg.phase !== 'saturation') {
+  if (!['scaling', 'saturation', 'storm'].includes(agg.phase)) {
     notes.push(`${agg.campaign_dir}: Phase "${agg.phase}", nicht Teil dieser Auswertung`);
     continue;
   }
@@ -54,7 +56,10 @@ for (const dir of dirs) {
     const cell = agg.configs.find((c) => c.name === configName)?.cell ?? configName;
     const target = series[agg.phase];
     if (target[cell]) duplicates.push(`${agg.phase} ${cell}: ${target[cell].campaign} und ${agg.campaign_dir}`);
-    target[cell] = { campaign: agg.campaign_dir, config: configName, criteria: summary.criteria, ...entry };
+    // Beim Ansturm ist der Eintrag eine Liste von Stufen (stormSummary in run.js).
+    target[cell] = Array.isArray(entry)
+      ? { campaign: agg.campaign_dir, config: configName, steps: entry }
+      : { campaign: agg.campaign_dir, config: configName, criteria: summary.criteria, ...entry };
   }
 }
 if (duplicates.length) {
@@ -97,6 +102,7 @@ writeFileSync(path.join(outDir, 'series.json'), JSON.stringify({
   notes,
   scaling: series.scaling,
   saturation: series.saturation,
+  storm: series.storm,
   transport,
 }, null, 2));
 
@@ -155,6 +161,22 @@ if (saturationCells.length) {
   }
 }
 
+const stormCells = Object.keys(series.storm).sort();
+if (stormCells.length) {
+  lines.push('## Ansturm', '');
+  lines.push('Alle Clients verbinden sich im selben Moment, etwa nach einem Neustart des Servers. Jede Zelle wird einzeln gemessen. Die Speicherspitze laut Kernel ist der größte Höchstwert über die Läufe, als Summe über die Container der Zelle.', '');
+  lines.push('| Zelle | Clients | gültig | rechtzeitig verbunden | bedient (Median, Minimum) | Verbindungsaufbau (ms) | Latenz Mittel (ms) | Speicherspitze laut Kernel (MiB) | Gründe ungültiger Läufe |');
+  lines.push('|---|---|---|---|---|---|---|---|---|');
+  for (const cell of stormCells) {
+    for (const st of series.storm[cell].steps) {
+      const reasons = Object.entries(st.invalid_reasons ?? {}).map(([r, n]) => `${r} (${n})`).join(', ') || '–';
+      lines.push(`| ${cell} | ${st.clients} | ${st.runs_valid}/${st.runs} | ${pct(st.connected_ratio_median)} | ${pct(st.served_ratio_median)}, ${pct(st.served_ratio_min)} | `
+        + `${num(st.connect_mean_median_ms)} | ${num(st.latency_mean_median_ms, 2)} | ${mib(st.mem_peak_kernel_max_bytes)} | ${reasons} |`);
+    }
+  }
+  lines.push('');
+}
+
 if (transport.length) {
   lines.push('## SSE und WebSocket im Vergleich', '');
   lines.push('Gleiche Sprache und Variante, unterschiedlicher Transport. Beschreibend, da die Zellen in getrennten Kampagnen gemessen werden. Gepaarte Tests zum Transport enthalten nur die Vergleiche 12 und 13 der Hauptmessung (evaluation.md).', '');
@@ -184,6 +206,6 @@ writeFileSync(path.join(outDir, 'series.md'), lines.join('\n'));
 
 console.log(`Skalierung und Sättigung: ${path.relative(REPO_ROOT, outDir)}`);
 const complete = (m) => m.sse && m.ws;
-console.log(`  Skalierung: ${scalingCells.length} Zellen, Sättigung: ${saturationCells.length} Zellen, vollständige SSE/WS-Paare: `
+console.log(`  Skalierung: ${scalingCells.length} Zellen, Sättigung: ${saturationCells.length} Zellen, Ansturm: ${stormCells.length} Zellen, vollständige SSE/WS-Paare: `
   + `${transport.filter((t) => complete(t.measured.scaling)).length} (Skalierung), ${transport.filter((t) => complete(t.measured.saturation)).length} (Sättigung)`);
 for (const n of notes) console.log(`  Hinweis: ${n}`);

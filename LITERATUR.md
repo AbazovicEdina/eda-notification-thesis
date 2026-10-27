@@ -741,7 +741,7 @@ I. Fette, A. Melnikov. „The WebSocket Protocol." RFC 6455, IETF, Dezember 2011
 
 WHATWG. „9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.whatwg.org/multipage/server-sent-events.html (fortlaufend aktualisiert, Abrufdatum angeben).
 
-**Verwendung.** Formale Definition von SSE. Anders als WebSocket ist SSE kein IETF-RFC, sondern Teil des WHATWG-Standards. Dieser Unterschied im Publikationsstatus kann in der Arbeit kurz erwähnt werden.
+**Verwendung.** Formale Definition von SSE. Anders als WebSocket ist SSE kein IETF-RFC, sondern Teil des WHATWG-Standards. Dieser Unterschied im Publikationsstatus kann in der Arbeit kurz erwähnt werden. Außerdem legt der Standard fest, dass EventSource eine abgebrochene Verbindung automatisch neu aufbaut. Nach einem Neustart des Servers verbinden sich deshalb alle Clients fast gleichzeitig neu, der Fall der Phase Ansturm (DECISIONS.md 5.10).
 
 ```bibtex
 @online{whatwg-sse,
@@ -1303,6 +1303,7 @@ United Nations General Assembly. „Transforming our World: The 2030 Agenda for 
 | 5.19, 5.20 | Queues (BullMQ, Laravel Queue, `block_for`) | BullMQ-Dokumentation, Laravel Queues |
 | 5.16 | Ressourcenmessung über cgroup v2, Working Set | Kernel-Dokumentation cgroup v2, Docker-Dokumentation `docker stats` |
 | 3, 5.9 | Lastwerkzeug k6 und xk6-sse | k6-Dokumentation, xk6-sse |
+| 5.9, 5.10 | verteilter Verbindungsaufbau, Ansturm nach einem Neustart (automatische Wiederverbindung von EventSource) | WHATWG Server-Sent Events, k6-Dokumentation |
 | 5.23 | Laravel 13 statt 12 (Unterstützungszeitraum) | Laravel Release Notes |
 | 5.26 | Versionen nach Erscheinungsdatum | Node.js Releases, PHP Supported Versions, Laravel Release Notes |
 | 5.23 | keine Symfony-Variante | Symfony EventDispatcher und Mercure, Mercure-Hub |

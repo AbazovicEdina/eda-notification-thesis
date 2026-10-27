@@ -42,8 +42,12 @@ const INFRA_SERVICES = new Set(['redis', 'nginx', 'resource-sampler', ...Object.
 
 // Phasen (DECISIONS.md 5.9): pilot und main sind statistisch auswertbar
 // (main mit Block 1 = konfirmatorisch, Block 2 = Replikation); control,
-// scaling und saturation sind beschreibend.
-const PHASES = new Set(['pilot', 'main', 'control', 'scaling', 'saturation']);
+// scaling, saturation und storm sind beschreibend. storm misst den
+// gleichzeitigen Verbindungsaufbau aller Clients (DECISIONS.md 5.10).
+const PHASES = new Set(['pilot', 'main', 'control', 'scaling', 'saturation', 'storm']);
+// Phasen, in denen ausgefallene Läufe ein Messergebnis sind und kein
+// Abbruchgrund (Überlast, Ansturm).
+const DESCRIPTIVE_PHASES = new Set(['scaling', 'saturation', 'storm']);
 const COMPARING_PHASES = new Set(['pilot', 'main']);
 // In diesen Phasen müssen alle Clients bis zum Ende der Einschwingzeit
 // verbunden sein und alle Zellen im Produktionsbetrieb laufen.
@@ -57,7 +61,7 @@ const DESCRIBED_MEASURES = [
   'connect_mean_ms', 'connect_p95_ms', 'connected_ratio', 'served_ratio',
   'delivery_ratio', 'events_lost', 'delivered_events_per_s', 'source_rate_eps',
   'cpu_seconds', 'cpu_seconds_redis', 'cpu_seconds_total', 'cpu_cores_avg',
-  'working_set_peak_bytes', 'working_set_peak_bytes_redis', 'working_set_peak_bytes_total', 'working_set_avg_bytes',
+  'working_set_peak_bytes', 'working_set_peak_bytes_redis', 'working_set_peak_bytes_total', 'working_set_avg_bytes', 'mem_peak_kernel_bytes',
   'data_received_bytes_per_s', 'connection_errors', 'loadgen_cpu_util_avg', 'loadgen_cpu_util_max',
 ];
 // Mittlere Auslastung des Lastgenerators, ab der ein Lauf im
@@ -222,13 +226,16 @@ function resolveSettings(campaign) {
   if (!PHASES.has(phase)) throw new CampaignError(`phase muss eine von ${[...PHASES].join(', ')} sein, nicht "${phase}"`);
   // In beschreibenden Phasen jenseits der Kapazität sind ausgefallene Läufe
   // Messergebnisse und kein Abbruchgrund (DECISIONS.md 5.9).
-  const descriptiveOverload = phase === 'scaling' || phase === 'saturation';
+  const descriptiveOverload = DESCRIPTIVE_PHASES.has(phase);
   // Verteilter Verbindungsaufbau (DECISIONS.md 5.10, Möglichkeit 5). 0 heißt,
   // alle Clients verbinden sich gleichzeitig (5.9). Die Verteilung muss vor
   // dem Ende der Einschwingzeit abgeschlossen sein.
   const connectSpreadSeconds = campaign.connectSpreadSeconds ?? 0;
   if (!(connectSpreadSeconds >= 0 && connectSpreadSeconds < (campaign.settleSeconds ?? 10))) {
     throw new CampaignError(`connectSpreadSeconds muss mindestens 0 und kleiner als settleSeconds sein, nicht ${connectSpreadSeconds}`);
+  }
+  if (phase === 'storm' && connectSpreadSeconds !== 0) {
+    throw new CampaignError('Phase storm misst den gleichzeitigen Verbindungsaufbau, connectSpreadSeconds muss 0 sein');
   }
   return {
     name: campaign.name ?? 'kampagne',
@@ -594,6 +601,10 @@ function extractMeasures(summary, config, scenario, resources, loadgen) {
     working_set_avg_bytes: cell.working_set_avg_bytes ?? null,
     working_set_peak_bytes: cell.working_set_peak_bytes ?? null,
     mem_peak_bytes: cell.mem_peak_bytes ?? null,
+    // exakter Höchstwert des Kernels seit Containerstart, Summe über die
+    // Container der Zelle. mem_peak_kernel_new zeigt, ob er im Lauf gestiegen ist.
+    mem_peak_kernel_bytes: cell.mem_peak_lifetime_bytes ?? null,
+    mem_peak_kernel_new: cell.mem_peak_lifetime_new ?? null,
     cpu_seconds_redis: redis.cpu_seconds ?? null,
     working_set_peak_bytes_redis: redis.working_set_peak_bytes ?? null,
     cpu_seconds_total: total.cpu_seconds ?? null,
@@ -836,7 +847,7 @@ function aggregateScenario(scenario, configs, comparisons, results, settings) {
   };
   // In Überlast-Phasen zählen auch ungültige Läufe mit ihren Messwerten
   // (z. B. Anteil bedienter Clients); sonst nur gültige.
-  const usable = (r) => r.valid || settings.phase === 'scaling' || settings.phase === 'saturation';
+  const usable = (r) => r.valid || DESCRIPTIVE_PHASES.has(settings.phase);
   for (const config of configs) {
     const all = results[config.name];
     const measured = all.filter((r) => !r.warmup);
@@ -936,6 +947,35 @@ function scalingSummary(scenarios, configs, scenarioAggs, criteria) {
     });
     const limit = steps.find((st) => st.served_ratio_median == null || st.served_ratio_median < criteria.minServedRatio);
     summary.configs[config.name] = { steps, first_clients_below_criterion: limit?.clients ?? null };
+  }
+  return summary;
+}
+
+// Ansturm (Phase storm, DECISIONS.md 5.10). Je Zelle, wie viele Clients
+// beim gleichzeitigen Verbindungsaufbau rechtzeitig verbunden und bedient
+// wurden, wie lange der Aufbau dauerte, wie viel Speicher die Zelle dabei
+// höchstens belegte und warum Läufe ungültig waren (z. B. OOM).
+function stormSummary(scenarios, configs, scenarioAggs) {
+  const summary = { configs: {} };
+  for (const config of configs) {
+    summary.configs[config.name] = scenarios.filter((s) => scenarioAggs[s.name]).map((s) => {
+      const c = scenarioAggs[s.name].configs[config.name];
+      const d = c.describe;
+      return {
+        scenario: s.name,
+        clients: s.vus,
+        runs: c.runs_measured,
+        runs_valid: c.runs_valid,
+        invalid_reasons: c.invalid_reasons,
+        connected_ratio_median: d.connected_ratio.median,
+        served_ratio_median: d.served_ratio.median,
+        served_ratio_min: d.served_ratio.min,
+        connect_mean_median_ms: d.connect_mean_ms.median,
+        latency_mean_median_ms: d.latency_mean_ms.median,
+        working_set_peak_total_max_bytes: d.working_set_peak_bytes_total.max,
+        mem_peak_kernel_max_bytes: d.mem_peak_kernel_bytes.max,
+      };
+    });
   }
   return summary;
 }
@@ -1041,6 +1081,17 @@ function printSummary(aggregate) {
     console.log('\nSättigung (höchste nachhaltige Rate):');
     for (const [cfg, s] of Object.entries(aggregate.saturation.configs)) {
       console.log(`  ${cfg}: ${s.max_sustainable_rate_per_s ?? '— (bereits die niedrigste Stufe nicht erfüllt)'} Events/s`);
+    }
+  }
+  if (aggregate.storm) {
+    console.log('\nAnsturm (gleichzeitiger Verbindungsaufbau):');
+    for (const [cfg, steps] of Object.entries(aggregate.storm.configs)) {
+      for (const st of steps) {
+        const peak = st.mem_peak_kernel_max_bytes == null ? '–' : `${(st.mem_peak_kernel_max_bytes / 2 ** 20).toFixed(0)} MiB`;
+        const reasons = Object.keys(st.invalid_reasons);
+        console.log(`  ${cfg}, ${st.clients} Clients: ${st.runs_valid}/${st.runs} gültig, rechtzeitig verbunden ${((st.connected_ratio_median ?? 0) * 100).toFixed(1)} %, `
+          + `Spitze laut Kernel ${peak}${reasons.length ? `, ungültig wegen ${reasons.join(', ')}` : ''}`);
+      }
     }
   }
   if (aggregate.scaling) {
@@ -1197,6 +1248,9 @@ async function main() {
   }
   if (settings.phase === 'scaling' && Object.keys(complete).length) {
     aggregate.scaling = scalingSummary(scenarios, configs, complete, settings.scaling);
+  }
+  if (settings.phase === 'storm' && Object.keys(complete).length) {
+    aggregate.storm = stormSummary(scenarios, configs, complete);
   }
   aggregate.finished_at = new Date().toISOString();
   writeFileSync(path.join(campaignDir, 'aggregate.json'), JSON.stringify(aggregate, null, 2));

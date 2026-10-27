@@ -9,6 +9,7 @@ Misst CPU-Zeit und Speicher der Container pro Lauf (DECISIONS.md 5.16). Auf der 
 | CPU-Zeit | `cpu.stat`, Zähler `usage_usec` | Differenz zwischen Beginn und Ende des Laufs. Exakt, ohne Abtastfehler |
 | mittlere CPU-Auslastung | CPU-Zeit / Wanduhrzeit | in Kernen |
 | Speicher | `memory.current` | abgetastet (Standard 250 ms), Mittel und Spitze |
+| Speicherspitze laut Kernel | `memory.peak` je Container | exakter Höchstwert seit Containerstart, zu Beginn und am Ende des Laufs. Ist er im Lauf gestiegen, ist der Endwert die exakte Spitze dieses Laufs. Die Abtastung verpasst kurze Spitzen, etwa beim gleichzeitigen Verbindungsaufbau vieler Clients |
 | Working Set | `memory.current` − `inactive_file` (`memory.stat`) | wie `memory.current`. Dieselbe Definition wie bei `docker stats` |
 | Temperatur | `/sys/class/thermal/thermal_zone0/temp` | Beginn, Ende, Maximum |
 | Drosselstatus | Raspberry-Pi-Firmware (`get_throttled` in sysfs). Fehlt die Datei wie auf dem Pi 5, steht hier `null`, und `tools/orchestrate` liest den Status per `vcgencmd` auf dem Host | Beginn und Ende |

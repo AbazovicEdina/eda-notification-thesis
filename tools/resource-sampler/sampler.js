@@ -154,6 +154,16 @@ function memory(dir) {
   return { current, workingSet: Math.max(0, current - inactiveFile) };
 }
 
+// Höchstwert von memory.current seit dem Start des Containers, vom Kernel
+// exakt geführt (memory.peak, ab Linux 5.19). Die Abtastung alle interval-ms
+// verpasst kurze Spitzen, etwa beim gleichzeitigen Verbindungsaufbau vieler
+// Clients (DECISIONS.md 5.10). Steigt der Wert während eines Laufs, ist der
+// Endwert die exakte Spitze dieses Laufs.
+function memoryPeak(dir) {
+  const v = Number(readText(path.join(dir, 'memory.peak')));
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
 function parseCells(args) {
   const cells = {};
   for (let i = 0; i < args.length; i++) {
@@ -198,6 +208,7 @@ function measure(args) {
       containers.push({
         cell, id, dir,
         cpuStart: cpuUsageUsec(dir),
+        peakStart: memoryPeak(dir),
         memSum: 0, wsSum: 0, memMax: 0, wsMax: 0,
       });
     }
@@ -265,10 +276,12 @@ function measure(args) {
     sample();
     const wallSeconds = (Date.now() - startedAt) / 1000;
     const perContainer = {};
-    const perGroup = Object.fromEntries(groups.map((g) => [g, { containers: 0, cpu_seconds: 0 }]));
+    const perGroup = Object.fromEntries(groups.map((g) => [g, { containers: 0, cpu_seconds: 0, mem_peak_lifetime_bytes: 0, mem_peak_lifetime_new: false }]));
     for (const c of containers) {
       const cpuEnd = cpuUsageUsec(c.dir);
       const cpuSeconds = c.cpuStart == null || cpuEnd == null ? null : (cpuEnd - c.cpuStart) / 1e6;
+      const peakEnd = memoryPeak(c.dir);
+      const peakNew = peakEnd != null && c.peakStart != null && peakEnd > c.peakStart;
       perContainer[c.id] = {
         cell: c.cell,
         cgroup: c.dir,
@@ -278,11 +291,17 @@ function measure(args) {
         mem_peak_bytes: c.memMax,
         working_set_avg_bytes: c.wsSum / samples,
         working_set_peak_bytes: c.wsMax,
+        mem_peak_lifetime_start_bytes: c.peakStart,
+        mem_peak_lifetime_end_bytes: peakEnd,
       };
       for (const g of [c.cell, '__total__']) {
         const agg = perGroup[g];
         agg.containers += 1;
         agg.cpu_seconds = agg.cpu_seconds == null || cpuSeconds == null ? null : agg.cpu_seconds + cpuSeconds;
+        // Summe der Höchstwerte je Container, eine obere Schranke für die
+        // Zelle, weil die Spitzen nicht gleichzeitig liegen müssen.
+        agg.mem_peak_lifetime_bytes = agg.mem_peak_lifetime_bytes == null || peakEnd == null ? null : agg.mem_peak_lifetime_bytes + peakEnd;
+        agg.mem_peak_lifetime_new = agg.mem_peak_lifetime_new || peakNew;
       }
     }
     for (const [g, s] of Object.entries(groupSamples)) {

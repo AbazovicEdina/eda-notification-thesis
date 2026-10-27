@@ -36,7 +36,7 @@ const LIMITS = {
   loadgenUtil: 0.8,    // mittlere Auslastung des Lastgenerators (wie run.js)
   controlDrift: 0.20,  // Abweichung der Kontrollmessung vom ersten Wert
 };
-const NON_STRICT_PHASES = new Set(['scaling', 'saturation']);
+const NON_STRICT_PHASES = new Set(['scaling', 'saturation', 'storm']);
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {

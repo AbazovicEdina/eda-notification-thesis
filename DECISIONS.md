@@ -223,7 +223,7 @@ Alle Festlegungen dieses Abschnitts sind vor der Hauptmessung getroffen und in `
 
 **Analyseeinheit, der k6-Lauf.** Events innerhalb eines Laufs teilen Prozesszustand und Host-Auslastung und sind nicht unabhängig. Sie als Stichprobe zu behandeln, wäre Pseudoreplikation (Hurlbert 1984). Jeder Lauf liefert pro Messgröße einen Wert, verglichen werden diese Werte über die Läufe hinweg.
 
-**Messfenster.** Gewertet werden nur Events nach einer Einschwingzeit von 10 s ab dem gemeinsamen Start aller Clients, über eine Haltezeit von 60 s (5.9). Der Verbindungsaufbau wird getrennt gemessen.
+**Messfenster.** Gewertet werden nur Events nach einer Einschwingzeit von 10 s ab dem Start des Laufs, in der sich die Clients verteilt über die ersten 5 s verbinden, über eine Haltezeit von 60 s (5.9). Der Verbindungsaufbau wird getrennt gemessen.
 
 **Kennzahl pro Lauf, Mittelwert der Latenz.** Die Zeitstempel haben eine Auflösung von 1 ms (Abschnitt 3). Jede einzelne Latenz ist daher ganzzahlig, und auch der Median eines Laufs ist fast immer eine ganze Zahl. Bei niedriger Last liegen beide Zellen eines Vergleichs oft auf demselben Median. Solche Paare haben die Differenz 0 und fallen aus dem Wilcoxon-Test heraus. Im ersten lokalen Probelauf betraf das alle Paare. Der Rundungsfehler pro Event ist dagegen gleichverteilt und im Mittel null, weil Senden und Empfangen nicht im Millisekundentakt erfolgen. Über viele Events mittelt er sich heraus, sodass der Mittelwert pro Lauf fein aufgelöst und unverzerrt ist (Quantisierungsrauschen, Widrow & Kollár 2008). Der Mittelwert reagiert stärker auf Ausreißer als der Median. Das ist vertretbar, weil Ausreißer reale Nutzererfahrung abbilden und die Robustheit des Vergleichs aus dem nichtparametrischen Test über die Läufe hinweg kommt. Median, p95, p99 und Maximum werden zusätzlich beschreibend berichtet, da Tail-Latenzen für Nutzer oft wichtiger sind als der Durchschnitt (Dean & Barroso 2013).
 
@@ -271,8 +271,8 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 
 **Ablauf eines Laufs** (`tools/orchestrate/run.js`):
 
-- Alle Clients verbinden sich gleichzeitig. Die ersten **10 s (Einschwingzeit)** werden nicht gewertet. Events dieser Phase messen den Verbindungsansturm (bei 500 PHP-FPM-Verbindungen z. B. 500 gleichzeitige Laravel-Starts), nicht die Zustellung im Normalbetrieb. Danach wird über die **Haltezeit von 60 s** gemessen.
-- Der **Verbindungsaufbau** wird getrennt erfasst. Dauer bis zum Empfang der Antwort-Header (SSE) bzw. bis zum abgeschlossenen Handshake (WebSocket). Damit der Zeitpunkt bei SSE messbar ist, senden alle SSE-Endpunkte beim Verbindungsaufbau sofort einen SSE-Kommentar (`: connected`). Clients ignorieren Kommentarzeilen.
+- Die Clients verbinden sich gleichmäßig verteilt über die ersten **5 s** der Einschwingzeit. Client n startet nach (n − 1) / Clients · 5 s (`connectSpreadSeconds`, festgelegt am 2026-10-27, Begründung in 5.10). Die ersten **10 s (Einschwingzeit)** werden nicht gewertet, weil die Messung die Zustellung im Normalbetrieb erfassen soll. Danach wird über die **Haltezeit von 60 s** gemessen. Den gleichzeitigen Verbindungsaufbau aller Clients untersucht eine eigene, beschreibende Phase (Ansturm, unten).
+- Der **Verbindungsaufbau** wird getrennt erfasst. Dauer bis zum Empfang der Antwort-Header (SSE) bzw. bis zum abgeschlossenen Handshake (WebSocket). Damit der Zeitpunkt bei SSE messbar ist, senden alle SSE-Endpunkte beim Verbindungsaufbau sofort einen SSE-Kommentar (`: connected`). Clients ignorieren Kommentarzeilen. Durch den verteilten Aufbau misst die Größe die Dauer einer einzelnen Verbindung, während laufend weitere Clients hinzukommen, nicht die Wartezeit in einem gleichzeitigen Ansturm.
 - In Pilot-, Haupt- und Kontrollkampagnen ist ein Lauf ungültig, wenn sich bis zum Ende der Einschwingzeit nicht alle Clients verbunden haben.
 - **Weitere Gründe für ungültige Läufe.** k6-Fehler, keine Events empfangen, Container abgestürzt oder per OOM beendet, fehlgeschlagene Ressourcenmessung, Drosselung des Pi, im Zwei-Rechner-Aufbau eine mittlere Auslastung des Lastgenerators über 80 %.
 
@@ -297,6 +297,7 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 | 4. Block 2 (`phase: main`, `block: 2`) | vollständige Wiederholung in anderer, zufälliger Reihenfolge | Replikationsabgleich (5.8) |
 | 5. Skalierungsreihe (`phase: scaling`) | 10, 50, 100, 250, 500, 750 und 1 000 Clients je Zelle, 1 Event/s, je Stufe 3 Läufe nach 1 Warm-up-Lauf | beschreibend (H4) |
 | 6. Sättigungstest (`phase: saturation`) | höchste nachhaltige Event-Rate je Zelle (5.17) | beschreibend |
+| 7. Ansturm (`phase: storm`) | alle Clients verbinden sich im selben Moment, je Zelle einzeln mit 500 Clients und 3 Läufen nach 1 Warm-up-Lauf. Unter Aufsicht, nicht im unbeaufsichtigten Zeitplan (5.10) | beschreibend |
 | Kontrollmessung, laufend (`phase: control`) | einmal täglich node-minimal/SSE mit 50 Clients und 1 Event/s, 5 Läufe nach 1 Warm-up-Lauf. Macht Drift über die Wochen sichtbar | beschreibend |
 
 **Kriterien der beschreibenden Reihen** (vorab festgelegt, Standardwerte in `tools/orchestrate/run.js`):
@@ -317,7 +318,7 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 
 **Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 13 Vergleichen entspräche das rund 29–40 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation (bei der ursprünglichen Planung mit acht Vergleichen 18–25 Tage). Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht. Mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
 
-### 5.10 Ressourcenlimits — OFFEN (1,5 GiB reichen auf dem Pi nicht, Hardware angefragt am 2026-10-27)
+### 5.10 Ressourcenlimits — ENTSCHIEDEN (1,5 GiB je Zelle mit verteiltem Verbindungsaufbau, 2026-10-27)
 
 **Endwerte vom 2026-10-22.** **2 CPUs und 1 536 MiB (1,5 GiB) Speicher pro Zelle** (`SUT_CPU_LIMIT=2`, `SUT_MEM_LIMIT=1536m` in `.env`), kein Swap. Grundlage ist der geliehene Raspberry Pi 5 mit 4 GB (2026-10-22). Bis dahin galten 2 GiB als Arbeitswert. Die lokalen Prüfläufe liefen damit.
 
@@ -343,17 +344,35 @@ Hinweise zur Messung. Ein erster Versuch mit 3 GiB scheiterte, weil nur der Topf
 
 **Möglichkeiten** (bewertet am 2026-10-27):
 
-1. **Pi 5 mit 8 GB und 3 GiB je Zelle.** Zwei Zellen mit vollem Budget und 0,6 GiB Reserve brauchen 6,6 GB und passen in 8 GB. Der Versuchsaufbau bleibt unverändert, die Einrichtung auf der Festplatte ist weiter nutzbar. Bevorzugt und am 2026-10-27 beim Betreuer angefragt.
+1. **Pi 5 mit 8 GB und 3 GiB je Zelle.** Zwei Zellen mit vollem Budget und 0,6 GiB Reserve brauchen 6,6 GB und passen in 8 GB. Der Versuchsaufbau bleibt unverändert, die Einrichtung auf der Festplatte ist weiter nutzbar. Zunächst bevorzugt, durch die Entscheidung für Möglichkeit 5 nicht mehr nötig.
 2. **Oberste Laststufe 250 Clients für alle Zellen.** Möglich auf dem 4-GB-Pi. Der untersuchte Unterschied zwischen einem Prozess pro Verbindung und einer Event Loop zeigt sich aber vor allem bei vielen gleichzeitigen Verbindungen, und PHP-FPM bliebe weit unter seiner Grenze von 550 Workern. In der Skalierungsreihe würde Laravel unterhalb von 500 Clients am Speicherbudget scheitern statt an der Zahl seiner Worker. Die Reihe zeigte dann eine Grenze der Testhardware statt des Mechanismus aus H4.
 3. **Immer nur eine Zelle auf dem Pi, mit 3 GiB.** Möglich auf dem 4-GB-Pi, gibt aber den Wechsel A/B innerhalb einer Kampagne auf. Jede Zelle müsste vor ihrem Lauf neu starten und bräuchte jedes Mal einen Warm-up-Lauf. Die Messzeit stiege deutlich, und Drift ließe sich schlechter ausgleichen (5.9).
 4. **Niedrigere Stress-Stufe nur für Vergleiche mit Laravel/SSE.** Hält die übrigen Vergleiche bei 500 Clients, misst aber Vergleich 3 auf einer anderen Laststufe als die Vergleiche 1, 2 und 4. Die Sprachvergleiche wären untereinander nicht mehr vergleichbar.
-5. **Gestaffelter Verbindungsaufbau.** Die Clients verbinden sich nicht alle im selben Moment, sondern verteilt über die ersten Sekunden der Einschwingzeit. Der Bedarf läge dann vermutlich nahe am gemessenen Mittel von rund 1 050 MiB statt bei der kurzen Spitze über 1,5 GiB, und das Budget von 1,5 GiB könnte auf dem 4-GB-Pi reichen. Das gilt für alle Zellen gleich und entspricht eher dem üblichen Betrieb, in dem Clients nacheinander kommen. Es ändert aber die Bedeutung des gemessenen Verbindungsaufbaus, der bisher bewusst den gleichzeitigen Ansturm erfasst (5.9). Umgesetzt ist die Möglichkeit als Kampagneneinstellung `connectSpreadSeconds` (Standard 0, also unverändert gleichzeitig). Ein lokaler Vergleich (2026-10-27, je ein Lauf mit 500 Clients) bestätigt die Vermutung. Die echte Spitze des Containers von php-laravel-sse sank von 1 350 MiB bei gleichzeitigem Aufbau auf 1 052 MiB bei einem über 5 s verteilten Aufbau, der mittlere Verbindungsaufbau von 6,8 s auf 1,1 s. Der Sampler hatte bei gleichzeitigem Aufbau lokal nur rund 1 020 MiB erfasst, er unterschätzt die Spitze also um etwa 300 MiB. Die Prüfung auf dem Pi steht aus.
+5. **Gestaffelter Verbindungsaufbau.** Die Clients verbinden sich nicht alle im selben Moment, sondern verteilt über die ersten Sekunden der Einschwingzeit. Der Bedarf läge dann vermutlich nahe am gemessenen Mittel von rund 1 050 MiB statt bei der kurzen Spitze über 1,5 GiB, und das Budget von 1,5 GiB könnte auf dem 4-GB-Pi reichen. Das gilt für alle Zellen gleich und entspricht eher dem üblichen Betrieb, in dem Clients nacheinander kommen. Es ändert aber die Bedeutung des gemessenen Verbindungsaufbaus, der bisher bewusst den gleichzeitigen Ansturm erfasst (5.9). Umgesetzt ist die Möglichkeit als Kampagneneinstellung `connectSpreadSeconds`. Ein lokaler Vergleich (2026-10-27, je ein Lauf mit 500 Clients) bestätigt die Vermutung. Die echte Spitze des Containers von php-laravel-sse sank von 1 350 MiB bei gleichzeitigem Aufbau auf 1 052 MiB bei einem über 5 s verteilten Aufbau, der mittlere Verbindungsaufbau von 6,8 s auf 1,1 s. Der Sampler hatte bei gleichzeitigem Aufbau lokal nur rund 1 020 MiB erfasst, er unterschätzt die Spitze also um etwa 300 MiB. Gewählt, Begründung und Prüfung auf dem Pi unten.
 
 Verworfen sind ein höheres Budget nur für Laravel (verletzt 5.6.2), weniger PHP-FPM-Worker (verändert das gemessene Laufzeitmodell, 5.5), Swap (verzerrt Latenz und Speicher) und Messungen auf dem Laptop. Dagegen sprechen die Vorgabe des Betreuers für einen Pi (5.14), fehlende Root-Rechte auf dem Laptop und die Drosselung von Laptop-Prozessoren bei Hitze.
 
 **Seitengröße.** Nach der Regel oben läuft der Pi seit 2026-10-27 mit dem Kernel mit 4-KB-Seiten (`kernel=kernel8.img`, Kernel `6.18.50+rpt-rpi-v8`). Allein löst das den Speichermangel nicht. Der Kernel bleibt trotzdem, weil 4 KB die übliche Seitengröße von Servern ist und alle Zellen gleich betrifft (5.20). `setup.sh` stellt ihn auf einem neuen Pi selbst ein.
 
-**Stand.** Bis zur Entscheidung über die Hardware (Abschnitt 6) bleibt das Budget bei 1,5 GiB, und der Pilot beginnt nicht.
+**Entscheidung (2026-10-27).** Gewählt ist Möglichkeit 5. Die Clients verbinden sich in allen Messphasen gleichmäßig verteilt über die ersten 5 s der Einschwingzeit (5.9). Budget (2 CPUs, 1,5 GiB), Laststufen, Hypothesen und der Kernel mit 4-KB-Seiten bleiben unverändert. Ausschlaggebend ist nicht der Speicher des Pi, sondern die Gültigkeit der Messung.
+
+- **Die Messung erfasst den Normalbetrieb.** Die Einschwingzeit soll laut 5.9 den Verbindungsansturm von der Zustellung im Normalbetrieb trennen. Der gleichzeitige Aufbau dauerte aber auf dem Pi 3 bis 32 s und lokal 6,8 s. Er füllte die Einschwingzeit oder reichte darüber hinaus. Verteilt sind alle Clients nach etwa 5 s verbunden, und vor dem Messfenster bleiben mindestens 5 s ohne neue Verbindungen.
+- **Die Speicherspitze misst den Bedarf offener Verbindungen.** H1 und H10 vergleichen, wie viel Speicher eine Architektur für 500 offene Verbindungen braucht. Beim gleichzeitigen Aufbau bestimmt ein kurzer Sonderzustand aus 500 gleichzeitigen Laravel-Starts die Spitze, und die Abtastung alle 250 ms erfasst ihn unzuverlässig. Lokal lag die echte Spitze bei 1 350 MiB, abgetastet wurden rund 1 020 MiB. Verteilt liegt die Spitze nahe am Dauerzustand.
+- **Die Skalierungsreihe zeigt den Mechanismus aus H4.** Beim gleichzeitigen Aufbau scheitert Laravel schon unterhalb von 500 Clients am Speicherbudget. Verteilt bleibt die Zelle auch mit 550 Prozessen im Budget, und ab 551 Clients greift die erwartete Grenze der Worker-Zahl.
+- **Der Effekt hängt nicht vom Pi ab.** Auch lokal auf einem deutlich schnelleren Rechner senkte die Verteilung die Spitze um rund 300 MiB und den Verbindungsaufbau von 6,8 auf 1,1 s.
+- **Gleich für alle Zellen und vor dem Pilot festgelegt.** Alle Varianten erhalten denselben Ankunftsverlauf. Die Hypothesen bleiben wörtlich gleich, und die Änderung stützt sich nur auf Daten zur Machbarkeit, nicht auf Ergebnisse zu Hypothesen.
+- **Der Wert 5 s.** Die Hälfte der Einschwingzeit bleibt ohne neue Verbindungen. 100 Verbindungen pro Sekunde bei 500 Clients liegen unter dem Durchsatz der langsamsten Zelle auf dem Pi, die mit genug Speicher 500 Verbindungen in 3 s aufbaute, also rund 170 pro Sekunde. Gemessen werden damit die Kosten einer Verbindung, keine Warteschlange.
+
+Der gleichzeitige Ansturm ist selbst ein realer Fall. Nach einem Neustart des Servers verbinden sich alle Browser über EventSource automatisch neu (WHATWG Server-Sent Events). Er wird deshalb in einer eigenen, beschreibenden Phase gemessen (`phase: storm`, 5.9), jede Zelle einzeln mit 500 Clients, die sich im selben Moment verbinden. Das Ergebnis zeigt, welche Varianten einen solchen Ansturm im Budget überstehen, und fließt in die Entscheidungshilfe der Arbeit ein. Zusätzlich erfasst der Sampler in jedem Lauf die exakte Speicherspitze des Kernels (`memory.peak`, 5.16), damit kurze Spitzen nicht von der Abtastung abhängen.
+
+**Prüfung auf dem Pi** (2026-10-27, Budget 1,5 GiB, 4-KB-Seiten, Verteilung über 5 s):
+
+| Prüfung | Ergebnis |
+|---|---|
+| php-laravel-sse allein, 500 Clients | gültig, echte Spitze des Containers 1 084 MiB, kein Prozess wegen Speichermangels beendet |
+| Vergleich 10 mit beiden Laravel-Zellen, alle drei Laststufen | alle Läufe gültig, bei 500 Clients alle Clients bedient, mittlere Latenz rund 10 ms, Verbindungsaufbau rund 7 ms. Echte Spitzen 1 061 MiB (php-laravel-sse) und 1 057 MiB (php-laravel-sse-queue), freier Arbeitsspeicher des Pi mindestens 1,4 GB |
+
+Lokal liefen außerdem der Ansturm-Test und Vergleich 3 bei 500 Clients mit dem neuen Standard ohne ungültige Läufe. Die Spitze von php-laravel-sse lag laut Kernel bei 1 330 MiB im Ansturm und bei 1 131 MiB mit verteiltem Aufbau.
 
 ### 5.11 Apache-Vergleich — ENTFÄLLT (5.1)
 
@@ -418,7 +437,7 @@ Mehrere Pis parallel (je ein Vergleichspaar pro Gerät) wurden verworfen. Zwei G
 
 Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 
-- **4 statt 8 GB RAM.** Budget 1,5 GiB je Zelle. Der Probelauf zeigte, dass das für Laravel/SSE bei 500 Clients nicht reicht. Ein Pi mit 8 GB ist angefragt (5.10).
+- **4 statt 8 GB RAM.** Budget 1,5 GiB je Zelle. Mit gleichzeitigem Verbindungsaufbau reichte das für Laravel/SSE bei 500 Clients nicht, mit verteiltem Aufbau reicht es mit rund 30 % Abstand (5.10).
 - **USB-Festplatte statt SSD.** Ausreichend, weil auf dem Pi während der Messung wenig geschrieben wird. Die Container-Logs sind begrenzt (Log-Rotation), die Ergebnisdateien schreibt der Orchestrator auf dem Lastgenerator. Wie eine SSD vermeidet die Festplatte den Verschleiß einer SD-Karte. Eine Festplatte, die im Leerlauf den Motor abschaltet, könnte einzelne Schreibzugriffe um Sekunden verzögern. Der Probelauf zeigt, ob das auftritt.
 - **Node.js 24 statt 22 auf dem Lastgenerator.** Node.js läuft dort nur für den Orchestrator. Tests und Kampagnenplanung sind mit Node.js 24 geprüft (2026-10-22). Die Prototypen behalten ihre Version im Container.
 - **Messnetz mit zwei Kabeln (geplant).** Für die Einrichtung hängt der Switch am Router. Für die Messung hängen nur Pi und Lastgenerator am Switch, beide mit fester Adresse. Der Lastgenerator erreicht das Internet dann nur noch über WLAN, für die Benachrichtigungen. Der Messverkehr läuft ausschließlich über das Kabel.
@@ -429,7 +448,7 @@ Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 
 **Belastungstest bestanden (2026-10-22 bis 2026-10-23).** Alle vier Kerne liefen 24 Stunden unter Volllast (`infra/pi/burn-in.sh`), protokolliert wurde jede Minute, insgesamt 1 440 Messpunkte. Der Takt lag durchgehend bei 2 400 MHz. Die Temperatur erreichte höchstens 67,2 °C, im Mittel 64,4 °C. Der Drosselstatus war bei jedem Messpunkt `0x0`, es traten also weder Unterspannung noch Taktbegrenzung oder thermische Drosselung auf. Kühlung und Netzteil tragen die Dauerlast damit auch mit der über USB versorgten Festplatte. Die Rohdaten liegen in `results/2026-10-22T13-43-23Z_burn-in.csv`.
 
-**Probeläufe mit beiden Rechnern (2026-10-27).** Der erste Probelauf war vollständig ungültig, weil die Adresse des Pi in `sut.pi.json` mit einem Schrägstrich endete (Änderungsverlauf). Im zweiten Probelauf liefen fünf von neun Kampagnen vollständig durch. Damit sind die ssh-Steuerung, die veröffentlichten Ports, die cgroup-Töpfe, der Drosselstatus per `vcgencmd` und die Messung der Auslastung des Lastgenerators auf echter Hardware bestätigt. Die Temperatur des Pi lag bei höchstens 55 °C, die Auslastung des Lastgenerators bei höchstens 15 %. Gescheitert ist nur Laravel/SSE bei 500 Clients am Speicherbudget (5.10). Bei einem Prüflauf mit 2 GiB je Zelle startete der Pi neu, die Ursache ist nicht protokolliert. Offen ist noch ein Test mit gleichzeitiger CPU- und Schreiblast, der ausschließt, dass die über USB versorgte Festplatte unter Last den Strom verliert (Abschnitt 6).
+**Probeläufe mit beiden Rechnern (2026-10-27).** Der erste Probelauf war vollständig ungültig, weil die Adresse des Pi in `sut.pi.json` mit einem Schrägstrich endete (Änderungsverlauf). Im zweiten Probelauf liefen fünf von neun Kampagnen vollständig durch. Damit sind die ssh-Steuerung, die veröffentlichten Ports, die cgroup-Töpfe, der Drosselstatus per `vcgencmd` und die Messung der Auslastung des Lastgenerators auf echter Hardware bestätigt. Die Temperatur des Pi lag bei höchstens 55 °C, die Auslastung des Lastgenerators bei höchstens 15 %. Gescheitert ist zunächst nur Laravel/SSE bei 500 Clients am Speicherbudget, solange sich alle Clients gleichzeitig verbanden. Mit verteiltem Verbindungsaufbau liefen beide Laravel-Zellen fehlerfrei (5.10). Bei einem Prüflauf mit 2 GiB je Zelle startete der Pi neu, die Ursache ist nicht protokolliert. Offen ist noch ein Test mit gleichzeitiger CPU- und Schreiblast, der ausschließt, dass die über USB versorgte Festplatte unter Last den Strom verliert (Abschnitt 6).
 
 Bekannte Risiken auf dem Pi und ihre Behandlung:
 
@@ -446,10 +465,10 @@ Bekannte Risiken auf dem Pi und ihre Behandlung:
 | Stromausfall oder Absturz | Kampagnen pro Laststufe, Fortsetzen über `schedule.js`. Optional USV |
 | Abbruch oder Stillstand bleibt im unbeaufsichtigten Betrieb tagelang unbemerkt | `tools/orchestrate/status.js` (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz) als stündlicher cron-Job. Optionale Benachrichtigung über `NOTIFY_URL` bei Warnungen, abgebrochenen Kampagnen und am Ende des Zeitplans. Die Nachrichten enthalten keine Messwerte, Adressen oder Schlüssel |
 | ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
-| Speicherbedarf einer Zelle übersteigt das Budget | Probelauf mit der Stress-Stufe vor dem Pilot, Läufe mit Abbruch wegen Speichermangels sind ungültig, Budget nach Messwerten bemessen (5.10) |
+| Speicherbedarf einer Zelle übersteigt das Budget | Probelauf mit der Stress-Stufe vor dem Pilot, verteilter Verbindungsaufbau, exakte Spitze laut Kernel je Lauf, Läufe mit Abbruch wegen Speichermangels sind ungültig (5.10) |
 | Absturz des Pi ohne erkennbare Ursache | Systemprotokoll dauerhaft gespeichert (5.20) |
 
-**Stand.** Der Zwei-Rechner-Aufbau ist auf dem Pi erprobt (2026-10-27, Probeläufe oben). Offen ist das Speicherbudget (5.10, Abschnitt 6).
+**Stand.** Der Zwei-Rechner-Aufbau ist auf dem Pi erprobt, und das Budget ist mit verteiltem Verbindungsaufbau bestätigt (2026-10-27, 5.10). Vor dem Pilot stehen noch die Punkte in Abschnitt 6 aus.
 
 ### 5.15 Geplante Vergleiche — ENTSCHIEDEN
 
@@ -502,14 +521,14 @@ Ablage pro Kampagne unter `results/<zeitstempel>_<name>/`:
 Inhalt eines Lauf-Protokolls:
 
 - **Lauf.** Konfiguration, Zelle, Laststufe, Phase, Block, Laufnummer, Warm-up, Gültigkeit mit Grund, Start- und Endzeit.
-- **Last.** Clients, Einschwing- und Haltezeit, eingestellte Event-Rate, Ereignisquelle, Skript, Messgröße, Modus des Front-Nginx.
+- **Last.** Clients, Einschwing- und Haltezeit, Verteilung des Verbindungsaufbaus, eingestellte Event-Rate, Ereignisquelle, Skript, Messgröße, Modus des Front-Nginx.
 - **Latenz (Messfenster).** Mittelwert, Minimum, Median, p90, p95, p99, Maximum.
 - **Verbindung.** Dauer des Verbindungsaufbaus (Mittel, Median, p95, Maximum), bis zum Ende der Einschwingzeit verbundene Clients, im Messfenster bediente Clients (mindestens ein Event erhalten) und die zugehörigen Anteile.
 - **Zustellung** (5.17). Empfangene, eindeutige, erwartete, verlorene und doppelte Events, Zustellquote, zugestellte Events pro Sekunde, gemessene Senderate.
 - **Netz.** Empfangene und gesendete Bytes sowie Bytes pro Sekunde (k6 `data_received` und `data_sent`, für SSE und WebSockets geprüft am 2026-10-16).
 - **Ressourcen** von Zelle, Redis und beiden zusammen sowie je Container:
   - CPU-Zeit als Differenz des cgroup-Zählers `usage_usec` zwischen Beginn und Ende des Laufs (exakt) sowie mittlere CPU-Auslastung in Kernen,
-  - Speicher (`memory.current` und Working Set = `memory.current` − `inactive_file`, wie bei `docker stats`) als Mittel und Spitze, alle 250 ms abgetastet. Die Spitze von Zelle und Redis zusammen wird aus der Summe je Abtastung gebildet.
+  - Speicher (`memory.current` und Working Set = `memory.current` − `inactive_file`, wie bei `docker stats`) als Mittel und Spitze, alle 250 ms abgetastet. Die Spitze von Zelle und Redis zusammen wird aus der Summe je Abtastung gebildet. Dazu die exakte Spitze laut Kernel seit Start jedes Containers (`memory.peak`), zu Beginn und am Ende des Laufs. Ist sie im Lauf gestiegen, ist der Endwert die exakte Spitze dieses Laufs.
 - **Lastgenerator.** CPU-Auslastung des Hosts (Mittel und höchster Wert je Sekunde).
 - **Host des Testservers.** Temperatur zu Beginn, am Ende und als Maximum. Drosselstatus der Firmware zu Beginn und am Ende (auf dem Pi 5 per `vcgencmd`, 5.14).
 - **Container.** Status, OOM-Kennzeichen, Image.
@@ -730,7 +749,7 @@ Zehn Varianten, dreizehn Vergleiche, elf Hypothesen, Replikation, Skalierung, S�
 
 | Stufe | Inhalt | Darstellung |
 |---|---|---|
-| Kern | **Sprache und Laufzeitmodell unter Last.** Vergleiche 1–4, H1, H3, H4, H6, H8 (Anteil von Redis an der CPU), Skalierungsreihe | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
+| Kern | **Sprache und Laufzeitmodell unter Last.** Vergleiche 1–4, H1, H3, H4, H6, H8 (Anteil von Redis an der CPU), Skalierungsreihe, Ansturm | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
 | Kern | **Transport.** Vergleiche 12 und 13, H9–H11, SSE gegen WebSocket im Sättigungstest | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
 | Ergänzung | **Kosten der Architektur.** Framework (Vergleiche 5–8, H5), Queue (Vergleiche 9–11, H7) | ein Abschnitt, je Achse eine Tabelle und wenige Absätze |
 | übergreifend | H2 (alle dreizehn Vergleiche bei 10 Clients) | Belege in den jeweiligen Abschnitten, Bewertung in der Hypothesentabelle |
@@ -752,7 +771,7 @@ Regeln:
 2. Wiederholungszahlen je Laststufe auf das kleinste Maß senken, das der Pilot noch trägt, mindestens 20 gültige Paare (5.9).
 3. Block 2 ganz entfallen lassen. Die Arbeit berichtet dann die fehlende Replikation als Grenze.
 
-Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleichen, Kontrollmessung, Skalierungsreihe und Sättigungstest. Die beiden Reihen kosten zusammen weniger als einen Tag und tragen RQ2, H4 und H11. Jede Kürzung wird mit Umfang und Grund in der Arbeit genannt.
+Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleichen, Kontrollmessung, Skalierungsreihe, Sättigungstest und Ansturm. Diese drei beschreibenden Phasen kosten zusammen weniger als einen Tag und tragen RQ2, H4 und H11. Jede Kürzung wird mit Umfang und Grund in der Arbeit genannt.
 
 ### 5.25 Abbildungen für die Arbeit — ENTSCHIEDEN (2026-10-17)
 
@@ -809,9 +828,9 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
 | Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Der Belastungstest ist bestanden (2026-10-23, 5.14) | auf dem Pi |
-| Speicherbudget und Hardware | 1,5 GiB reichen für Laravel/SSE bei 500 Clients nicht (5.10). Pi 5 mit 8 GB beim Betreuer angefragt, sonst eine der Möglichkeiten aus 5.10 | Betreuer, Autorin |
+| Ansturm-Phase | beschreibende Messung unter Aufsicht, nicht im unbeaufsichtigten Zeitplan, weil ein Speicherengpass den Pi kurzzeitig blockieren kann (5.9, 5.10) | Messphase |
 | Festplatte unter Last | 30-minütiger Test mit gleichzeitiger CPU- und Schreiblast ausstehend (5.14) | vor dem Pilot |
-| Vollständiger Probelauf | mit den Versionen aus 5.26 und dem endgültigen Budget wiederholen | vor dem Pilot |
+| Vollständiger Probelauf | mit den Versionen aus 5.26 und dem verteilten Verbindungsaufbau wiederholen | vor dem Pilot |
 | Ergebnisse vom Lastgenerator | Die Probeläufe vom 2026-10-27 liegen nur auf dem Laptop. Für die Messphase braucht der Laptop einen Weg, Ergebnisse ins Repository zu übertragen | vor dem Pilot |
 | Redis-Persistenz | Redis läuft in der Standardeinstellung, die Schnappschüsse auf den Datenträger schreibt, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue. Im vollständigen Probelauf prüfen, ob und wie oft das geschieht, danach entscheiden (5.20) | vor dem Pilot |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
@@ -839,8 +858,9 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-27 | **Verteilter Verbindungsaufbau als Standard, Phase Ansturm, Speicherspitze laut Kernel (5.9, 5.10, 5.16).** Alle Messphasen verbinden die Clients über 5 s verteilt. Das Budget von 1,5 GiB bleibt und ist auf dem Pi mit beiden Laravel-Zellen bei 500 Clients bestätigt. Der gleichzeitige Ansturm wird beschreibend gemessen (`phase: storm`). |
 | 2026-10-27 | **Verteilter Verbindungsaufbau als Einstellung (5.10, Möglichkeit 5).** `connectSpreadSeconds` in Kampagnen und `--connect-spread` in `plan-campaigns.js`, Standard 0. Lokal senkt ein über 5 s verteilter Aufbau die Spitze von php-laravel-sse bei 500 Clients von 1 350 auf 1 052 MiB. |
-| 2026-10-27 | **Speicherbudget auf dem Pi unzureichend (5.10).** Laravel/SSE scheitert bei 500 Clients mit 1,5 GiB je Zelle, unabhängig von der Seitengröße. Mit 3 GiB gültig, mit 2 GiB im ungünstigsten Paar Neustart des Pi. Pi 5 mit 8 GB beim Betreuer angefragt, Möglichkeiten bewertet. |
+| 2026-10-27 | **Speicherbudget auf dem Pi unzureichend (5.10).** Laravel/SSE scheitert bei 500 Clients mit 1,5 GiB je Zelle, unabhängig von der Seitengröße. Mit 3 GiB gültig, mit 2 GiB im ungünstigsten Paar Neustart des Pi. Pi 5 mit 8 GB erwogen, Möglichkeiten bewertet. |
 | 2026-10-27 | **Zwei-Rechner-Aufbau erprobt, Kernel mit 4-KB-Seiten, Systemprotokoll dauerhaft (5.14, 5.20).** Fünf von neun Kampagnen des zweiten Probelaufs liefen vollständig. `setup.sh` richtet Kernel und Protokoll jetzt selbst ein. |
 | 2026-10-27 | **Versionen nach einheitlicher Regel neu festgelegt (5.26).** Neueste Version, die am Stichtag mindestens zwei Wochen alt war, für PHP (8.5.11), Node.js (26.11.1), Laravel (13.36.0), Express (5.3.0), BullMQ (6.3.14), Redis (8.10.2) und Nginx (1.30.5). Anpassungen für BullMQ 6 und node-redis 6. |
 | 2026-10-27 | **Erster Probelauf auf dem Pi ungültig.** `targetBaseUrl` endete mit einem Schrägstrich, k6 fragte deshalb `//sse` und `//ws` an, und alle Zellen antworteten mit 404. Orchestrator und k6 entfernen den Schrägstrich jetzt selbst. |
