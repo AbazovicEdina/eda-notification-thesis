@@ -115,6 +115,43 @@ else
   fi
 fi
 
+say "Systemprotokoll"
+# Raspberry Pi OS hält das Journal standardmäßig nur im Arbeitsspeicher, um
+# SD-Karten zu schonen. Auf SSD oder Festplatte wird es dauerhaft gespeichert,
+# damit ein Absturz im unbeaufsichtigten Betrieb nachvollziehbar bleibt
+# (DECISIONS.md 5.14, 5.20).
+journal_conf=/etc/systemd/journald.conf.d/50-persistent.conf
+if [ -f "$journal_conf" ] && grep -qx 'Storage=persistent' "$journal_conf"; then
+  echo "Systemprotokoll: bereits dauerhaft"
+else
+  mkdir -p /etc/systemd/journald.conf.d
+  printf '[Journal]\nStorage=persistent\n' > "$journal_conf"
+  systemctl restart systemd-journald
+  changed+=("Systemprotokoll dauerhaft gespeichert (${journal_conf})")
+fi
+ok+=("Systemprotokoll dauerhaft")
+
+say "Seitengröße des Kernels"
+# Der Pi 5 startet standardmäßig einen Kernel mit 16-KB-Seiten
+# (kernel_2712.img). Gemessen wird mit dem Kernel mit 4-KB-Seiten, der
+# üblichen Seitengröße von Servern (DECISIONS.md 5.10, 5.20).
+pagesize="$(getconf PAGESIZE 2>/dev/null || echo unbekannt)"
+config=/boot/firmware/config.txt
+if [ "$pagesize" = "4096" ]; then
+  ok+=("Kernel mit 4-KB-Seiten")
+elif [ "$pagesize" = "16384" ] && [ -f "$config" ]; then
+  if grep -qx 'kernel=kernel8.img' "$config"; then
+    echo "${config} enthält kernel=kernel8.img bereits, der Neustart steht aus"
+  else
+    backup "$config"
+    printf '\n[all]\nkernel=kernel8.img\n' >> "$config"
+    changed+=("kernel=kernel8.img in ${config} eingetragen (Sicherung ${config}.bak-${STAMP})")
+  fi
+  reboot=1
+else
+  open+=("Seitengröße ${pagesize} Byte statt 4096: kernel=kernel8.img in /boot/firmware/config.txt eintragen (DECISIONS.md 5.10)")
+fi
+
 say "Docker"
 if ! command -v docker >/dev/null 2>&1; then
   open+=("Docker fehlt: offizielle Anleitung \"Install Docker Engine on Debian\" (docs.docker.com), danach dieses Skript erneut ausführen")
@@ -162,15 +199,6 @@ if bash infra/pi/setup-slices.sh; then
   ok+=("Slices eda_<zelle>.slice angelegt (Werte aus .env)")
 else
   open+=("Speicherbudget passt nicht zum Arbeitsspeicher: SUT_MEM_LIMIT in .env verkleinern, danach sudo bash infra/pi/setup-slices.sh")
-fi
-
-# Seitengröße des Kernels: Der Pi 5 nutzt standardmäßig 16-KB-Seiten, die
-# lokalen Vergleichswerte stammen von 4-KB-Seiten (DECISIONS.md 5.10).
-pagesize="$(getconf PAGESIZE 2>/dev/null || echo unbekannt)"
-if [ "$pagesize" = "16384" ]; then
-  ok+=("Kernel mit 16-KB-Seiten; reicht der Speicher im Probelauf nicht, kernel=kernel8.img in /boot/firmware/config.txt (4 KB)")
-else
-  ok+=("Kernel mit ${pagesize}-Byte-Seiten")
 fi
 
 if ! command -v stress-ng >/dev/null 2>&1; then

@@ -155,7 +155,7 @@ Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 
 | php-minimal/SSE | ca. 375 MiB |
 | php-laravel/SSE | ca. 1 390 MiB |
 
-Das Speicherbudget pro Zelle beträgt 1,5 GiB (DECISIONS.md 5.10), passend zum Raspberry Pi 5 mit 4 GB. Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Auf dem Pi ist der Wert zu bestätigen. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
+Das Speicherbudget pro Zelle beträgt derzeit 1,5 GiB, passend zum Raspberry Pi 5 mit 4 GB. Der Probelauf auf dem Pi hat gezeigt, dass php-laravel/SSE damit bei 500 Clients wegen Speichermangels abbricht. Mit 3 GiB lief derselbe Test fehlerfrei. Die Entscheidung über Hardware und Budget ist offen (DECISIONS.md 5.10). Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Auf dem Pi liegt der Bedarf beim gleichzeitigen Verbindungsaufbau aller Clients kurzzeitig über 1,5 GiB. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
 
 ## Dateideskriptor-Limits
 

@@ -17,7 +17,7 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Send
 
 ## Hardware
 
-- **Testserver.** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem, mit 8 GB wären 2 GiB je Zelle möglich), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
+- **Testserver.** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem). Für Laravel/SSE bei 500 Clients reicht das nicht, ein Pi mit 8 GB und 3 GiB je Zelle ist angefragt (DECISIONS.md 5.10), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.
 - **Lastgenerator.** Linux-Rechner mit mindestens vier Kernen und 8 GB RAM, z. B. ein Mini-PC. Ein zweiter Pi 5 kann bei 1 000 Clients selbst zum Engpass werden. Ein Windows-Rechner mit Docker Desktop ist möglich, bringt durch die zusätzliche Virtualisierungsschicht aber mehr Schwankung.
 - **Netz.** Gigabit-Switch oder direkte Verbindung, Cat-6-Kabel, kein WLAN für den Messverkehr. Für die Messung hängen nur Pi und Lastgenerator am Switch, beide mit fester Adresse. Der Lastgenerator darf für Benachrichtigungen zusätzlich im WLAN sein.
 - **Optional.** Eine kleine USV. Ein Stromausfall kostet sonst bis zu eine Laststufe.
@@ -38,9 +38,9 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Send
    sudo bash infra/pi/setup.sh
    ```
 
-   Das Skript führt die unten beschriebenen Einzelschritte aus, überspringt bereits erledigte und sichert geänderte Systemdateien (`<datei>.bak-<zeitstempel>`). Am Ende steht eine Zusammenfassung mit den Kategorien „ok", „geändert" und „offen". Exit-Code 2 bedeutet, dass ein Neustart nötig ist (memory-cgroup). In diesem Fall `sudo reboot` und das Skript erneut ausführen, bis es mit Exit-Code 0 endet. Nach der Aufnahme in die Gruppe `docker` ist eine erneute Anmeldung nötig.
+   Das Skript führt die unten beschriebenen Einzelschritte aus, überspringt bereits erledigte und sichert geänderte Systemdateien (`<datei>.bak-<zeitstempel>`). Am Ende steht eine Zusammenfassung mit den Kategorien „ok", „geändert" und „offen". Exit-Code 2 bedeutet, dass ein Neustart nötig ist (memory-cgroup oder Kernel mit 4-KB-Seiten). In diesem Fall `sudo reboot` und das Skript erneut ausführen, bis es mit Exit-Code 0 endet. Nach der Aufnahme in die Gruppe `docker` ist eine erneute Anmeldung nötig.
 
-6. **Limits** `SUT_CPU_LIMIT=2` und `SUT_MEM_LIMIT=1536m` in `.env` prüfen (Endwerte für 4 GB, DECISIONS.md 5.10). `setup-slices.sh` bricht ab, wenn zwei Zellen plus Reserve nicht in den Arbeitsspeicher passen. Nach jeder Änderung `sudo bash infra/pi/setup-slices.sh` ausführen, damit die cgroup-Töpfe dieselben Werte erhalten.
+6. **Limits** `SUT_CPU_LIMIT=2` und `SUT_MEM_LIMIT=1536m` in `.env` prüfen (Werte für 4 GB, DECISIONS.md 5.10). Für Laravel/SSE bei 500 Clients reichen sie nicht, die Entscheidung über Hardware und Budget ist offen. `setup-slices.sh` bricht ab, wenn zwei Zellen plus Reserve nicht in den Arbeitsspeicher passen. Nach jeder Änderung `sudo bash infra/pi/setup-slices.sh` ausführen, damit die cgroup-Töpfe dieselben Werte erhalten.
 
 7. **Images bauen:**
 
@@ -79,6 +79,8 @@ Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Send
 | `.env` anlegen | `COMPOSE_FILE=docker-compose.yml:docker-compose.pi.yml` lädt die Pi-Ergänzung bei jedem `docker compose`-Aufruf | `.env.example` kopieren, Zeile einkommentieren |
 | Schlüsseldatei prüfen | `APP_KEY` und `REVERB_APP_KEY` gesetzt. Werte werden nicht ausgegeben | — |
 | cgroup-Töpfe anlegen | gemeinsames Budget je Zelle (DECISIONS.md 5.6.2) | `sudo bash infra/pi/setup-slices.sh` |
+| Systemprotokoll dauerhaft speichern | Raspberry Pi OS hält es sonst nur im Arbeitsspeicher, nach einem Absturz wäre die Ursache verloren | Datei `/etc/systemd/journald.conf.d/50-persistent.conf` mit `[Journal]` und `Storage=persistent`, dann `systemctl restart systemd-journald` |
+| Kernel mit 4-KB-Seiten | übliche Seitengröße von Servern statt der 16-KB-Seiten des Pi 5 (DECISIONS.md 5.10, 5.20) | `kernel=kernel8.img` im Abschnitt `[all]` von `/boot/firmware/config.txt`, Neustart. `getconf PAGESIZE` liefert danach 4096 |
 | stress-ng prüfen | Voraussetzung des Belastungstests | `sudo apt install stress-ng` |
 
 Docker installiert das Skript bewusst nicht selbst, damit die Installation der offiziellen Anleitung folgt und deren Version nachvollziehbar bleibt.
@@ -141,7 +143,7 @@ node tools/orchestrate/schedule.js campaigns/smoke/schedule.json
 node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut sut.pi.json --hours 2
 ```
 
-Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit von 1,5 GiB bleiben (DECISIONS.md 5.10). Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
+Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit bleiben. Mit 1,5 GiB war das am 2026-10-27 nicht der Fall (DECISIONS.md 5.10). Die echte Spitze eines Containers steht in seiner cgroup unter `memory.peak`. Der Wert des Topfes gilt seit dessen Entstehung und umfasst frühere Läufe. Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
 
 Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen in DECISIONS.md 5.9):
 
@@ -179,4 +181,4 @@ Pro Lauf werden Temperatur (Beginn, Ende, Maximum), Drosselstatus und die Auslas
 
 ## Stand
 
-Am 2026-10-22 auf dem eingesetzten Pi 5 erprobt (DECISIONS.md 5.14). `setup.sh` lief nach einem Neustart mit Exit-Code 0, alle Images ließen sich bauen, und `sampler.js info` lieferte die erwarteten Werte. Dabei zeigte sich, dass der Pi 5 den Drosselstatus nicht in sysfs bereitstellt. Er wird seitdem per `vcgencmd` auf dem Pi gelesen. Der Belastungstest über 24 Stunden ist bestanden, ohne Drosselung und mit höchstens 67,2 °C (DECISIONS.md 5.14). Noch nicht erprobt sind der Zwei-Rechner-Aufbau (ssh-Steuerung, veröffentlichte Ports, cgroup-Slices im Lauf, Auslastung des Lastgenerators) und die direkte Abfrage des Pi durch `status.js`. Der Probelauf (Abschnitt „Kampagnen starten") ist daher vor dem Pilot verbindlich.
+Am 2026-10-22 auf dem eingesetzten Pi 5 erprobt (DECISIONS.md 5.14). `setup.sh` lief nach einem Neustart mit Exit-Code 0, alle Images ließen sich bauen, und `sampler.js info` lieferte die erwarteten Werte. Dabei zeigte sich, dass der Pi 5 den Drosselstatus nicht in sysfs bereitstellt. Er wird seitdem per `vcgencmd` auf dem Pi gelesen. Der Belastungstest über 24 Stunden ist bestanden, ohne Drosselung und mit höchstens 67,2 °C (DECISIONS.md 5.14). Am 2026-10-27 lief der Zwei-Rechner-Aufbau im Probelauf. ssh-Steuerung, veröffentlichte Ports, cgroup-Töpfe, Drosselprüfung, Auslastung des Lastgenerators und die Abfrage des Pi durch `status.js` funktionieren. Gescheitert ist Laravel/SSE bei 500 Clients am Speicherbudget von 1,5 GiB. Bis zur Entscheidung über Hardware und Budget beginnt kein Pilot (DECISIONS.md 5.10).

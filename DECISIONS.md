@@ -317,15 +317,43 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 
 **Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 13 Vergleichen entspräche das rund 29–40 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation (bei der ursprünglichen Planung mit acht Vergleichen 18–25 Tage). Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht. Mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
 
-### 5.10 Ressourcenlimits — ENTSCHIEDEN (Endwerte festgelegt am 2026-10-22)
+### 5.10 Ressourcenlimits — OFFEN (1,5 GiB reichen auf dem Pi nicht, Hardware angefragt am 2026-10-27)
 
-**Endwerte.** **2 CPUs und 1 536 MiB (1,5 GiB) Speicher pro Zelle** (`SUT_CPU_LIMIT=2`, `SUT_MEM_LIMIT=1536m` in `.env`), kein Swap. Grundlage ist der geliehene Raspberry Pi 5 mit 4 GB (2026-10-22). Bis dahin galten 2 GiB als Arbeitswert. Die lokalen Prüfläufe liefen damit.
+**Endwerte vom 2026-10-22.** **2 CPUs und 1 536 MiB (1,5 GiB) Speicher pro Zelle** (`SUT_CPU_LIMIT=2`, `SUT_MEM_LIMIT=1536m` in `.env`), kein Swap. Grundlage ist der geliehene Raspberry Pi 5 mit 4 GB (2026-10-22). Bis dahin galten 2 GiB als Arbeitswert. Die lokalen Prüfläufe liefen damit.
 
 Der Speicher ist bewusst großzügig bemessen, weil RAM eine gemessene Größe ist und keine Obergrenze, die einzelne Zellen per OOM-Kill aus dem Vergleich entfernt. Das frühere Limit von 512 MiB hätte php-laravel/SSE bei 500 Clients abgebrochen. Im Produktionsbetrieb erreichte diese Zelle lokal eine Spitze von ca. 1 390 MiB (5.5). Unter 2 GiB lief der Stresstest ohne OOM, ohne verlorene Events und mit allen Clients innerhalb der Einschwingzeit verbunden (2026-10-16). Der Abstand zum Limit ist damit kleiner als im früheren Entwicklungsbetrieb (ca. 1 035 MiB) und auf dem Pi erneut zu prüfen. Der Orchestrator wertet jeden Lauf als ungültig, in dem ein Container der Zelle per OOM beendet wurde.
 
 Die Endwerte hängen vom Pi-Modell ab. Ein Pi 5 hat vier Kerne. Bei paarweisen Kampagnen laufen zwei Zellen gleichzeitig. Mit 2 GiB je Zelle sind 8 GB RAM erforderlich.
 
 Begründung des Endwerts für den Pi 5 mit 4 GB (festgelegt 2026-10-22, vorbereitet am 2026-10-19). **1,5 GiB je Zelle**. Zwei Limits von 1,5 GiB und rund 0,6 GiB für Betriebssystem, Docker, Redis, Nginx und `resource-sampler` bleiben unter 4 GB, sodass das Budget ohne Swap tatsächlich verfügbar ist. Die lokal gemessenen Spitzen (Working Set von Zelle und Redis) liegen darunter, bei 500 Clients 1 030 MiB für php-laravel-sse, 1 056 MiB für php-laravel-sse-queue (Laravel 13, 2026-10-16) und 391 MiB für php-minimal-sse. Diese lokalen Werte stammen noch von PHP 8.4 und Laravel 13.34, der Probelauf auf dem Pi prüft die Spitze mit den Versionen aus 5.26. Eine ruhende Zelle belegt bis etwa 340 MiB. Oberhalb von 550 Clients wächst PHP-FPM nicht weiter, weil keine weiteren Worker entstehen. Der Wert wird im Probelauf auf dem Pi mit der Stress-Stufe geprüft, bevor der Pilot beginnt. Ein Unsicherheitsfaktor ist die Seitengröße. Raspberry Pi OS verwendet auf dem Pi 5 standardmäßig einen Kernel mit 16-KB-Speicherseiten (`kernel_2712.img`), die lokalen Werte stammen von einem Kernel mit 4-KB-Seiten. Viele kleine Prozesse wie die 550 FPM-Worker können dadurch mehr Speicher belegen. Reicht der Abstand im Probelauf nicht, wird mit `kernel=kernel8.img` in `config.txt` der Kernel mit 4-KB-Seiten gewählt und in der Arbeit genannt. Die Kerne bleiben bei zwei je Zelle, weil auch der 4-GB-Pi vier Kerne hat.
+
+**Probelauf auf dem Pi (2026-10-27).** Mit 1,5 GiB je Zelle scheitert php-laravel-sse bei 500 Clients. Die folgenden Prüfungen grenzen die Ursache ein. Ein Einzeltest bedeutet, dass nur diese Zelle lief, mit einem Lauf ohne Warm-up, 10 s Einschwingzeit und 10 s Haltezeit. Ab dem ersten Einzeltest gelten die Versionen aus 5.26. Die Ergebnisverzeichnisse (`…_probe16k-…`, `…_probe4k-…`, `…_probe3gb-…`, `…_probe2g-…`) liegen noch auf dem Lastgenerator.
+
+| Prüfung | Seitengröße | Limit je Zelle | Ergebnis bei 500 Clients |
+|---|---|---|---|
+| zweiter Probelauf, Vergleich 10, noch mit PHP 8.4 und Laravel 13.34 | 16 KB | 1,5 GiB | Verbindungsaufbau rund 39 s, Fehlerseiten von Nginx statt Ereignisstrom, Sampler ohne Antwort, Queue-Worker beendet, Pi per ssh kaum erreichbar. Kampagne abgebrochen |
+| Einzeltest php-laravel-sse | 16 KB | 1,5 GiB | 8 Prozesse wegen Speichermangels beendet, Spitze 1 543 MiB, Verbindungsaufbau 4,3 s, mittlere Latenz rund 3 s, 98,8 % der Clients bedient. Lauf ungültig |
+| Einzeltest php-laravel-sse | 4 KB | 1,5 GiB | 72 Prozesse beendet, Spitze 1 536 MiB, Verbindungsaufbau 32 s, kein Client bedient |
+| Einzeltest php-laravel-sse | 4 KB | 3 GiB | gültig, alle Clients bedient, Verbindungsaufbau 3,0 s, mittlere Latenz 11 ms, Working Set im Mittel 1 046 MiB, gemessene Spitze 1 150 MiB |
+| Vergleich 10, beide Laravel-Zellen | 4 KB | 2 GiB | im ersten Lauf nur 364 von 500 Clients rechtzeitig verbunden (Verbindungsaufbau 17 s), beim zweiten Lauf Sampler ohne Antwort, danach Neustart des Pi |
+
+Hinweise zur Messung. Ein erster Versuch mit 3 GiB scheiterte, weil nur der Topf der Zelle angehoben war. Jeder Container hat zusätzlich ein eigenes Limit in Höhe des Budgets (`mem_limit`). Die gemessene Spitze von 1 150 MiB stammt aus der Abtastung alle 250 ms und unterschätzt kurze Spitzen. Dass die Zelle bei 1,5 GiB per OOM abbricht, zeigt, dass der Bedarf beim gleichzeitigen Verbindungsaufbau aller Clients kurzzeitig darüber liegt. Die Zähler eines Topfes (`memory.events`, `memory.peak`) gelten seit seiner Entstehung, für einen einzelnen Lauf sind nur die Werte des Containers verlässlich. Das Systemprotokoll des abgestürzten Starts ging verloren, weil Raspberry Pi OS es nur im Arbeitsspeicher hielt. Seitdem wird es dauerhaft gespeichert (5.20).
+
+**Folgerung.** 1,5 GiB reichen für php-laravel-sse und php-laravel-sse-queue bei 500 Clients nicht. Ein Limit, das eine Zelle per OOM-Kill aus dem Vergleich entfernt, widerspricht dem Grundsatz oben, denn der Speicher ist eine Messgröße. Betroffen wären auf der Stress-Stufe die Vergleiche 3, 7, 10 und 11, darunter mit Vergleich 3 ein Kernvergleich (5.24). Die Seitengröße ist nicht die Hauptursache, die Zelle scheitert mit beiden. Mehr als 1,5 GiB lassen sich auf dem 4-GB-Pi nicht vergeben, weil bei jedem Vergleich zwei Zellen nebeneinander laufen.
+
+**Möglichkeiten** (bewertet am 2026-10-27):
+
+1. **Pi 5 mit 8 GB und 3 GiB je Zelle.** Zwei Zellen mit vollem Budget und 0,6 GiB Reserve brauchen 6,6 GB und passen in 8 GB. Der Versuchsaufbau bleibt unverändert, die Einrichtung auf der Festplatte ist weiter nutzbar. Bevorzugt und am 2026-10-27 beim Betreuer angefragt.
+2. **Oberste Laststufe 250 Clients für alle Zellen.** Möglich auf dem 4-GB-Pi. Der untersuchte Unterschied zwischen einem Prozess pro Verbindung und einer Event Loop zeigt sich aber vor allem bei vielen gleichzeitigen Verbindungen, und PHP-FPM bliebe weit unter seiner Grenze von 550 Workern. In der Skalierungsreihe würde Laravel unterhalb von 500 Clients am Speicherbudget scheitern statt an der Zahl seiner Worker. Die Reihe zeigte dann eine Grenze der Testhardware statt des Mechanismus aus H4.
+3. **Immer nur eine Zelle auf dem Pi, mit 3 GiB.** Möglich auf dem 4-GB-Pi, gibt aber den Wechsel A/B innerhalb einer Kampagne auf. Jede Zelle müsste vor ihrem Lauf neu starten und bräuchte jedes Mal einen Warm-up-Lauf. Die Messzeit stiege deutlich, und Drift ließe sich schlechter ausgleichen (5.9).
+4. **Niedrigere Stress-Stufe nur für Vergleiche mit Laravel/SSE.** Hält die übrigen Vergleiche bei 500 Clients, misst aber Vergleich 3 auf einer anderen Laststufe als die Vergleiche 1, 2 und 4. Die Sprachvergleiche wären untereinander nicht mehr vergleichbar.
+5. **Gestaffelter Verbindungsaufbau.** Die Clients verbinden sich nicht alle im selben Moment, sondern verteilt über die ersten Sekunden der Einschwingzeit. Der Bedarf läge dann vermutlich nahe am gemessenen Mittel von rund 1 050 MiB statt bei der kurzen Spitze über 1,5 GiB, und das Budget von 1,5 GiB könnte auf dem 4-GB-Pi reichen. Das gilt für alle Zellen gleich und entspricht eher dem üblichen Betrieb, in dem Clients nacheinander kommen. Es ändert aber die Bedeutung des gemessenen Verbindungsaufbaus, der bisher bewusst den gleichzeitigen Ansturm erfasst (5.9), und ist auf dem Pi noch ungeprüft.
+
+Verworfen sind ein höheres Budget nur für Laravel (verletzt 5.6.2), weniger PHP-FPM-Worker (verändert das gemessene Laufzeitmodell, 5.5), Swap (verzerrt Latenz und Speicher) und Messungen auf dem Laptop. Dagegen sprechen die Vorgabe des Betreuers für einen Pi (5.14), fehlende Root-Rechte auf dem Laptop und die Drosselung von Laptop-Prozessoren bei Hitze.
+
+**Seitengröße.** Nach der Regel oben läuft der Pi seit 2026-10-27 mit dem Kernel mit 4-KB-Seiten (`kernel=kernel8.img`, Kernel `6.18.50+rpt-rpi-v8`). Allein löst das den Speichermangel nicht. Der Kernel bleibt trotzdem, weil 4 KB die übliche Seitengröße von Servern ist und alle Zellen gleich betrifft (5.20). `setup.sh` stellt ihn auf einem neuen Pi selbst ein.
+
+**Stand.** Bis zur Entscheidung über die Hardware (Abschnitt 6) bleibt das Budget bei 1,5 GiB, und der Pilot beginnt nicht.
 
 ### 5.11 Apache-Vergleich — ENTFÄLLT (5.1)
 
@@ -390,7 +418,7 @@ Mehrere Pis parallel (je ein Vergleichspaar pro Gerät) wurden verworfen. Zwei G
 
 Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 
-- **4 statt 8 GB RAM.** Budget 1,5 GiB je Zelle (5.10).
+- **4 statt 8 GB RAM.** Budget 1,5 GiB je Zelle. Der Probelauf zeigte, dass das für Laravel/SSE bei 500 Clients nicht reicht. Ein Pi mit 8 GB ist angefragt (5.10).
 - **USB-Festplatte statt SSD.** Ausreichend, weil auf dem Pi während der Messung wenig geschrieben wird. Die Container-Logs sind begrenzt (Log-Rotation), die Ergebnisdateien schreibt der Orchestrator auf dem Lastgenerator. Wie eine SSD vermeidet die Festplatte den Verschleiß einer SD-Karte. Eine Festplatte, die im Leerlauf den Motor abschaltet, könnte einzelne Schreibzugriffe um Sekunden verzögern. Der Probelauf zeigt, ob das auftritt.
 - **Node.js 24 statt 22 auf dem Lastgenerator.** Node.js läuft dort nur für den Orchestrator. Tests und Kampagnenplanung sind mit Node.js 24 geprüft (2026-10-22). Die Prototypen behalten ihre Version im Container.
 - **Messnetz mit zwei Kabeln (geplant).** Für die Einrichtung hängt der Switch am Router. Für die Messung hängen nur Pi und Lastgenerator am Switch, beide mit fester Adresse. Der Lastgenerator erreicht das Internet dann nur noch über WLAN, für die Benachrichtigungen. Der Messverkehr läuft ausschließlich über das Kabel.
@@ -400,6 +428,8 @@ Abweichungen von der Bedarfsmeldung und ihre Behandlung:
 **Alle Zellen auf dem Pi gestartet (2026-10-23).** Alle zehn Zellen liefen gleichzeitig ohne Neustarts, auch Redis und PHP-FPM mit dem Kernel mit 16-KB-Seiten. Das Working Set im Leerlauf betrug 328 MiB für php-laravel-sse, 359 MiB für php-laravel-sse-queue und 330 MiB für php-minimal-sse, bei allen übrigen Zellen weniger als 100 MiB. Das entspricht den lokalen Werten mit 4-KB-Seiten (bis etwa 340 MiB, 5.10). Die Spitze unter Last zeigt erst der Probelauf. Ein Durchlauf von der Ereignisquelle über Redis und den Front-Nginx bis zu einem SSE-Client lieferte ein Event pro Sekunde.
 
 **Belastungstest bestanden (2026-10-22 bis 2026-10-23).** Alle vier Kerne liefen 24 Stunden unter Volllast (`infra/pi/burn-in.sh`), protokolliert wurde jede Minute, insgesamt 1 440 Messpunkte. Der Takt lag durchgehend bei 2 400 MHz. Die Temperatur erreichte höchstens 67,2 °C, im Mittel 64,4 °C. Der Drosselstatus war bei jedem Messpunkt `0x0`, es traten also weder Unterspannung noch Taktbegrenzung oder thermische Drosselung auf. Kühlung und Netzteil tragen die Dauerlast damit auch mit der über USB versorgten Festplatte. Die Rohdaten liegen in `results/2026-10-22T13-43-23Z_burn-in.csv`.
+
+**Probeläufe mit beiden Rechnern (2026-10-27).** Der erste Probelauf war vollständig ungültig, weil die Adresse des Pi in `sut.pi.json` mit einem Schrägstrich endete (Änderungsverlauf). Im zweiten Probelauf liefen fünf von neun Kampagnen vollständig durch. Damit sind die ssh-Steuerung, die veröffentlichten Ports, die cgroup-Töpfe, der Drosselstatus per `vcgencmd` und die Messung der Auslastung des Lastgenerators auf echter Hardware bestätigt. Die Temperatur des Pi lag bei höchstens 55 °C, die Auslastung des Lastgenerators bei höchstens 15 %. Gescheitert ist nur Laravel/SSE bei 500 Clients am Speicherbudget (5.10). Bei einem Prüflauf mit 2 GiB je Zelle startete der Pi neu, die Ursache ist nicht protokolliert. Offen ist noch ein Test mit gleichzeitiger CPU- und Schreiblast, der ausschließt, dass die über USB versorgte Festplatte unter Last den Strom verliert (Abschnitt 6).
 
 Bekannte Risiken auf dem Pi und ihre Behandlung:
 
@@ -416,8 +446,10 @@ Bekannte Risiken auf dem Pi und ihre Behandlung:
 | Stromausfall oder Absturz | Kampagnen pro Laststufe, Fortsetzen über `schedule.js`. Optional USV |
 | Abbruch oder Stillstand bleibt im unbeaufsichtigten Betrieb tagelang unbemerkt | `tools/orchestrate/status.js` (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz) als stündlicher cron-Job. Optionale Benachrichtigung über `NOTIFY_URL` bei Warnungen, abgebrochenen Kampagnen und am Ende des Zeitplans. Die Nachrichten enthalten keine Messwerte, Adressen oder Schlüssel |
 | ARM64-Kompatibilität | alle Basis-Images multi-arch, geprüft am 2026-10-16 |
+| Speicherbedarf einer Zelle übersteigt das Budget | Probelauf mit der Stress-Stufe vor dem Pilot, Läufe mit Abbruch wegen Speichermangels sind ungültig, Budget nach Messwerten bemessen (5.10) |
+| Absturz des Pi ohne erkennbare Ursache | Systemprotokoll dauerhaft gespeichert (5.20) |
 
-**Stand.** Der Zwei-Rechner-Aufbau ist implementiert, aber noch nicht auf Pi-Hardware erprobt (Abschnitt 6).
+**Stand.** Der Zwei-Rechner-Aufbau ist auf dem Pi erprobt (2026-10-27, Probeläufe oben). Offen ist das Speicherbudget (5.10, Abschnitt 6).
 
 ### 5.15 Geplante Vergleiche — ENTSCHIEDEN
 
@@ -588,6 +620,8 @@ Jede Einstellung, die vom Auslieferungszustand der Komponenten abweicht, mit Beg
 | Container | `ulimits.nofile` 8192 | Systemwert (oft 1024) | wie oben |
 | Container | `memswap_limit` gleich `mem_limit` | Swap bis zum Doppelten des Limits | keine ausgelagerten Seiten in der Messung |
 | SSE-Endpunkte | SSE-Kommentar `: connected` beim Verbindungsaufbau | — | Verbindungsaufbau messbar (5.9) |
+| Raspberry Pi OS | Kernel mit 4-KB-Seiten (`kernel=kernel8.img`) | Kernel mit 16-KB-Seiten (`kernel_2712.img`) | übliche Seitengröße von Servern, gleich für alle Zellen. Wechsel nach der vorab festgelegten Regel in 5.10 |
+| Raspberry Pi OS | Systemprotokoll dauerhaft (`Storage=persistent`) | nur im Arbeitsspeicher | Abstürze im unbeaufsichtigten Betrieb bleiben nachvollziehbar (5.14) |
 
 Der Produktionsbetrieb nach offizieller Dokumentation (5.5) gilt nicht als Abweichung, sondern als Bezugszustand.
 
@@ -765,7 +799,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 
 **Redis 8.** Das offizielle Image lädt standardmäßig die Module für Suche, JSON, Zeitreihen, Bloom-Filter und Vektoren. Die Prototypen nutzen keines davon. Redis belegt dadurch im Leerlauf rund 22 MiB (RSS). Die Module bleiben geladen, weil das dem Auslieferungszustand entspricht und alle Zellen gleich betrifft. Die Persistenz ist unverändert (offener Punkt in Abschnitt 6).
 
-**Prüfung** (2026-10-27, lokal, `results/2026-10-27_version-update/`). Alle Images ließen sich bauen, die Basis-Images gibt es auch für arm64. Ein Prüflauf im Produktionsbetrieb mit allen zehn Zellen verlief ohne ungültige Läufe. Bei 10 Clients wurden alle Events zugestellt, bei 500 Clients bedienten alle Zellen sämtliche Clients. Die Spitze des Working Sets bei 500 Clients lag für php-laravel-sse bei 1 022 MiB, für php-laravel-sse-queue bei 1 055 MiB und für php-minimal-sse bei 360 MiB, also im Bereich der früheren Werte und unter dem Budget von 1,5 GiB (5.10). Der Werkzeugvergleich (5.13) ist mit den neuen Versionen wiederholt. Vor dem Pilot wird der Probelauf auf dem Pi mit den neuen Images wiederholt.
+**Prüfung** (2026-10-27, lokal, `results/2026-10-27_version-update/`). Alle Images ließen sich bauen, die Basis-Images gibt es auch für arm64. Ein Prüflauf im Produktionsbetrieb mit allen zehn Zellen verlief ohne ungültige Läufe. Bei 10 Clients wurden alle Events zugestellt, bei 500 Clients bedienten alle Zellen sämtliche Clients. Die Spitze des Working Sets bei 500 Clients lag für php-laravel-sse bei 1 022 MiB, für php-laravel-sse-queue bei 1 055 MiB und für php-minimal-sse bei 360 MiB, also im Bereich der früheren Werte. Lokal reichte das Budget von 1,5 GiB damit, auf dem Pi dagegen nicht (5.10). Der Werkzeugvergleich (5.13) ist mit den neuen Versionen wiederholt. Vor dem Pilot wird der Probelauf auf dem Pi mit den neuen Images wiederholt.
 
 ## 6. Offene Punkte
 
@@ -774,10 +808,12 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
-| Erprobung des Zwei-Rechner-Aufbaus | Einrichtung auf dem Pi erprobt (2026-10-22). ssh-Steuerung, veröffentlichte Ports und Auslastung des Lastgenerators noch nicht getestet (5.14) | Probelauf |
 | Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Der Belastungstest ist bestanden (2026-10-23, 5.14) | auf dem Pi |
-| Speicherspitze auf dem Pi | Endwerte 2 CPUs / 1,5 GiB (5.10). Im Leerlauf belegen die Zellen mit 16-KB-Seiten so viel wie lokal (2026-10-23, 5.14). Spitze von Laravel bei 500 Clients im Probelauf prüfen | Probelauf |
-| Redis-Persistenz | Redis läuft in der Standardeinstellung, die Schnappschüsse auf den Datenträger schreibt, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue. Im Probelauf prüfen, ob und wie oft das geschieht, danach entscheiden (5.20) | Probelauf |
+| Speicherbudget und Hardware | 1,5 GiB reichen für Laravel/SSE bei 500 Clients nicht (5.10). Pi 5 mit 8 GB beim Betreuer angefragt, sonst eine der Möglichkeiten aus 5.10 | Betreuer, Autorin |
+| Festplatte unter Last | 30-minütiger Test mit gleichzeitiger CPU- und Schreiblast ausstehend (5.14) | vor dem Pilot |
+| Vollständiger Probelauf | mit den Versionen aus 5.26 und dem endgültigen Budget wiederholen | vor dem Pilot |
+| Ergebnisse vom Lastgenerator | Die Probeläufe vom 2026-10-27 liegen nur auf dem Laptop. Für die Messphase braucht der Laptop einen Weg, Ergebnisse ins Repository zu übertragen | vor dem Pilot |
+| Redis-Persistenz | Redis läuft in der Standardeinstellung, die Schnappschüsse auf den Datenträger schreibt, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue. Im vollständigen Probelauf prüfen, ob und wie oft das geschieht, danach entscheiden (5.20) | vor dem Pilot |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -803,6 +839,8 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-27 | **Speicherbudget auf dem Pi unzureichend (5.10).** Laravel/SSE scheitert bei 500 Clients mit 1,5 GiB je Zelle, unabhängig von der Seitengröße. Mit 3 GiB gültig, mit 2 GiB im ungünstigsten Paar Neustart des Pi. Pi 5 mit 8 GB beim Betreuer angefragt, Möglichkeiten bewertet. |
+| 2026-10-27 | **Zwei-Rechner-Aufbau erprobt, Kernel mit 4-KB-Seiten, Systemprotokoll dauerhaft (5.14, 5.20).** Fünf von neun Kampagnen des zweiten Probelaufs liefen vollständig. `setup.sh` richtet Kernel und Protokoll jetzt selbst ein. |
 | 2026-10-27 | **Versionen nach einheitlicher Regel neu festgelegt (5.26).** Neueste Version, die am Stichtag mindestens zwei Wochen alt war, für PHP (8.5.11), Node.js (26.11.1), Laravel (13.36.0), Express (5.3.0), BullMQ (6.3.14), Redis (8.10.2) und Nginx (1.30.5). Anpassungen für BullMQ 6 und node-redis 6. |
 | 2026-10-27 | **Erster Probelauf auf dem Pi ungültig.** `targetBaseUrl` endete mit einem Schrägstrich, k6 fragte deshalb `//sse` und `//ws` an, und alle Zellen antworteten mit 404. Orchestrator und k6 entfernen den Schrägstrich jetzt selbst. |
 | 2026-10-27 | **Lastgenerator eingerichtet (5.14).** Docker 29.9.2 und Compose 5.6.1 wie auf dem Pi, Versionen festgehalten, automatische Updates und Ruhezustand abgeschaltet, feste Adresse im Messnetz. |
