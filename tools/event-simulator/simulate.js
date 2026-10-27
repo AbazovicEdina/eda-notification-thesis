@@ -10,6 +10,7 @@
 //                        READMEs zur Abgrenzung von den SSE/WS-Pfaden.
 import { createClient } from 'redis';
 import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
 
 const MODE = process.env.MODE || 'pubsub';
 const REDIS_HOST = process.env.REDIS_HOST || 'redis';
@@ -40,13 +41,16 @@ async function runPubsub() {
   const client = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` });
   await client.connect();
   await publishLoop((seq) => client.publish(CHANNEL, JSON.stringify(nextPayload(seq))));
-  await client.quit();
+  await client.close();
 }
 
+// BullMQ 6 erwartet in ES-Modulen eine fertige ioredis-Verbindung.
 async function runQueue() {
-  const queue = new Queue('scan-events', { connection: { host: REDIS_HOST, port: REDIS_PORT } });
+  const connection = new Redis({ host: REDIS_HOST, port: REDIS_PORT });
+  const queue = new Queue('scan-events', { connection });
   await publishLoop((seq) => queue.add('scan', nextPayload(seq)));
   await queue.close();
+  await connection.quit();
 }
 
 // Takt nach absolutem Zeitplan (Start + seq · Intervall) statt "senden, dann

@@ -251,7 +251,8 @@ function resolveSettings(campaign) {
       ssh: campaign.sut?.ssh ?? null,
       repoDir: campaign.sut?.repoDir ?? null,
       pi: campaign.sut?.pi ?? false,
-      targetBaseUrl: campaign.sut?.targetBaseUrl ?? 'http://nginx',
+      // ohne abschließenden Schrägstrich, sonst fragen die Skripte "//sse" an
+      targetBaseUrl: (campaign.sut?.targetBaseUrl ?? 'http://nginx').replace(/\/+$/, ''),
       redisHost: campaign.sut?.redisHost ?? null,
     },
   };

@@ -1010,6 +1010,30 @@ Laravel. *Laravel 13.x Documentation*, Kapitel „Queues", „Broadcasting", „
 }
 ```
 
+### Versionen von Node.js und PHP
+
+OpenJS Foundation. „Node.js Releases". https://nodejs.org/en/about/previous-releases. The PHP Group. „Supported Versions". https://www.php.net/supported-versions.php
+
+**Verwendung.** Erscheinungsdaten und Unterstützungsstatus der gemessenen Versionen (DECISIONS.md 5.26). Am 2026-10-27 führte die Release-Seite Node.js 26 als „Current“ und Node.js 22 und 24 als LTS. PHP 8.5 wird laut php.net bis 31.12.2027 aktiv und bis 31.12.2029 mit Sicherheitskorrekturen unterstützt, PHP 8.4 bis 31.12.2026 beziehungsweise 31.12.2028.
+
+```bibtex
+@online{nodejs-releases,
+  author  = {{OpenJS Foundation}},
+  title   = {Node.js Releases},
+  url     = {https://nodejs.org/en/about/previous-releases},
+  urldate = {2026-10-27},
+  langid  = {english}
+}
+
+@online{php-supported-versions,
+  author  = {{The PHP Group}},
+  title   = {Supported Versions},
+  url     = {https://www.php.net/supported-versions.php},
+  urldate = {2026-10-27},
+  langid  = {english}
+}
+```
+
 ### PHP-FPM und offizielles PHP-Image
 
 The PHP Group. „FastCGI Process Manager (FPM)" und „Configuration". *PHP Manual*. Docker Official Images. „php" (Image-Dokumentation).
@@ -1280,6 +1304,7 @@ United Nations General Assembly. „Transforming our World: The 2030 Agenda for 
 | 5.16 | Ressourcenmessung über cgroup v2, Working Set | Kernel-Dokumentation cgroup v2, Docker-Dokumentation `docker stats` |
 | 3, 5.9 | Lastwerkzeug k6 und xk6-sse | k6-Dokumentation, xk6-sse |
 | 5.23 | Laravel 13 statt 12 (Unterstützungszeitraum) | Laravel Release Notes |
+| 5.26 | Versionen nach Erscheinungsdatum | Node.js Releases, PHP Supported Versions, Laravel Release Notes |
 | 5.23 | keine Symfony-Variante | Symfony EventDispatcher und Mercure, Mercure-Hub |
 | Grundlagen | Anfrage-Antwort-Modell, ereignisbasierte Integration | Fielding (2000), Fowler (2017), Hohpe & Woolf (2003) |
 | Verwandte Arbeiten | ereignisgesteuerte Architektur (Modularität, Performance, Herausforderungen, Modelle) | Farias & Lazzari (2023), Cabane & Farias (2024), Laigner et al. (2026), Woodside (2021) |

@@ -3,7 +3,9 @@
 // damit derselbe Test lokal und gegen den Pi läuft.
 import exec from 'k6/execution';
 
-export const BASE_URL = __ENV.K6_TARGET_BASE_URL || 'http://sse-feasibility:8081';
+// Ohne abschließenden Schrägstrich: Die Skripte hängen "/sse" bzw. "/ws" an,
+// und "//sse" beantworten die Zellen mit 404.
+export const BASE_URL = (__ENV.K6_TARGET_BASE_URL || 'http://sse-feasibility:8081').replace(/\/+$/, '');
 export const VUS = Number(__ENV.K6_VUS || 50);
 export const HOLD_SECONDS = Number(__ENV.K6_HOLD_SECONDS || 60);
 // Einschwingzeit (DECISIONS.md 5.9): Alle VUs verbinden sich zu Beginn

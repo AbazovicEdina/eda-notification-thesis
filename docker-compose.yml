@@ -55,7 +55,7 @@ services:
   # BullMQ und Laravel Queue für die Queue-Achse (DECISIONS.md 5.19).
   redis:
     <<: *default-logging
-    image: redis:7.4-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    image: redis:8.10.2-alpine@sha256:9f8d2d789b9a1d1e3f283f979aa9cbf393373806472e1ccd460e2f9c869b833b
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 2s
@@ -170,7 +170,7 @@ services:
   # SUT_FASTCGI_*-Werte setzt tools/orchestrate pro Zelle (cells.json).
   nginx:
     <<: [*high-nofile, *default-logging]
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    image: nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
     environment:
       SUT_HOST: ${SUT_HOST:-node-minimal-sse}
       SUT_PORT: ${SUT_PORT:-8080}

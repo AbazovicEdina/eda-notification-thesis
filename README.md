@@ -124,31 +124,31 @@ Die gemessene Zelle wählen `SUT_MODE`, `SUT_HOST` und `SUT_PORT` in der `.env`.
 
 ## Versionen
 
-Keine Komponente läuft auf `latest` (Stand 2026-10-17):
+Keine Komponente läuft auf `latest` (Stand 2026-10-27). Gemessen wird jeweils die neueste Version, die am Stichtag mindestens zwei Wochen alt war (DECISIONS.md 5.26).
 
 | Komponente | Version | Pinning |
 | ---------- | ------- | ------- |
-| PHP | 8.4-fpm-alpine | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
-| Node.js | 22.11-alpine | alle `Dockerfile` unter `prototypes/` und `tools/` |
-| Laravel | 13.34.0 | `composer.json` (exakt) + `composer.lock` |
+| PHP | 8.5.11-fpm-alpine | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
+| Node.js | 26.11.1-alpine | alle `Dockerfile` unter `prototypes/` und `tools/` |
+| Laravel | 13.36.0 | `composer.json` (exakt) + `composer.lock` |
 | Reverb | 1.12.0 | `composer.lock` |
 | Ratchet / clue/redis-react | 0.4.4 / 2.8.0 | `composer.json` (exakt) + `composer.lock` |
-| Express | 4.22.2 | `package.json` (exakt) + `package-lock.json` |
-| BullMQ | 5.81.2 | `package.json` (exakt) + `package-lock.json` |
-| `ws`, `redis` (npm) | 8.21.1 / 4.7.0 | `package.json` (exakt) + `package-lock.json` |
-| Redis | 7.4-alpine | `docker-compose.yml` |
-| Nginx | 1.27-alpine | `docker-compose.yml` |
+| Express | 5.3.0 | `package.json` (exakt) + `package-lock.json` |
+| BullMQ / ioredis | 6.3.14 / 6.0.0 | `package.json` (exakt) + `package-lock.json` |
+| `ws`, `redis` (npm) | 8.22.0 / 6.3.0 | `package.json` (exakt) + `package-lock.json` |
+| Redis | 8.10.2-alpine | `docker-compose.yml` |
+| Nginx | 1.30.5-alpine | `docker-compose.yml` |
 | k6 / xk6-sse | 1.2.1 / 0.1.12 | `k6/Dockerfile` (Begründung in DECISIONS.md, Abschnitt 3) |
 | xk6-Builder / k6-Laufzeit | 1.4.7 / Alpine 3.20 | `k6/Dockerfile` |
-| Composer (nur Build) | 2.8 | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
+| Composer (nur Build) | 2.10.3 | `prototypes/{php-minimal,php-laravel}/Dockerfile` |
 
-Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind zusätzlich zum Tag auf den Digest ihres Multi-Arch-Index gepinnt (`image:tag@sha256:…` in den Dockerfiles und in `docker-compose.yml`, festgelegt am 2026-10-17). Derselbe Digest gilt für amd64 und arm64. Lastgenerator und Pi bauen damit aus identischen Basis-Images. Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
+Node-Pakete sind exakt gepinnt und per `package-lock.json` reproduzierbar, PHP-Pakete per `composer.lock`. Die Basis-Images sind zusätzlich zum Tag auf den Digest ihres Multi-Arch-Index gepinnt (`image:tag@sha256:…` in den Dockerfiles und in `docker-compose.yml`, festgelegt am 2026-10-27). Derselbe Digest gilt für amd64 und arm64. Lastgenerator und Pi bauen damit aus identischen Basis-Images. Die tatsächlich verwendeten Image-IDs protokolliert jeder Lauf.
 
 ## PHP-FPM-Dimensionierung
 
 Beide PHP-Prototypen verwenden `pm = static` mit `pm.max_children = 550` (`prototypes/*/fpm-pool.conf`). Pro SSE-Verbindung belegt PHP-FPM einen Worker (DECISIONS.md 5.5). Liegt `pm.max_children` unter der Zielzahl von 500 Clients, misst der Vergleich eine Konfigurationsgrenze statt eines Architekturunterschieds. Jenseits von 550 Clients zeigt die Skalierungsreihe genau diese Grenze (Anteil bedienter Clients).
 
-Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 2026-10-16, Spitze des Working Sets der Zelle, `results/2026-10-16_verification-2/`):
+Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 2026-10-16, noch mit PHP 8.4 und Laravel 12, Spitze des Working Sets der Zelle, `results/2026-10-16_verification-2/`):
 
 | Zelle | Working-Set-Spitze |
 | --- | --- |

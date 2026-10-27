@@ -325,7 +325,7 @@ Der Speicher ist bewusst großzügig bemessen, weil RAM eine gemessene Größe i
 
 Die Endwerte hängen vom Pi-Modell ab. Ein Pi 5 hat vier Kerne. Bei paarweisen Kampagnen laufen zwei Zellen gleichzeitig. Mit 2 GiB je Zelle sind 8 GB RAM erforderlich.
 
-Begründung des Endwerts für den Pi 5 mit 4 GB (festgelegt 2026-10-22, vorbereitet am 2026-10-19). **1,5 GiB je Zelle**. Zwei Limits von 1,5 GiB und rund 0,6 GiB für Betriebssystem, Docker, Redis, Nginx und `resource-sampler` bleiben unter 4 GB, sodass das Budget ohne Swap tatsächlich verfügbar ist. Die lokal gemessenen Spitzen (Working Set von Zelle und Redis) liegen darunter, bei 500 Clients 1 030 MiB für php-laravel-sse, 1 056 MiB für php-laravel-sse-queue (Laravel 13, 2026-10-16) und 391 MiB für php-minimal-sse. Eine ruhende Zelle belegt bis etwa 340 MiB. Oberhalb von 550 Clients wächst PHP-FPM nicht weiter, weil keine weiteren Worker entstehen. Der Wert wird im Probelauf auf dem Pi mit der Stress-Stufe geprüft, bevor der Pilot beginnt. Ein Unsicherheitsfaktor ist die Seitengröße. Raspberry Pi OS verwendet auf dem Pi 5 standardmäßig einen Kernel mit 16-KB-Speicherseiten (`kernel_2712.img`), die lokalen Werte stammen von einem Kernel mit 4-KB-Seiten. Viele kleine Prozesse wie die 550 FPM-Worker können dadurch mehr Speicher belegen. Reicht der Abstand im Probelauf nicht, wird mit `kernel=kernel8.img` in `config.txt` der Kernel mit 4-KB-Seiten gewählt und in der Arbeit genannt. Die Kerne bleiben bei zwei je Zelle, weil auch der 4-GB-Pi vier Kerne hat.
+Begründung des Endwerts für den Pi 5 mit 4 GB (festgelegt 2026-10-22, vorbereitet am 2026-10-19). **1,5 GiB je Zelle**. Zwei Limits von 1,5 GiB und rund 0,6 GiB für Betriebssystem, Docker, Redis, Nginx und `resource-sampler` bleiben unter 4 GB, sodass das Budget ohne Swap tatsächlich verfügbar ist. Die lokal gemessenen Spitzen (Working Set von Zelle und Redis) liegen darunter, bei 500 Clients 1 030 MiB für php-laravel-sse, 1 056 MiB für php-laravel-sse-queue (Laravel 13, 2026-10-16) und 391 MiB für php-minimal-sse. Diese lokalen Werte stammen noch von PHP 8.4 und Laravel 13.34, der Probelauf auf dem Pi prüft die Spitze mit den Versionen aus 5.26. Eine ruhende Zelle belegt bis etwa 340 MiB. Oberhalb von 550 Clients wächst PHP-FPM nicht weiter, weil keine weiteren Worker entstehen. Der Wert wird im Probelauf auf dem Pi mit der Stress-Stufe geprüft, bevor der Pilot beginnt. Ein Unsicherheitsfaktor ist die Seitengröße. Raspberry Pi OS verwendet auf dem Pi 5 standardmäßig einen Kernel mit 16-KB-Speicherseiten (`kernel_2712.img`), die lokalen Werte stammen von einem Kernel mit 4-KB-Seiten. Viele kleine Prozesse wie die 550 FPM-Worker können dadurch mehr Speicher belegen. Reicht der Abstand im Probelauf nicht, wird mit `kernel=kernel8.img` in `config.txt` der Kernel mit 4-KB-Seiten gewählt und in der Arbeit genannt. Die Kerne bleiben bei zwei je Zelle, weil auch der 4-GB-Pi vier Kerne hat.
 
 ### 5.11 Apache-Vergleich — ENTFÄLLT (5.1)
 
@@ -358,7 +358,9 @@ Die Kriterien aus 5.3 wurden gegen den bestehenden Code geprüft, im Entwicklung
 
 Wiederholung unter Laravel 13.34.0 (2026-10-17, Produktionsbetrieb, Fehler nur im laufenden Prüf-Container eingebaut). Gleiches Ergebnis. `queue:work` meldet nur `FAIL`. Das Protokollieren des fehlgeschlagenen Jobs scheitert an der fehlenden SQLite-Datenbank (`QueryException`), und `queue:failed` bricht mit derselben Meldung ab. Die eigentliche Fehlermeldung und die Correlation-ID stehen nur im Kontext dieses Folgefehlers in `storage/logs/laravel.log`. Der Befund gilt damit für die gemessene Version.
 
-Wiederholung der übrigen Punkte mit den gemessenen Versionen (2026-10-18, eigene Prüf-Queue, Prototypen unverändert). Unter BullMQ 5.81.2 und Node.js 22.11.0 meldet derselbe `failed`-Handler Job-ID und Fehlermeldung ohne Correlation-ID. `queue.getFailed()` liefert den Job mit `correlation_id`, Fehlergrund und Zahl der Versuche. Node.js 22.11.0 enthält `--inspect`, `--prof` und `--cpu-prof`. Im PHP-8.4-Image der Prototypen ist kein Xdebug installiert, Laravel 13 bringt Monolog 3.10 mit. Der gesamte Werkzeugvergleich gilt damit für die gemessenen Versionen.
+Wiederholung der übrigen Punkte mit den gemessenen Versionen (2026-10-18, eigene Prüf-Queue, Prototypen unverändert). Unter BullMQ 5.81.2 und Node.js 22.11.0 meldet derselbe `failed`-Handler Job-ID und Fehlermeldung ohne Correlation-ID. `queue.getFailed()` liefert den Job mit `correlation_id`, Fehlergrund und Zahl der Versuche. Node.js 22.11.0 enthält `--inspect`, `--prof` und `--cpu-prof`. Im PHP-8.4-Image der Prototypen ist kein Xdebug installiert, Laravel 13 bringt Monolog 3.10 mit. Der gesamte Werkzeugvergleich galt damit für die damals festgelegten Versionen.
+
+Wiederholung mit den Versionen aus 5.26 (2026-10-27, `results/2026-10-27_version-update/`). Unter BullMQ 6.3.14 mit ioredis 6.0.0 und Node.js 26.11.1 meldet der `failed`-Handler weiterhin Job-ID und Fehlermeldung ohne Correlation-ID, und `queue.getFailed()` liefert den Job mit `correlation_id`, Fehlergrund und Zahl der Versuche. Node.js 26.11.1 enthält `--inspect`, `--prof` und `--cpu-prof`. Im Image mit PHP 8.5.11 ist kein Xdebug installiert, Laravel 13.36.0 bringt Monolog 3.12.1 mit. Unter Laravel 13.36.0 meldet `queue:work` weiterhin nur `FAIL`, das Protokollieren scheitert an der fehlenden SQLite-Datenbank, und die Correlation-ID steht nur im Kontext dieses Folgefehlers in `storage/logs/laravel.log`. Der Werkzeugvergleich gilt damit auch für die gemessenen Versionen.
 
 **Einordnung.** BullMQ bietet Fehlersichtbarkeit ohne zusätzliche Infrastruktur (Redis-natives Failed-Set). Laravels Standardmechanismus setzt eine eingerichtete Datenbank voraus, die in einem schlanken, datenbankfreien Aufbau nicht automatisch vorhanden ist. Das ist ein Unterschied im Betriebsaufwand, kein Fehler in Laravel.
 
@@ -626,7 +628,7 @@ Das Exposé beschreibt den Plan zu Beginn der Arbeit. Während der Umsetzung, de
 | 6 | Latenzmaß | p50, p95, p99 | Mittelwert pro Lauf als Testgröße, Perzentile beschreibend | Belastbare Unterschiede, die sich bei Wiederholung bestätigen. Perzentile für die Nutzersicht bleiben erhalten |
 | 7 | Durchsatz | Events pro Sekunde bei steigender Last | Zustellquote je Lauf und Sättigungstest | Die Rate, ab der ein Stack versagt, ist eine direkte Grundlage für Kapazitätsplanung |
 | 8 | Skalierung | 10, 50, 100 und 500 Clients | Laststufen 10, 50, 500. Skalierungsreihe 10 bis 1 000 | Zeigt, ab wie vielen Clients PHP-FPM an seine Worker-Grenze stößt, und damit, wie ein Pool zu dimensionieren ist |
-| 9 | Laravel-Version | 13.x | 13.34.0 (zwischenzeitlich 12.61.1) | Ergebnisse gelten für die Version, die Entwickler heute einsetzen |
+| 9 | Laravel-Version | 13.x | 13.36.0 (zwischenzeitlich 12.61.1 und 13.34.0) | Ergebnisse gelten für die Version, die Entwickler heute einsetzen |
 | 10 | Literatur | zehn Quellen, u. a. Fielding, Fowler, Laigner et al., Lazzari & Farias, Tzialla et al., Woodside | neun übernommen (drei standen bereits in LITERATUR.md), zwei Angaben korrigiert, Tzialla et al. nicht übernommen (LITERATUR.md) | Nur geprüfte, passende Quellen. Korrigierte Angaben sparen Lesern Sucharbeit |
 | 11 | Grundlage der Prototypen | PHP-Prototyp erweitert das bestehende Lokato-Backend (Laravel, relationale Datenbank) | eigenständige Prototypen mit dem Ereignisformat von Lokato, ohne Datenbank | Ergebnisse sind auf eigene Projekte übertragbar statt an eine bestimmte Code-Basis gebunden. Die Prototypen dienen als Referenzcode |
 | 12 | Queue in den Varianten | Laravel-Queue und Event-Dispatcher als Teil der vollständigen Umsetzungen | Queue als eigene Achse in zwei Varianten (5.19) | Eigener Preis einer Queue, getrennt vom Framework. Hilft bei der Entscheidung, ob sich eine Queue lohnt |
@@ -670,7 +672,7 @@ Die Arbeit nennt Symfony in der Abgrenzung und im Ausblick.
 - Gewählt wurde die neueste Version, die zum Zeitpunkt des Upgrades mindestens zwei Wochen alt war, um nicht eine gerade erschienene Version zu messen.
 - Nach dem Pilot ist ein Versionswechsel nicht mehr möglich, ohne die Vergleichbarkeit der Blöcke zu gefährden.
 
-Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 und 500 Clients) verlief ohne ungültige Läufe (`results/2026-10-16_verification-3/`).
+Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 und 500 Clients) verlief ohne ungültige Läufe (`results/2026-10-16_verification-3/`). Am 2026-10-27 folgte nach derselben Regel Laravel 13.36.0, zusammen mit allen übrigen gemessenen Komponenten (5.26).
 
 **10. Literatur.** Die zehn Quellen des Exposés wurden einzeln geprüft (LITERATUR.md, Abschnitt zur ereignisgesteuerten Architektur). Übernommen sind alle, die eine Aussage der Arbeit stützen. Zwei Angaben sind korrigiert. Laigner et al. ist nicht bei SIGMOD 2024, sondern 2026 in ACM TOSEM erschienen, und von Lazzari & Farias wird statt der arXiv-Vorabfassung die begutachtete Zeitschriftenfassung (Farias & Lazzari 2023) zitiert. Tzialla et al. (2024) wird nicht übernommen. „Auditing" bezeichnet dort die Prüfung, ob ein Server eine Anwendung unverfälscht ausgeführt hat, und berührt keine Aussage dieser Arbeit. Für Herausforderungen bei Überwachung und Fehlersuche steht Laigner et al. zur Verfügung.
 
@@ -727,6 +729,44 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 - **Darstellung** (geprüft am 2026-10-18 gegen gängige Regeln für wissenschaftliche Diagramme). Boxplots zeigen zusätzlich jeden Lauf als Punkt und über jedem Paar Cliff's Delta mit Stern bei Signifikanz nach Holm. Die y-Achsen beginnen bei null, weil alle Messgrößen verhältnisskaliert sind. Die Skalierungsreihe zeigt die Spannweite der Läufe je Stufe als Fehlerbalken (dafür enthält jede Stufe in `aggregate.json` Zahl, Minimum und Maximum der Läufe) und wechselt auf eine logarithmische y-Achse, wenn die Werte einen Faktor 20 übersteigen. Der Sättigungstest ist ein Punktdiagramm auf den getesteten Stufen, weil sein Ergebnis eine Stufe ist und kein stetiger Wert. `figures.md` nennt je Abbildung, was die Bildunterschrift erklären muss.
 - **Umgebung.** Python mit matplotlib 3.11.2 und numpy 2.5.3 in einem eigenen Container (Basis-Image per Digest gepinnt, Latin Modern aus `fonts-lmodern` 2.005-1). Die Messwerkzeuge bleiben bei Node.js. Python wird nur für die Abbildungen gebraucht, weil matplotlib druckfähige Vektorgrafiken mit eingebetteten Schriften ohne weitere Werkzeuge erzeugt.
 
+### 5.26 Versionen der gemessenen Software — ENTSCHIEDEN (2026-10-27)
+
+**Anlass.** Die Basis-Images waren seit 2026-10-17 festgeschrieben, ohne dass die Wahl der Versionen begründet war. PHP lag mit 8.4 eine Version hinter dem aktuellen Stand, Node.js mit 22.11 vom Oktober 2024 zwei Hauptversionen. Bei einem Leistungsvergleich der beiden Sprachen wäre Node.js damit benachteiligt gewesen. Vor dem Pilot wurden deshalb alle gemessenen Komponenten nach einer einheitlichen Regel neu festgelegt.
+
+**Regel.** Für jede Komponente gilt die neueste stabile Version, die am Stichtag 2026-10-27 mindestens zwei Wochen alt war. Die Regel verallgemeinert die Begründung der Laravel-Version (5.23, Punkt 9). Sie gilt für beide Sprachen gleich und vermeidet gerade erschienene Versionen, deren Fehler noch nicht bekannt sind. Maßgeblich ist das Erscheinungsdatum laut Projekt (Release-Liste von Node.js, php.net, Packagist, npm, GitHub-Releases von Redis, Änderungsprotokoll von Nginx). Für Abhängigkeiten zweiter Ordnung gilt der Stand der Lock-Dateien vom Stichtag. Nach dem Pilot ändern sich die Versionen nicht mehr.
+
+| Komponente | bisher | neu | erschienen |
+|---|---|---|---|
+| PHP | 8.4 | 8.5.11 | 2026-09-24 |
+| Node.js | 22.11 | 26.11.1 | 2026-10-07 |
+| Laravel | 13.34.0 | 13.36.0 | 2026-10-13 |
+| Reverb | 1.12.0 | unverändert, neueste | 2026-09-22 |
+| Express | 4.22.2 | 5.3.0 | 2026-10-09 |
+| BullMQ | 5.81.2 | 6.3.14 | 2026-10-13 |
+| ioredis | in BullMQ enthalten | 6.0.0 | 2026-07-31 |
+| node-redis (`redis`) | 4.7.0 | 6.3.0 | 2026-09-30 |
+| ws | 8.21.1 | 8.22.0 | 2026-09-26 |
+| Ratchet / clue/redis-react | 0.4.4 / 2.8.0 | unverändert, neueste | 2021-12-14 / 2025-01-03 |
+| phpredis | 6.3.0 | unverändert, neueste | 2025-11-06 |
+| Redis | 7.4 | 8.10.2 | 2026-09-17 |
+| Nginx | 1.27 | 1.30.5, stabile Linie | 2026-09-15 |
+| Composer (nur Build) | 2.8 | 2.10.3 | 2026-08-27 |
+
+Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsupdate vom 2026-10-21), PHP 8.5.12 (2026-10-21), Laravel 13.37.0 bis 13.39.0, BullMQ ab 6.4, Redis 8.10.3 (2026-10-26) und Nginx 1.30.6 (2026-10-14). Für die Aussagekraft im isolierten Messnetz spielen fehlende Sicherheitskorrekturen keine Rolle.
+
+**Nicht geändert.** k6 und xk6-sse bleiben bei 1.2.1 und 0.1.12. Sie sind das Messinstrument und arbeiten nur in dieser Kombination zusammen (Abschnitt 3). Dasselbe gilt für das Laufzeit-Image von k6 (Alpine 3.20). Python und matplotlib für die Abbildungen (5.25) beeinflussen keinen Messwert. Node.js auf dem Lastgenerator (24.22.0) steuert nur den Orchestrator.
+
+**Anpassungen am Code.**
+
+- BullMQ 6 bringt ioredis nicht mehr selbst mit und erwartet in ES-Modulen eine fertige Verbindung. Worker, Testproduzent und Ereignisquelle erzeugen sie deshalb selbst, der Worker mit `maxRetriesPerRequest: null`, wie es die BullMQ-Dokumentation für blockierende Abfragen verlangt. BullMQ arbeitet damit weiter mit ioredis wie bisher.
+- node-redis 6 spricht standardmäßig RESP3 statt RESP2. Die Standardeinstellung bleibt, entsprechend dem Auslieferungszustand (5.5). Das veraltete `quit()` ist durch `close()` ersetzt.
+- Express 5 erforderte keine Änderung, die Prototypen nutzen nur einfache Routen.
+- `--legacy-peer-deps` beim Bauen entfällt, weil die neuen Versionen keine Konflikte bei Peer-Abhängigkeiten mehr haben.
+
+**Redis 8.** Das offizielle Image lädt standardmäßig die Module für Suche, JSON, Zeitreihen, Bloom-Filter und Vektoren. Die Prototypen nutzen keines davon. Redis belegt dadurch im Leerlauf rund 22 MiB (RSS). Die Module bleiben geladen, weil das dem Auslieferungszustand entspricht und alle Zellen gleich betrifft. Die Persistenz ist unverändert (offener Punkt in Abschnitt 6).
+
+**Prüfung** (2026-10-27, lokal, `results/2026-10-27_version-update/`). Alle Images ließen sich bauen, die Basis-Images gibt es auch für arm64. Ein Prüflauf im Produktionsbetrieb mit allen zehn Zellen verlief ohne ungültige Läufe. Bei 10 Clients wurden alle Events zugestellt, bei 500 Clients bedienten alle Zellen sämtliche Clients. Die Spitze des Working Sets bei 500 Clients lag für php-laravel-sse bei 1 022 MiB, für php-laravel-sse-queue bei 1 055 MiB und für php-minimal-sse bei 360 MiB, also im Bereich der früheren Werte und unter dem Budget von 1,5 GiB (5.10). Der Werkzeugvergleich (5.13) ist mit den neuen Versionen wiederholt. Vor dem Pilot wird der Probelauf auf dem Pi mit den neuen Images wiederholt.
+
 ## 6. Offene Punkte
 
 | Punkt | Stand | Klärung durch |
@@ -763,6 +803,8 @@ Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleic
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-27 | **Versionen nach einheitlicher Regel neu festgelegt (5.26).** Neueste Version, die am Stichtag mindestens zwei Wochen alt war, für PHP (8.5.11), Node.js (26.11.1), Laravel (13.36.0), Express (5.3.0), BullMQ (6.3.14), Redis (8.10.2) und Nginx (1.30.5). Anpassungen für BullMQ 6 und node-redis 6. |
+| 2026-10-27 | **Erster Probelauf auf dem Pi ungültig.** `targetBaseUrl` endete mit einem Schrägstrich, k6 fragte deshalb `//sse` und `//ws` an, und alle Zellen antworteten mit 404. Orchestrator und k6 entfernen den Schrägstrich jetzt selbst. |
 | 2026-10-27 | **Lastgenerator eingerichtet (5.14).** Docker 29.9.2 und Compose 5.6.1 wie auf dem Pi, Versionen festgehalten, automatische Updates und Ruhezustand abgeschaltet, feste Adresse im Messnetz. |
 | 2026-10-23 | **Alle Zellen auf dem Pi gestartet (5.14).** Kein Neustart, Working Set im Leerlauf wie lokal, SSE-Durchlauf bis zum Client funktioniert. Redis-Persistenz als offener Punkt aufgenommen. |
 | 2026-10-23 | **Belastungstest bestanden (5.14).** 24 Stunden Volllast, Takt durchgehend 2 400 MHz, höchstens 67,2 °C, keine Drosselung. Rohdaten in `results/`. |

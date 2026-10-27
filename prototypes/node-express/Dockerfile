@@ -1,10 +1,7 @@
-FROM node:22.11-alpine@sha256:b64ced2e7cd0a4816699fe308ce6e8a08ccba463c757c00c14cd372e3d2c763e
+FROM node:26.11.1-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c791a9d90a4a
 WORKDIR /app
 COPY package.json package-lock.json ./
-# --legacy-peer-deps: bullmq deklariert einen optionalen Peer auf redis>=5,
-# den wir nicht nutzen (wir nutzen bullmq nur über ioredis-intern und die
-# Pub/Sub-Seite über das separate redis@4-Paket) — siehe package-lock.json.
-RUN npm ci --omit=dev --legacy-peer-deps
+RUN npm ci --omit=dev
 COPY sse.js ws.js ./
 COPY queue ./queue
 EXPOSE 8080

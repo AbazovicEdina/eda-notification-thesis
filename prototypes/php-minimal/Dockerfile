@@ -5,7 +5,7 @@
 # Einschränkung dieses Prototyps. pm.max_children siehe fpm-pool.conf.
 # ws.php läuft als eigener Dauerprozess (Ratchet/ReactPHP, kein FPM, siehe
 # DECISIONS.md 5.5) — braucht deshalb zusätzlich Composer-Abhängigkeiten.
-FROM php:8.4-fpm-alpine@sha256:78cd8de9970a9cd6ff4d98860a94eb5bf37dd2d5776b4785562dbfad01c29d5a
+FROM php:8.5.11-fpm-alpine@sha256:fa01fb1645cd0fc566a5f146b099adace33b906571f972f71f2182a7c12d1cd7
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && pecl install redis-6.3.0 \
     && docker-php-ext-enable redis \
@@ -14,7 +14,7 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
 # (DECISIONS.md 5.5): ohne php.ini liefen die eingebauten Entwicklungs-Defaults.
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-COPY --from=composer:2.8@sha256:5248900ab8b5f7f880c2d62180e40960cd87f60149ec9a1abfd62ac72a02577c /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.10.3@sha256:b6dcd72ca98fa19d0e5b8476de179859704891fad06dd9e0b96833d4c430a5fc /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 COPY composer.json composer.lock ./
