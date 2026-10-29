@@ -21,6 +21,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 | [LITERATUR.md](LITERATUR.md) | verwandte Arbeiten und Quellen zu den Entscheidungen, mit BibTeX |
 | [infra/pi/README.md](infra/pi/README.md) | Einrichtung des Raspberry-Pi-Testservers und des Lastgenerators |
 | [tools/orchestrate/README.md](tools/orchestrate/README.md) | Messkampagnen, Zeitplan und Auswertung |
+| [docs/KI-NUTZUNG.md](docs/KI-NUTZUNG.md) | Nutzung von KI im praktischen Teil, Arbeitsteilung, Prüfung der Ergebnisse, Verlauf |
 | [docs/archive/](docs/archive/) | frühere Prüfberichte (historisch, überholt durch DECISIONS.md) |
 
 ## Repository-Struktur
@@ -29,6 +30,7 @@ Alle Zellen beziehen die Events aus Redis Pub/Sub und laufen hinter demselben Ng
 .
 ├── DECISIONS.md               # Entscheidungsprotokoll
 ├── LITERATUR.md               # Literatur mit BibTeX
+├── docs/KI-NUTZUNG.md         # Nutzung von KI im praktischen Teil
 ├── docs/archive/              # frühere Prüfberichte (historisch)
 ├── docker-compose.yml         # portable Basis
 ├── docker-compose.pi.yml      # Ergänzung für den Raspberry-Pi-Testserver
@@ -155,7 +157,7 @@ Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 
 | php-minimal/SSE | ca. 375 MiB |
 | php-laravel/SSE | ca. 1 390 MiB |
 
-Das Speicherbudget pro Zelle beträgt 1,5 GiB, passend zum Raspberry Pi 5 mit 4 GB (DECISIONS.md 5.10). Verbinden sich alle 500 Clients gleichzeitig, bricht php-laravel/SSE damit wegen Speichermangels ab. Mit dem verteilten Verbindungsaufbau, der für alle Messphasen gilt, lag die echte Spitze auf dem Pi bei rund 1 060 bis 1 080 MiB. Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Beim gleichzeitigen Verbindungsaufbau aller Clients liegt der Bedarf auf dem Pi kurzzeitig über 1,5 GiB, das misst die Phase Ansturm. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
+Das Speicherbudget pro Zelle beträgt 1,5 GiB, passend zum Raspberry Pi 5 mit 4 GB (DECISIONS.md 5.10). Verbinden sich alle 500 Clients gleichzeitig, bricht php-laravel/SSE damit wegen Speichermangels ab. Mit dem verteilten Verbindungsaufbau, der für alle Messphasen gilt, lag die echte Spitze auf dem Pi bei rund 1 060 bis 1 100 MiB. Ein Worker belegt eigenen Speicher erst, wenn er zum ersten Mal eine Anfrage bearbeitet hat. Damit der Speicher nicht von Lauf zu Lauf wächst, beginnt jede Kampagne mit einem Vorlauf, nach dem alle 550 Worker einmal gearbeitet haben (DECISIONS.md 5.9). Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Beim gleichzeitigen Verbindungsaufbau aller Clients liegt der Bedarf auf dem Pi kurzzeitig über 1,5 GiB, das misst die Phase Ansturm. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
 
 ## Dateideskriptor-Limits
 
