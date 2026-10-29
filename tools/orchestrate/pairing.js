@@ -1,13 +1,13 @@
-// Paarbildung für den gepaarten Vergleich zweier Konfigurationen
-// (DECISIONS.md 5.8). Läufe mit derselben Laufnummer lagen im
-// alternierenden Design A, B, A, B direkt nebeneinander — nur sie bilden
-// ein Paar. Ein Paar zählt nur, wenn BEIDE Läufe gültig sind und für die
-// Messgröße einen endlichen Wert haben ("complete-case" auf Paarebene).
-// Früher wurden die Paare über die Position in einer Liste gebildet; ein
-// einziger fehlgeschlagener Lauf hat dann alle folgenden Paare verschoben.
+// Pairing for the paired comparison of two configurations
+// (DECISIONS.md 5.8). In the alternating design A, B, A, B, runs with the
+// same run number ran directly next to each other, so only they form a
+// pair. A pair counts only if BOTH runs are valid and have a finite value
+// for the measure (complete case at the pair level). Pairs used to be
+// formed by position in a list, so a single failed run shifted all
+// following pairs.
 //
-// runsA/runsB: Arrays von Lauf-Datensätzen mit `run_index` (Laufnummer pro
-// Konfiguration) und `valid`. valueOf(run) liefert den Wert der Messgröße.
+// runsA/runsB are arrays of run records with `run_index` (run number per
+// configuration) and `valid`. valueOf(run) returns the value of the measure.
 export function pairByRunIndex(runsA, runsB, valueOf) {
   const byIndexB = new Map(runsB.map((r) => [r.run_index, r]));
   const a = [];

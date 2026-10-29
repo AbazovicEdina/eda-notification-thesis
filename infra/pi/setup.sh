@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Einrichtung des Raspberry-Pi-Testservers (infra/pi/README.md, Schritte 2
-# bis 9; DECISIONS.md 5.14). Das Skript ist mehrfach ausführbar: Erledigte
-# Schritte werden erkannt und übersprungen, geänderte Systemdateien vorher
-# gesichert (<datei>.bak-<zeitstempel>). Docker wird nicht installiert, nur
-# geprüft (offizielle Anleitung, README Schritt 6).
+# Setup of the Raspberry Pi test server (infra/pi/README.md, steps 2 to 9,
+# DECISIONS.md 5.14). The script can be run repeatedly. Completed steps are
+# detected and skipped, changed system files are backed up first
+# (<file>.bak-<timestamp>). Docker is not installed, only checked
+# (official instructions, README step 2).
 #
-# Aufruf auf dem Pi, im Repository:
+# Usage on the Pi, inside the repository:
 #   sudo bash infra/pi/setup.sh
 #
-# Exit-Code 0 = alles eingerichtet, 1 = offene Punkte, 2 = Neustart nötig
-# (danach erneut ausführen).
+# Exit code 0 = everything set up, 1 = open items, 2 = reboot required
+# (run again afterwards).
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -53,10 +53,9 @@ done
 ok+=("keine automatischen Updates")
 
 say "Swap"
-# dphys-swapfile und zram-tools starten Swap über eigene Dienste; zram- und
-# Swap-Datei-Einheiten neuerer Raspberry-Pi-OS-Versionen sind systemd-
-# Swap-Units und werden maskiert, damit sie nach einem Neustart nicht
-# zurückkehren.
+# dphys-swapfile and zram-tools start swap through their own services. The
+# zram and swap file units of newer Raspberry Pi OS versions are systemd
+# swap units and are masked so that they do not come back after a reboot.
 for svc in dphys-swapfile.service zramswap.service; do
   if unit_exists "$svc" && [ "$(systemctl is-enabled "$svc" 2>/dev/null || true)" != "disabled" ]; then
     systemctl disable --now "$svc" >/dev/null 2>&1 || true
@@ -108,7 +107,7 @@ else
     reboot=1
   else
     backup "$cmdline"
-    # Die Datei besteht aus genau einer Zeile; der Eintrag wird angehängt.
+    # The file consists of exactly one line, the entry is appended to it.
     sed -i '1 s/[[:space:]]*$/ cgroup_enable=memory cgroup_memory=1/' "$cmdline"
     changed+=("cgroup_enable=memory cgroup_memory=1 an ${cmdline} angehängt (Sicherung ${cmdline}.bak-${STAMP})")
     reboot=1
@@ -116,10 +115,9 @@ else
 fi
 
 say "Systemprotokoll"
-# Raspberry Pi OS hält das Journal standardmäßig nur im Arbeitsspeicher, um
-# SD-Karten zu schonen. Auf SSD oder Festplatte wird es dauerhaft gespeichert,
-# damit ein Absturz im unbeaufsichtigten Betrieb nachvollziehbar bleibt
-# (DECISIONS.md 5.14, 5.20).
+# By default Raspberry Pi OS keeps the journal in memory only, to spare SD
+# cards. On an SSD or hard disk it is stored persistently, so that a crash
+# during unattended operation can be traced (DECISIONS.md 5.14, 5.20).
 journal_conf=/etc/systemd/journald.conf.d/50-persistent.conf
 if [ -f "$journal_conf" ] && grep -qx 'Storage=persistent' "$journal_conf"; then
   echo "Systemprotokoll: bereits dauerhaft"
@@ -132,9 +130,9 @@ fi
 ok+=("Systemprotokoll dauerhaft")
 
 say "Seitengröße des Kernels"
-# Der Pi 5 startet standardmäßig einen Kernel mit 16-KB-Seiten
-# (kernel_2712.img). Gemessen wird mit dem Kernel mit 4-KB-Seiten, der
-# üblichen Seitengröße von Servern (DECISIONS.md 5.10, 5.20).
+# By default the Pi 5 boots a kernel with 16 KB pages (kernel_2712.img).
+# Measurements use the kernel with 4 KB pages, the usual page size of
+# servers (DECISIONS.md 5.10, 5.20).
 pagesize="$(getconf PAGESIZE 2>/dev/null || echo unbekannt)"
 config=/boot/firmware/config.txt
 if [ "$pagesize" = "4096" ]; then
@@ -184,7 +182,7 @@ elif grep -qE '^#[[:space:]]*COMPOSE_FILE=docker-compose\.yml:docker-compose\.pi
 else
   open+=(".env: Zeile COMPOSE_FILE=docker-compose.yml:docker-compose.pi.yml ergänzen")
 fi
-# Nur Vorhandensein der Schlüsselnamen prüfen; Werte werden nie ausgegeben.
+# Only check that the key names exist, values are never printed.
 laravel_env=prototypes/php-laravel/.env
 if [ ! -s "$laravel_env" ]; then
   open+=("${laravel_env} fehlt: vom Entwicklungsrechner kopieren (scp), nicht ins Repository aufnehmen")

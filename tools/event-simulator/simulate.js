@@ -1,13 +1,13 @@
-// Simulierter Scan-Event-Generator — ersetzt die echte RFID/ESP32/MQTT-
-// Hardware aus Lokato für die Lasttests. Setzt den Zeitstempel `ts` beim
-// Publish (DECISIONS.md 5.4: das ist der Start der Ende-zu-Ende-Messung).
-// Zwei Modi:
-//   pubsub (Standard) — publiziert direkt auf EVENT_CHANNEL, das alle
-//                        SSE/WS-Prototypen abonnieren.
-//   queue             — legt Jobs in die BullMQ-Queue "scan-events", zum
-//                        Testen des Queue-Grundgerüsts (node-express/queue,
-//                        php-laravel ProcessScanEvent) — siehe dortige
-//                        READMEs zur Abgrenzung von den SSE/WS-Pfaden.
+// Simulated scan event generator. Replaces the real RFID/ESP32/MQTT
+// hardware of Lokato for the load tests. Sets the timestamp `ts` at publish
+// time (DECISIONS.md 5.4, this is the start of the end-to-end measurement).
+// Two modes:
+//   pubsub (default)  publishes directly on EVENT_CHANNEL, which all SSE/WS
+//                     prototypes subscribe to.
+//   queue             adds jobs to the BullMQ queue "scan-events" for
+//                     testing the queue path (node-express/queue,
+//                     php-laravel ProcessScanEvent), see the READMEs there
+//                     for how it differs from the SSE/WS paths.
 import { createClient } from 'redis';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
@@ -17,14 +17,14 @@ const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = Number(process.env.REDIS_PORT || 6379);
 const CHANNEL = process.env.EVENT_CHANNEL || 'scan-events';
 const RATE_PER_SECOND = Number(process.env.RATE_PER_SECOND || 1);
-const COUNT = Number(process.env.COUNT || 0); // 0 = unbegrenzt, bis SIGINT/SIGTERM
+const COUNT = Number(process.env.COUNT || 0); // 0 = unlimited, until SIGINT/SIGTERM
 
 const intervalMs = 1000 / RATE_PER_SECOND;
 
-// Scan-Event im Originalformat von Lokato (Lesegerät, Tag-UID, Zeitpunkt),
-// ergänzt um die Messfelder seq (laufende Nummer, Verlustzählung) und ts
-// (Sendezeitpunkt, Start der Latenzmessung) — DECISIONS.md 5.4, 5.21.
-// Die UID variiert pro Event wie bei echten Scans verschiedener Tags.
+// Scan event in the original Lokato format (reader, tag UID, time), extended
+// by the measurement fields seq (sequence number, loss counting) and ts
+// (send time, start of the latency measurement), DECISIONS.md 5.4, 5.21.
+// The UID varies per event, as with real scans of different tags.
 function nextPayload(seq) {
   const ts = Date.now();
   return {
@@ -44,7 +44,7 @@ async function runPubsub() {
   await client.close();
 }
 
-// BullMQ 6 erwartet in ES-Modulen eine fertige ioredis-Verbindung.
+// In ES modules BullMQ 6 expects a ready ioredis connection.
 async function runQueue() {
   const connection = new Redis({ host: REDIS_HOST, port: REDIS_PORT });
   const queue = new Queue('scan-events', { connection });
@@ -53,11 +53,11 @@ async function runQueue() {
   await connection.quit();
 }
 
-// Takt nach absolutem Zeitplan (Start + seq · Intervall) statt "senden, dann
-// volles Intervall warten": Letzteres addiert die Publish-Dauer zu jedem
-// Intervall, die tatsächliche Rate läge systematisch unter RATE_PER_SECOND
-// (DECISIONS.md 5.17). Gerät der Prozess in Verzug, wird ohne Pause
-// nachgeholt statt die Rate still zu senken.
+// Timing follows an absolute schedule (start + seq · interval) instead of
+// "send, then wait a full interval". The latter adds the publish duration to
+// every interval, so the actual rate would be systematically below
+// RATE_PER_SECOND (DECISIONS.md 5.17). If the process falls behind, it
+// catches up without pausing instead of silently lowering the rate.
 async function publishLoop(publish) {
   let seq = 0;
   let stop = false;

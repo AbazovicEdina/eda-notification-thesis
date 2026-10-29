@@ -1,7 +1,7 @@
-// Minimaler BullMQ-Worker: nimmt Scan-Events aus der Queue "scan-events" und
-// verarbeitet sie (hier: Platzhalter-Verarbeitung + Veröffentlichung einer
-// Notification). Grundgerüst für die volle Lokato-Pipeline — siehe
-// README.md in diesem Ordner für die Abgrenzung zu sse.js/ws.js.
+// Minimal BullMQ worker. Takes scan events from the queue "scan-events" and
+// processes them (here a placeholder step plus publishing a notification).
+// Basic structure for the full Lokato pipeline, see README.md in this
+// folder for how it differs from sse.js and ws.js.
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createClient } from 'redis';
@@ -9,9 +9,9 @@ import { createClient } from 'redis';
 const host = process.env.REDIS_HOST || 'redis';
 const port = Number(process.env.REDIS_PORT || 6379);
 
-// BullMQ 6 bringt ioredis nicht mehr selbst mit und erwartet in ES-Modulen
-// eine fertige Verbindung. maxRetriesPerRequest: null verlangt BullMQ für
-// die blockierenden Abfragen des Workers (BullMQ-Dokumentation, Connections).
+// BullMQ 6 no longer ships ioredis itself and expects a ready connection in
+// ES modules. BullMQ requires maxRetriesPerRequest: null for the blocking
+// calls of the worker (BullMQ documentation, Connections).
 const connection = new Redis({ host, port, maxRetriesPerRequest: null });
 
 const publisher = createClient({ url: `redis://${host}:${port}` });

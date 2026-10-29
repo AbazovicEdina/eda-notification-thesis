@@ -1,30 +1,31 @@
 #!/usr/bin/env node
-// Ressourcen-Messung pro Testlauf (DECISIONS.md 5.16). Läuft im Container
-// `resource-sampler` auf der SUT-Seite (lokal bzw. auf dem Pi) und liest die
-// cgroup-v2-Dateien der SUT-Container direkt — exakt und mit kaum Eigenlast,
-// statt `docker stats` (1–3 s pro Abfrage, eigene CPU-Last auf demselben
-// Rechner). tools/orchestrate ruft ihn per `docker compose exec` auf.
+// Resource measurement per test run (DECISIONS.md 5.16). Runs in the
+// `resource-sampler` container on the SUT side (locally or on the Pi) and
+// reads the cgroup v2 files of the SUT containers directly. This is exact
+// and adds hardly any load of its own, unlike `docker stats` (1–3 s per
+// query, own CPU load on the same machine). tools/orchestrate calls it via
+// `docker compose exec`.
 //
 //   node sampler.js info
-//     Host-Kontext als eine JSON-Zeile (Modell, Kernel, Kerne, RAM, Swap,
-//     cgroup-Controller, CPU-Governor, Temperatur, Drosselstatus, freier
-//     Platz des Docker-Datenträgers).
+//     Host context as one JSON line (model, kernel, cores, RAM, swap,
+//     cgroup controllers, CPU governor, temperature, throttling status,
+//     free space of the Docker disk).
 //
-//   node sampler.js measure [--cell <zelle>=<containerId>[,<containerId>...]]... [--host-cpu] [--interval-ms 250]
-//     Gibt nach dem Auflösen der cgroups eine Zeile {"ready":true,...} aus,
-//     misst dann, bis stdin endet (EOF), und gibt die Zusammenfassung als
-//     eine JSON-Zeile aus — je Zelle (z. B. die gemessene Zelle und Redis),
-//     als Gesamtsumme über alle Container ("total") und je Container:
-//       CPU: Differenz des Zählers usage_usec (cpu.stat) zwischen Start und
-//            Ende — exakte CPU-Zeit des Laufs, kein Abtastfehler.
-//       RAM: memory.current und "Working Set" (memory.current minus
-//            inactive_file aus memory.stat — dieselbe Definition wie
-//            `docker stats`), alle interval-ms abgetastet; Mittel und
-//            Spitze pro Container und pro Zelle (Summe der Container).
-//       Host: Temperatur (Start/Ende/Max) und Drosselstatus (Start/Ende);
-//            mit --host-cpu zusätzlich die CPU-Auslastung des ganzen Hosts
-//            (Mittel und höchster Wert je Abtastintervall) — auf dem
-//            Lastgenerator der Nachweis, dass k6 nicht der Engpass war.
+//   node sampler.js measure [--cell <cell>=<containerId>[,<containerId>...]]... [--host-cpu] [--interval-ms 250]
+//     After resolving the cgroups, prints a line {"ready":true,...}, then
+//     measures until stdin ends (EOF) and prints the summary as one JSON
+//     line, per cell (e.g. the measured cell and Redis), as a total over all
+//     containers ("total") and per container.
+//       CPU: difference of the usage_usec counter (cpu.stat) between start
+//            and end, the exact CPU time of the run without sampling error.
+//       RAM: memory.current and "working set" (memory.current minus
+//            inactive_file from memory.stat, the same definition as
+//            `docker stats`), sampled every interval-ms. Mean and peak per
+//            container and per cell (sum of its containers).
+//       Host: temperature (start/end/max) and throttling status (start/end).
+//            With --host-cpu also the CPU load of the whole host (mean and
+//            highest value per sampling interval). On the load generator
+//            this shows that k6 was not the bottleneck.
 import { readFileSync, readdirSync, existsSync, statfsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -52,10 +53,10 @@ function tempC() {
   return raw == null ? null : Number(raw) / 1000;
 }
 
-// Drosselstatus der Raspberry-Pi-Firmware (Bitmaske wie `vcgencmd
-// get_throttled`; 0x0 = nie gedrosselt). Auf anderen Rechnern null, ebenso
-// auf dem Pi 5 (Kernel 6.18), der die Datei nicht in sysfs bereitstellt.
-// tools/orchestrate liest den Status dann per vcgencmd auf dem Host.
+// Throttling status of the Raspberry Pi firmware (bit mask as from
+// `vcgencmd get_throttled`, 0x0 = never throttled). null on other machines,
+// and also on the Pi 5 (kernel 6.18), which does not provide the file in
+// sysfs. tools/orchestrate then reads the status via vcgencmd on the host.
 function throttled() {
   return readFirst([
     '/sys/devices/platform/soc/soc:firmware/get_throttled',
@@ -63,8 +64,8 @@ function throttled() {
   ]);
 }
 
-// Modell aus dem Device Tree. Docker sperrt /sys/firmware im Container,
-// daher ersatzweise die Zeile "Model" aus /proc/cpuinfo (Raspberry-Pi-Kernel).
+// Model from the device tree. Docker blocks /sys/firmware in the container,
+// so the "Model" line from /proc/cpuinfo (Raspberry Pi kernel) is used instead.
 function model() {
   const dt = readFirst(['/proc/device-tree/model', '/sys/firmware/devicetree/base/model']);
   if (dt) return dt;
@@ -81,9 +82,9 @@ function meminfo() {
   return { total: get('MemTotal'), swapTotal: get('SwapTotal') };
 }
 
-// Freier Platz des Datenträgers, auf dem Docker seine Daten ablegt (das
-// Wurzeldateisystem des Containers liegt dort). Dient der Überwachung im
-// Dauerbetrieb (tools/orchestrate/status.js).
+// Free space of the disk on which Docker stores its data (the container's
+// root file system lives there). Used for monitoring during unattended
+// operation (tools/orchestrate/status.js).
 function dockerDisk() {
   try {
     const s = statfsSync('/');
@@ -117,10 +118,10 @@ function info() {
   };
 }
 
-// Sucht das cgroup-Verzeichnis eines Containers anhand seiner ID. Je nach
-// cgroup-Treiber heißt es `docker-<id>.scope` (systemd, z.B. Pi) oder
-// `<id>` (cgroupfs, z.B. Docker Desktop); auf dem Pi liegt es zusätzlich
-// im Topf der Zelle (`eda_<zelle>.slice`, docker-compose.pi.yml).
+// Finds the cgroup directory of a container by its ID. Depending on the
+// cgroup driver it is called `docker-<id>.scope` (systemd, e.g. on the Pi)
+// or `<id>` (cgroupfs, e.g. Docker Desktop). On the Pi it also lies inside
+// the slice of the cell (`eda_<cell>.slice`, docker-compose.pi.yml).
 function findCgroupDir(containerId, dir = CGROUP_ROOT, depth = 0) {
   if (depth > 5) return null;
   let entries;
@@ -154,11 +155,11 @@ function memory(dir) {
   return { current, workingSet: Math.max(0, current - inactiveFile) };
 }
 
-// Höchstwert von memory.current seit dem Start des Containers, vom Kernel
-// exakt geführt (memory.peak, ab Linux 5.19). Die Abtastung alle interval-ms
-// verpasst kurze Spitzen, etwa beim gleichzeitigen Verbindungsaufbau vieler
-// Clients (DECISIONS.md 5.10). Steigt der Wert während eines Laufs, ist der
-// Endwert die exakte Spitze dieses Laufs.
+// Highest value of memory.current since the container started, tracked
+// exactly by the kernel (memory.peak, Linux 5.19 and later). Sampling every
+// interval-ms misses short peaks, for example when many clients connect at
+// the same moment (DECISIONS.md 5.10). If the value rises during a run, the
+// end value is the exact peak of that run.
 function memoryPeak(dir) {
   const v = Number(readText(path.join(dir, 'memory.peak')));
   return Number.isFinite(v) && v > 0 ? v : null;
@@ -180,9 +181,9 @@ function argValue(args, flag, fallback) {
   return i === -1 ? fallback : args[i + 1];
 }
 
-// Gesamte CPU-Zeit des Hosts aus /proc/stat (nicht namensraumgebunden, also
-// auch im Container die Werte des Hosts): Summe aller Zustände und Leerlauf
-// (idle + iowait), in Jiffies.
+// Total CPU time of the host from /proc/stat (not namespaced, so the
+// container sees the host's values), the sum of all states and of idle
+// (idle + iowait), in jiffies.
 function hostCpuTicks() {
   const line = (readText('/proc/stat') ?? '').split('\n').find((l) => l.startsWith('cpu '));
   if (!line) return null;
@@ -214,9 +215,9 @@ function measure(args) {
     }
   }
 
-  // Je Zelle plus "Gesamt" über alle übergebenen Container (z. B. Zelle +
-  // Redis, DECISIONS.md 5.16). Die Gesamtspitze wird aus der Summe je
-  // Abtastung gebildet, nicht als Summe der Einzelspitzen.
+  // Per cell plus a "total" over all given containers (e.g. cell + Redis,
+  // DECISIONS.md 5.16). The total peak is formed from the sum per sample,
+  // not as the sum of the individual peaks.
   const groups = [...Object.keys(cells), '__total__'];
   const groupSamples = Object.fromEntries(groups.map((g) => [g, { memSum: 0, wsSum: 0, memMax: 0, wsMax: 0 }]));
   const startedAt = Date.now();
@@ -298,8 +299,8 @@ function measure(args) {
         const agg = perGroup[g];
         agg.containers += 1;
         agg.cpu_seconds = agg.cpu_seconds == null || cpuSeconds == null ? null : agg.cpu_seconds + cpuSeconds;
-        // Summe der Höchstwerte je Container, eine obere Schranke für die
-        // Zelle, weil die Spitzen nicht gleichzeitig liegen müssen.
+        // Sum of the peaks per container, an upper bound for the cell, because the
+        // peaks do not have to occur at the same time.
         agg.mem_peak_lifetime_bytes = agg.mem_peak_lifetime_bytes == null || peakEnd == null ? null : agg.mem_peak_lifetime_bytes + peakEnd;
         agg.mem_peak_lifetime_new = agg.mem_peak_lifetime_new || peakNew;
       }

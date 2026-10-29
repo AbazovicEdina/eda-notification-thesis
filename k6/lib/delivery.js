@@ -1,24 +1,24 @@
-// Zustellungs- und Verbindungs-Buchführung pro Verbindung (DECISIONS.md
+// Bookkeeping of delivery and connection per connection (DECISIONS.md
 // 5.9, 5.17).
 //
-// Zustellung: Jedes Event trägt eine laufende Nummer `seq`
-// (tools/event-simulator). Pro VU wird festgehalten, welche Nummern im
-// Messfenster angekommen sind; daraus ergeben sich erwartete, verlorene und
-// doppelte Events sowie die tatsächliche Senderate (aus den `ts`-Stempeln).
-// "Erwartet" = alle Nummern zwischen dem ersten und dem letzten im
-// Messfenster empfangenen Event. Verluste nach dem letzten empfangenen Event
-// sind prinzipbedingt nicht erkennbar — bei einer Haltezeit weit über dem
-// Event-Intervall vernachlässigbar, aber als Limitation zu nennen.
+// Delivery. Every event carries a sequence number `seq`
+// (tools/event-simulator). Per VU the numbers that arrived within the
+// measurement window are recorded. This yields expected, lost and duplicate
+// events as well as the actual send rate (from the `ts` stamps).
+// "Expected" = all numbers between the first and the last event received in
+// the measurement window. Losses after the last received event cannot be
+// detected by design. With a hold time far above the event interval this is
+// negligible, but it is a limitation to mention.
 //
-// Verbindung: Dauer bis zum Verbindungsaufbau (SSE: Antwort-Header mit
-// HTTP 200 empfangen, WS: Handshake abgeschlossen), Zahl der bis zum Beginn
-// des Messfensters verbundenen Clients und Zahl der Clients, die im
-// Messfenster mindestens ein Event erhalten haben ("bediente Clients").
-// Eine Fehlerseite statt des Datenstroms ist keine Verbindung.
+// Connection. Time until the connection is established (SSE: response
+// headers with HTTP 200 received, WS: handshake completed), number of
+// clients connected by the start of the measurement window, and number of
+// clients that received at least one event in the window ("served clients").
+// An error page instead of the stream is not a connection.
 import { Counter, Trend } from 'k6/metrics';
 
-// Metriken müssen im Init-Kontext angelegt werden (k6-Regel), deshalb
-// einmal pro Skript auf oberster Ebene aufrufen.
+// Metrics must be created in the init context (k6 rule), so call this once
+// per script at the top level.
 export function deliveryMetrics(prefix) {
   return {
     expected: new Counter(`${prefix}_events_expected`),
@@ -45,8 +45,8 @@ export function newTracker() {
   };
 }
 
-// `at` ist der Zeitpunkt der Antwort. SSE erfährt den Statuscode erst nach
-// dem Ende der Verbindung und trägt den Zeitpunkt deshalb nachträglich ein.
+// `at` is the time of the response. SSE only learns the status code after
+// the connection has ended and therefore records the time afterwards.
 export function markConnected(metrics, tracker, window, at = Date.now()) {
   if (tracker.connectedAt !== null) return;
   tracker.connectedAt = at;
@@ -72,7 +72,7 @@ export function track(tracker, data) {
   }
 }
 
-// Nach Ende der Verbindung einmal pro VU aufrufen.
+// Call once per VU after the connection has ended.
 export function flush(metrics, tracker) {
   if (tracker.minSeq === null) return;
   const expected = tracker.maxSeq - tracker.minSeq + 1;

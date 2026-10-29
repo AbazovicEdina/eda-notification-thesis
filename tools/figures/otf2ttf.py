@@ -1,13 +1,12 @@
-"""Wandelt Latin Modern (OpenType mit CFF-Konturen) in TrueType um.
+"""Converts Latin Modern (OpenType with CFF outlines) to TrueType.
 
-matplotlib bettet Schriften mit pdf.fonttype 42 als TrueType ein. Bei
-CFF-Schriften stimmt der deklarierte Schrifttyp sonst nicht mit den
-eingebetteten Daten überein, was PDF/A-Prüfungen (veraPDF) bemängeln können.
-Die Umwandlung folgt dem otf2ttf-Beispiel von fontTools (Kubik- in
-Quadratkurven, Fehler höchstens 1 Einheit) und läuft einmal beim Bau des
-Images.
+matplotlib embeds fonts with pdf.fonttype 42 as TrueType. For CFF fonts
+the declared font type would otherwise not match the embedded data, which
+PDF/A checks (veraPDF) may flag. The conversion follows the otf2ttf example
+of fontTools (cubic to quadratic curves, error at most 1 unit) and runs
+once when the image is built.
 
-Aufruf: python otf2ttf.py <ziel> <quelle.otf> ...
+Usage: python otf2ttf.py <target> <source.otf> ...
 """
 
 import os

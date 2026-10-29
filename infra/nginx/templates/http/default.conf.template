@@ -1,17 +1,17 @@
-# Front-Nginx, Modus "http" (DECISIONS.md 5.6.1): HTTP-Reverse-Proxy vor
-# allen Zellen, deren Server selbst HTTP sprechen — Node.js (SSE und WS),
-# Ratchet und Reverb. PHP-FPM-Zellen (SSE) nutzen stattdessen den Modus
-# "fastcgi" (templates/fastcgi/), damit jede Zelle genau einen Nginx
-# durchläuft, wie im realen Betrieb. Jeder Lauf geht gegen genau eine
-# Zelle; SUT_HOST/SUT_PORT wählen sie aus, SUT_MODE den Modus
-# (tools/orchestrate schaltet beides um, docker-compose.yml bindet das
-# passende Template-Verzeichnis ein).
+# Front Nginx in "http" mode (DECISIONS.md 5.6.1). HTTP reverse proxy in
+# front of all cells whose servers speak HTTP themselves, i.e. Node.js (SSE
+# and WS), Ratchet and Reverb. PHP-FPM cells (SSE) use the "fastcgi" mode
+# instead (templates/fastcgi/), so that every cell passes through exactly
+# one Nginx, as in real operation. Each run targets exactly one cell.
+# SUT_HOST/SUT_PORT select it, SUT_MODE the mode (tools/orchestrate
+# switches both, docker-compose.yml mounts the matching template
+# directory).
 #
-# $sut_upstream statt eines statischen `upstream {}`-Blocks: Der Wert wird
-# über eine Variable erst pro Request aufgelöst (Docker-Resolver 127.0.0.11).
-# Ein statischer Upstream würde Nginx beim Start scheitern lassen, sobald
-# andere SUT-Container gestoppt sind — genau der Normalfall hier (nur die
-# Zellen der laufenden Kampagne sind gestartet, DECISIONS.md 5.6.3).
+# $sut_upstream instead of a static `upstream {}` block. The value is
+# resolved through a variable per request only (Docker resolver 127.0.0.11).
+# A static upstream would make Nginx fail at start as soon as other SUT
+# containers are stopped, which is exactly the normal case here (only the
+# cells of the running campaign are started, DECISIONS.md 5.6.3).
 resolver 127.0.0.11 valid=10s;
 
 server {
@@ -23,22 +23,22 @@ server {
         proxy_pass $sut_upstream;
     }
 
-    # SSE — proxy_buffering MUSS aus sein: sonst hält Nginx Events zurück,
-    # bis der interne Puffer voll ist, und die k6-Latenzmessung misst
-    # Nginx-Pufferung statt tatsächliche Zustellung an den Client.
+    # SSE: proxy_buffering MUST be off, otherwise Nginx holds back events until
+    # its internal buffer is full, and the k6 latency measurement measures Nginx
+    # buffering instead of the actual delivery to the client.
     location /sse {
         proxy_pass $sut_upstream;
         proxy_http_version 1.1;
         proxy_set_header Connection '';
         proxy_buffering off;
         proxy_cache off;
-        # Weit über dem Event-Intervall (Default 60s würde ruhige
-        # SSE-Verbindungen sonst vorzeitig kappen).
+        # Far above the event interval (the default of 60s would otherwise cut off
+        # quiet SSE connections early).
         proxy_read_timeout ${NGINX_PROXY_READ_TIMEOUT}s;
     }
 
-    # WebSocket — Upgrade-Header sind Pflicht, sonst bleibt es ein normaler
-    # HTTP-Request und der Handshake schlägt fehl.
+    # WebSocket: the upgrade headers are mandatory, otherwise it stays a normal
+    # HTTP request and the handshake fails.
     location /ws {
         proxy_pass $sut_upstream;
         proxy_http_version 1.1;
@@ -47,10 +47,9 @@ server {
         proxy_read_timeout ${NGINX_PROXY_READ_TIMEOUT}s;
     }
 
-    # WebSocket für Laravel Reverb (php-laravel/WS): Pusher-Protokoll, Pfad
-    # /app/<app-key> statt /ws (k6/scripts/ws-reverb.js). Identische
-    # Direktiven wie /ws oben, damit alle WS-Zellen denselben Proxy-Pfad
-    # durchlaufen.
+    # WebSocket for Laravel Reverb (php-laravel/WS), Pusher protocol, path
+    # /app/<app-key> instead of /ws (k6/scripts/ws-reverb.js). Same directives
+    # as /ws above, so that all WS cells pass through the same proxy path.
     location /app/ {
         proxy_pass $sut_upstream;
         proxy_http_version 1.1;

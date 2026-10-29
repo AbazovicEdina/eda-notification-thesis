@@ -1,40 +1,41 @@
 #!/usr/bin/env node
-// Erzeugt die Kampagnendateien einer Messphase aus plan.json und cells.json
-// (DECISIONS.md 5.9), damit keine Kampagne von Hand abgeschrieben werden
-// muss. Jede Kampagne umfasst genau eine Laststufe: Bricht der Dauerbetrieb
-// ab, geht höchstens eine Laststufe verloren, und schedule.js setzt an der
-// nächsten fort.
+// Generates the campaign files of a measurement phase from plan.json and
+// cells.json (DECISIONS.md 5.9), so that no campaign has to be written by
+// hand. Each campaign covers exactly one load level. If unattended operation
+// stops, at most one load level is lost, and schedule.js resumes with the
+// next one.
 //
-// Aufrufe:
+// Usage:
 //   node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --out campaigns/pilot
 //   node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
 //   node tools/orchestrate/plan-campaigns.js scaling --steps 10,50,100,250,500,750,1000 --runs 3 --out campaigns/scaling
 //   node tools/orchestrate/plan-campaigns.js saturation --clients 50 --rates 10,50,100,200,500 --runs 6 --out campaigns/saturation
 //   node tools/orchestrate/plan-campaigns.js storm --clients 500 --runs 3 --hold 20 --out campaigns/storm
-// Gemeinsame Optionen:
-//   --prefix <text>        Präfix aller Kampagnennamen, z. B. "smoke-" für einen
-//                          Probelauf. schedule.js erkennt erledigte Kampagnen am
-//                          Namen; ohne Präfix würde ein Probelauf mit denselben
-//                          Namen die echte Phase als erledigt markieren.
-//   --hold <s>             Haltezeit je Lauf (Standard 60)
-//   --settle <s>           Einschwingzeit je Lauf (Standard 10)
-//   --connect-spread <s>   Verbindungsaufbau der Clients über s Sekunden verteilen
-//                          (Standard 5, muss kleiner als --settle sein,
-//                          DECISIONS.md 5.10). storm verbindet immer gleichzeitig.
-//   --warmup <n>           Warm-up-Läufe je Konfiguration (Standard: pilot/main 5, sonst 1).
-//                          storm hat keine, weil die Zelle vor jedem Lauf neu startet.
-//   --sut <datei>          JSON mit dem sut-Block für den Zwei-Rechner-Aufbau
-//   --seed <n>             Startwert der zufälligen Reihenfolge in schedule.js
-// Nur pilot und main:
-//   --comparisons <ids>    Auswahl der Vergleiche aus plan.json (Standard: alle)
-//   --control <zelle>      Zelle der täglichen Kontrollmessung (Standard node-minimal-sse)
-//   --report-every <n>     nur pilot: Zwischenauswertung alle n Läufe (Standard 10)
-// Nur scaling, saturation und storm:
-//   --cells <namen>        Auswahl der Zellen (Standard: alle)
-// Nur storm:
-//   --clients <n>          Zahl der Clients, die sich gleichzeitig verbinden (Standard 500)
+// Common options:
+//   --prefix <text>        prefix of all campaign names, e.g. "smoke-" for a
+//                          trial run. schedule.js recognizes completed
+//                          campaigns by name. Without a prefix, a trial run with
+//                          the same names would mark the real phase as done.
+//   --hold <s>             hold time per run (default 60)
+//   --settle <s>           settle time per run (default 10)
+//   --connect-spread <s>   spread the client connects over s seconds
+//                          (default 5, must be smaller than --settle,
+//                          DECISIONS.md 5.10). storm always connects at once.
+//   --warmup <n>           warm-up runs per configuration (default 5 for
+//                          pilot/main, otherwise 1). storm has none, because the
+//                          cell restarts before every run.
+//   --sut <file>           JSON with the sut block for the two-machine setup
+//   --seed <n>             seed of the random order in schedule.js
+// Only pilot and main:
+//   --comparisons <ids>    selection of comparisons from plan.json (default: all)
+//   --control <cell>       cell of the daily control measurement (default node-minimal-sse)
+//   --report-every <n>     pilot only, interim evaluation every n runs (default 10)
+// Only scaling, saturation and storm:
+//   --cells <names>        selection of cells (default: all)
+// Only storm:
+//   --clients <n>          number of clients that connect at once (default 500)
 //
-// Ergebnis: eine Datei je Kampagne und eine schedule.json für schedule.js.
+// Output: one file per campaign and a schedule.json for schedule.js.
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -66,9 +67,9 @@ mkdirSync(outDir, { recursive: true });
 const prefix = opt('prefix', '');
 const hold = Number(opt('hold', 60));
 const settle = Number(opt('settle', 10));
-// Verteilter Verbindungsaufbau als Standard aller Messphasen (DECISIONS.md
-// 5.10): Die Clients verbinden sich über die erste Hälfte der Einschwingzeit
-// verteilt, damit vor dem Messfenster ein eingeschwungener Zustand herrscht.
+// Spread connects are the default of all measurement phases (DECISIONS.md
+// 5.10). The clients connect spread over the first half of the settle time,
+// so that a steady state is reached before the measurement window.
 const spread = Number(opt('connect-spread', 5));
 if (!(spread >= 0 && spread < settle)) fail(`--connect-spread muss mindestens 0 und kleiner als --settle (${settle}) sein`);
 const warmup = Number(opt('warmup', kind === 'pilot' || kind === 'main' ? 5 : 1));
@@ -76,7 +77,7 @@ const sut = opt('sut') ? JSON.parse(readFileSync(path.resolve(opt('sut')), 'utf-
 const common = { warmupRuns: warmup, settleSeconds: settle, connectSpreadSeconds: spread, ...(sut ? { sut } : {}) };
 
 const files = [];
-// Einstellungen der Kampagne gehen den gemeinsamen vor (z. B. storm ohne Verteilung).
+// Campaign settings take precedence over the common ones (e.g. storm without spread).
 function write(name, campaign) {
   const fullName = `${prefix}${name}`;
   const file = `${fullName}.json`;
@@ -106,8 +107,8 @@ function runsPerScenario() {
   return runs;
 }
 
-// Tägliche Kontrollmessung: feste Zelle, feste Last, wenige Läufe — zeigt
-// Drift über die Wochen (DECISIONS.md 5.9).
+// Daily control measurement with a fixed cell, fixed load and few runs.
+// Shows drift over the weeks (DECISIONS.md 5.9).
 function writeControl() {
   const controlCell = opt('control', 'node-minimal-sse');
   if (!allCells.includes(controlCell)) fail(`Unbekannte Kontrollzelle: ${controlCell}`);
@@ -153,9 +154,9 @@ if (kind === 'pilot' || kind === 'main') {
     });
   }
 } else if (kind === 'storm') {
-  // Ansturm (DECISIONS.md 5.10): Die Zelle startet vor jedem Lauf neu, dann
-  // verbinden sich alle Clients im selben Moment, wie nach einem Neustart
-  // des Servers. Jede Zelle einzeln, beschreibend, ohne Hypothesentest.
+  // Storm (DECISIONS.md 5.10). The cell restarts before every run, then all
+  // clients connect at the same moment, as after a server restart. Each cell
+  // on its own, descriptive, without a hypothesis test.
   const clients = Number(opt('clients', 500));
   const runs = Number(opt('runs', 3));
   for (const cell of selectedCells()) {
@@ -180,8 +181,8 @@ if (kind === 'pilot' || kind === 'main') {
   }
 }
 
-// Zeitplanname: Verzeichnisname mit Präfix, ohne Doppelung bei z. B.
-// --prefix smoke- --out campaigns/smoke.
+// Schedule name is the directory name with prefix, without duplication for
+// e.g. --prefix smoke- --out campaigns/smoke.
 const outBase = path.basename(outDir);
 const schedule = {
   name: `${outBase}-`.startsWith(prefix) ? outBase : `${prefix}${outBase}`,

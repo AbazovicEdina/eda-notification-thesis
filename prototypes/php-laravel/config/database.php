@@ -147,11 +147,11 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            // Leer statt Laravels Default-Präfix ("laravel_database_"): der
-            // Kanal "scan-events" (DECISIONS.md 5.4) muss stacks-übergreifend
-            // gleich heißen — Node/php-minimal nutzen rohe Redis-Clients ohne
-            // Präfix. Mit dem Default hätte Laravel lautlos auf
-            // "laravel_database_scan-events" gehört statt auf "scan-events".
+            // Empty instead of Laravel's default prefix ("laravel_database_"). The
+            // channel "scan-events" (DECISIONS.md 5.4) must have the same name across
+            // stacks, Node and php-minimal use raw Redis clients without a prefix.
+            // With the default, Laravel would silently have listened on
+            // "laravel_database_scan-events" instead of "scan-events".
             'prefix' => env('REDIS_PREFIX', ''),
         ],
 
@@ -162,11 +162,11 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
-            // -1: kein Read-Timeout. scan:listen hält diese Verbindung über
-            // Redis::subscribe() dauerhaft offen; phpredis' Default-Timeout
-            // würde sonst "read error on connection" werfen, sobald länger
-            // als der Timeout kein Event ankommt (kein echter Fehler, siehe
-            // DECISIONS.md 5.4 — pro Prozess genau eine Subscription).
+            // -1 means no read timeout. scan:listen keeps this connection open
+            // permanently via Redis::subscribe(). Otherwise phpredis' default timeout
+            // would throw "read error on connection" as soon as no event arrives for
+            // longer than the timeout (not a real error, see DECISIONS.md 5.4, exactly
+            // one subscription per process).
             'read_timeout' => -1,
         ],
 

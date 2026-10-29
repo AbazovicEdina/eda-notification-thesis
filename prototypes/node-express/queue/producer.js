@@ -1,10 +1,10 @@
-// Erzeugt einen einzelnen Test-Job in der BullMQ-Queue "scan-events" — zum
-// Ausprobieren/Verifizieren des Workers. Für echte Lasttests übernimmt das
-// tools/event-simulator.
+// Creates a single test job in the BullMQ queue "scan-events", for trying
+// out and verifying the worker. For real load tests tools/event-simulator
+// takes over this role.
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 
-// BullMQ 6 erwartet in ES-Modulen eine fertige ioredis-Verbindung.
+// In ES modules BullMQ 6 expects a ready ioredis connection.
 const connection = new Redis({
   host: process.env.REDIS_HOST || 'redis',
   port: Number(process.env.REDIS_PORT || 6379),

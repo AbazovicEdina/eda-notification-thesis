@@ -5,15 +5,15 @@ namespace App\Console\Commands;
 use App\Jobs\ProcessScanEvent;
 use Illuminate\Console\Command;
 
-// Erzeugt Scan-Events mit fester Rate als Laravel-Jobs in der Queue
-// "scan-events" (Queue-Achse, DECISIONS.md 5.19). Gegenstück zum
-// Event-Simulator im Modus "queue" (BullMQ), der für die Node-Seite
-// dieselbe Rolle übernimmt: Laravel-Jobs haben ein eigenes Format, das nur
-// Laravel selbst erzeugen kann.
+// Creates scan events at a fixed rate as Laravel jobs in the queue
+// "scan-events" (queue axis, DECISIONS.md 5.19). Counterpart of the event
+// simulator in "queue" mode (BullMQ), which plays the same role for the Node
+// side. Laravel jobs have their own format that only Laravel itself can
+// create.
 //
-// Event-Format wie tools/event-simulator: Lokato-Scan plus die Messfelder
-// seq (laufende Nummer) und ts (Zeitstempel beim Einreihen in die Queue).
-// Takt nach absolutem Zeitplan (Start + seq · Intervall).
+// Event format as in tools/event-simulator, a Lokato scan plus the
+// measurement fields seq (sequence number) and ts (timestamp when queued).
+// Timing follows an absolute schedule (start + seq · interval).
 class ProduceScanEventsCommand extends Command
 {
     protected $signature = 'scan:produce {--rate= : Events pro Sekunde (Standard: RATE_PER_SECOND bzw. 1)}';

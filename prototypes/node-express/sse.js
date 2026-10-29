@@ -1,11 +1,11 @@
-// SSE-Endpunkt mit Express — inhaltlich identisch zu prototypes/node-minimal/sse.js,
-// damit der einzige Unterschied zwischen den beiden Node-Varianten der
-// Framework-Overhead von Express ist, nicht eine andere Event-Quelle
-// (dieselbe Redis-Subscription auf "scan-events", eine pro Prozess, siehe
-// DECISIONS.md 5.4). Die BullMQ-Queue in queue/ ist ein separater Baustein
-// für die volle Lokato-Pipeline (siehe queue/README.md) und speist diesen
-// Endpunkt bewusst NICHT — sonst würde die Messung Framework-Overhead und
-// Queue-Overhead vermischen.
+// SSE endpoint with Express, identical in content to prototypes/node-minimal/sse.js,
+// so that the only difference between the two Node variants is the
+// framework overhead of Express and not a different event source (the same
+// Redis subscription to "scan-events", one per process, see
+// DECISIONS.md 5.4). The BullMQ queue in queue/ is a separate building block
+// for the full Lokato pipeline (see queue/README.md) and deliberately does
+// NOT feed this endpoint, otherwise the measurement would mix framework
+// overhead and queue overhead.
 import express from 'express';
 import { createClient } from 'redis';
 

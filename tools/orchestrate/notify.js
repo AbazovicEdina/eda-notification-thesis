@@ -1,19 +1,19 @@
-// Optionale Benachrichtigung während des Dauerbetriebs (DECISIONS.md 5.14):
-// Ist NOTIFY_URL gesetzt, wird jede Nachricht als HTTP-POST mit reinem Text
-// dorthin geschickt. Das passt z. B. zu einem eigenen ntfy-Thema
-// (https://ntfy.sh/<thema>), dessen App Nachrichten aufs Handy bringt. Ohne
-// NOTIFY_URL geschieht nichts.
+// Optional notification during unattended operation (DECISIONS.md 5.14).
+// If NOTIFY_URL is set, each message is sent there as an HTTP POST with
+// plain text. This fits a personal ntfy topic (https://ntfy.sh/<topic>),
+// for example, whose app delivers the messages to a phone. Without
+// NOTIFY_URL nothing happens.
 //
-// NOTIFY_URL stammt aus der Umgebung oder, falls dort nicht gesetzt, aus der
-// .env im Repository-Wurzelverzeichnis. So gilt der Wert auch für cron-Jobs
-// und systemd-Dienste ohne eigene Umgebungsvariable.
+// NOTIFY_URL comes from the environment or, if it is not set there, from
+// the .env file in the repository root. That way the value also applies to
+// cron jobs and systemd services without their own environment variable.
 //
-// Gesendet werden nur Kampagnennamen, Zähler und Statusmeldungen — keine
-// Messdaten, keine Konfiguration, keine Schlüssel. Ein Fehler beim Senden
-// wird gemeldet, unterbricht aber nie die Messung.
+// Only campaign names, counters and status messages are sent, never
+// measurement data, configuration or keys. A failure to send is reported
+// but never interrupts the measurement.
 //
-// HTTP-Header dürfen nur ASCII enthalten; Titel mit Umlauten werden daher
-// nach RFC 2047 kodiert (von ntfy unterstützt).
+// HTTP headers may only contain ASCII, so titles with umlauts are encoded
+// according to RFC 2047 (supported by ntfy).
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';

@@ -1,7 +1,7 @@
-// WebSocket-Endpunkt mit Express (als HTTP-Server für die ws-Library) —
-// inhaltlich identisch zu prototypes/node-minimal/ws.js; siehe sse.js für
-// die Begründung, warum hier bewusst keine Express-spezifische Abweichung
-// existiert außer dem Framework selbst.
+// WebSocket endpoint with Express (as HTTP server for the ws library),
+// identical in content to prototypes/node-minimal/ws.js. See sse.js for
+// why there is deliberately no Express-specific difference here apart from
+// the framework itself.
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import { createClient } from 'redis';

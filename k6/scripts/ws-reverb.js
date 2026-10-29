@@ -1,14 +1,14 @@
-// WebSocket-Lasttest speziell für Laravel Reverb (Zelle php-laravel/WS).
+// WebSocket load test specifically for Laravel Reverb (cell php-laravel/WS).
 //
-// Reverb spricht das Pusher-Channels-Protokoll, nicht rohes JSON wie die
-// übrigen WS-Zellen (k6/scripts/ws-skeleton.js). Das ist ein Unterschied der
-// Bibliothekswahl, kein Testartefakt, und in der Arbeit zu diskutieren:
-// Reverb-Clients erhalten nach dem Handshake pusher:connection_established
-// und müssen den Kanal abonnieren, bevor Broadcasts ankommen. Reverb wird
-// über denselben Front-Nginx erreicht wie alle anderen Zellen (location
-// /app/ in infra/nginx). Messfenster, Zustellung und Verbindungsaufbau wie
-// in den anderen Skripten (k6/lib/config.js, k6/lib/delivery.js); als
-// Verbindungsaufbau zählt der abgeschlossene WebSocket-Handshake.
+// Reverb speaks the Pusher Channels protocol, not raw JSON like the other
+// WS cells (k6/scripts/ws-skeleton.js). This is a difference of library
+// choice, not a test artifact, and is to be discussed in the thesis. Reverb
+// clients receive pusher:connection_established after the handshake and
+// have to subscribe to the channel before broadcasts arrive. Reverb is
+// reached through the same front Nginx as all other cells (location /app/
+// in infra/nginx). Measurement window, delivery and connection setup as in
+// the other scripts (k6/lib/config.js, k6/lib/delivery.js). The completed
+// WebSocket handshake counts as connection setup.
 import ws from 'k6/ws';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
@@ -43,7 +43,7 @@ export default function () {
       if (message.event === 'scan') {
         const now = Date.now();
         if (now < window.start || now >= window.end) return;
-        const data = JSON.parse(message.data); // Pusher-Envelope: "data" ist ein JSON-String
+        const data = JSON.parse(message.data); // Pusher envelope, "data" is a JSON string
         eventLatency.add(now - data.ts);
         eventsReceived.add(1);
         track(tracker, data);

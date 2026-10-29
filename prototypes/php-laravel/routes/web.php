@@ -4,15 +4,15 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-// Framework-Pendant zu prototypes/php-minimal/sse.php — läuft ebenfalls
-// unter PHP-FPM (ein Worker pro offener Verbindung, DECISIONS.md 5.5) und
-// über die normale "web"-Middleware-Gruppe (Session/Cookies). Bewusst nicht
-// handoptimiert: das bildet Laravel im Standard-Zustand ab, nicht eine
-// künstlich schlanke Sonderroute.
+// Framework counterpart of prototypes/php-minimal/sse.php. Also runs under
+// PHP-FPM (one worker per open connection, DECISIONS.md 5.5) and through the
+// regular "web" middleware group (session, cookies). Deliberately not
+// hand-optimized, so it reflects Laravel in its default state rather than
+// an artificially slim special route.
 Route::get('/sse', function () {
     return new StreamedResponse(function () {
-        // SSE-Kommentar sofort senden, damit der Client den Verbindungsaufbau
-        // erkennt (siehe prototypes/php-minimal/sse.php).
+        // Send an SSE comment right away, so that the client detects the connection
+        // setup (see prototypes/php-minimal/sse.php).
         echo ": connected\n\n";
         if (ob_get_level() > 0) {
             ob_flush();

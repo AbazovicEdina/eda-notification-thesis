@@ -1,22 +1,22 @@
 #!/usr/bin/env node
-// Statusbericht für den Dauerbetrieb (DECISIONS.md 5.14): Fortschritt des
-// Zeitplans, laufende Kampagne, ungültige Läufe, Temperatur und Drosselung
-// des Testservers, Auslastung des Lastgenerators, Drift der Kontrollmessung
-// und freier Speicherplatz.
+// Status report for unattended operation (DECISIONS.md 5.14). Progress of
+// the schedule, running campaign, invalid runs, temperature and throttling
+// of the test server, load of the load generator, drift of the control
+// measurement and free disk space.
 //
-// Aufruf:
+// Usage:
 //   node tools/orchestrate/status.js [--schedule <schedule.json>] [--sut <sut.json>] [--hours 24] [--notify]
 //
-//   --schedule  Fortschritt dieses Zeitplans (vollständig, offen, abgebrochen)
-//   --sut       Datei mit dem sut-Block des Zwei-Rechner-Aufbaus (wie bei
-//               plan-campaigns.js); fragt Temperatur, Drosselstatus und
-//               Speicherplatz zusätzlich direkt auf dem Testserver ab
-//   --hours     Zeitfenster für Läufe, Temperatur und Auslastung (Standard 24)
-//   --results   anderes Ergebnisverzeichnis (Standard results/)
-//   --notify    bei Warnungen eine Benachrichtigung senden (NOTIFY_URL,
-//               notify.js), z. B. aus einem stündlichen cron-Job
+//   --schedule  progress of this schedule (complete, open, aborted)
+//   --sut       file with the sut block of the two-machine setup (as for
+//               plan-campaigns.js), additionally queries temperature,
+//               throttling status and disk space directly on the test server
+//   --hours     time window for runs, temperature and load (default 24)
+//   --results   different results directory (default results/)
+//   --notify    send a notification on warnings (NOTIFY_URL, notify.js),
+//               e.g. from an hourly cron job
 //
-// Exit-Code 0 = keine Warnung, 1 = mindestens eine Warnung.
+// Exit code 0 = no warning, 1 = at least one warning.
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync, statfsSync } from 'node:fs';
@@ -27,14 +27,14 @@ import { notify } from './notify.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
-// Warnschwellen.
+// Warning thresholds.
 const LIMITS = {
-  idleMinutes: 20,     // keine Aktivität, obwohl der Zeitplan offen ist
-  invalidRate: 0.05,   // Anteil ungültiger Läufe (Pilot, Haupt, Kontrolle)
-  tempC: 75,           // Temperatur des Pi (Drosselung ab etwa 80 °C)
-  diskFreeRatio: 0.10, // freier Speicherplatz
-  loadgenUtil: 0.8,    // mittlere Auslastung des Lastgenerators (wie run.js)
-  controlDrift: 0.20,  // Abweichung der Kontrollmessung vom ersten Wert
+  idleMinutes: 20,     // no activity although the schedule is open
+  invalidRate: 0.05,   // share of invalid runs (pilot, main, control)
+  tempC: 75,           // temperature of the Pi (throttling starts at about 80 °C)
+  diskFreeRatio: 0.10, // free disk space
+  loadgenUtil: 0.8,    // mean load of the load generator (as in run.js)
+  controlDrift: 0.20,  // deviation of the control measurement from the first value
 };
 const NON_STRICT_PHASES = new Set(['scaling', 'saturation', 'storm']);
 
@@ -79,8 +79,8 @@ function readLog(file) {
   });
 }
 
-// Alle Kampagnenverzeichnisse (chronologisch, der Name beginnt mit dem
-// Startzeitpunkt) mit Protokoll und, falls vorhanden, Auswertung.
+// All campaign directories (chronological, the name starts with the start
+// time) with their log and, if present, their evaluation.
 function loadCampaigns() {
   if (!existsSync(RESULTS_DIR)) return [];
   return readdirSync(RESULTS_DIR, { withFileTypes: true })
@@ -108,7 +108,7 @@ const isComplete = (c) => c.aggregate && !c.aggregate.aborted && c.aggregate.fin
 
 out(`Status ${new Date().toISOString()} (Zeitfenster: letzte ${hours} h)`);
 
-// 1. Zeitplan und laufende Kampagne
+// 1. Schedule and running campaign
 out('\nZeitplan');
 const latestActivity = Math.max(0, ...campaigns.map((c) => c.lastEvent));
 const schedulePath = opt('schedule');
@@ -138,15 +138,15 @@ if (schedulePath) {
     }
   }
 }
-// Ohne aggregate.json und mit jüngerer Aktivität läuft eine Kampagne noch;
-// ältere Verzeichnisse ohne aggregate.json stammen von hart beendeten Läufen.
+// Without aggregate.json and with recent activity, a campaign is still
+// running. Older directories without aggregate.json come from killed runs.
 const withoutAggregate = campaigns.filter((c) => !c.aggregate && c.events.length);
 const running = withoutAggregate.filter((c) => Date.now() - c.lastEvent < LIMITS.idleMinutes * 60000).pop();
 out(running ? `  läuft gerade: ${running.name} (letztes Ereignis ${ago(running.lastEvent)})` : '  derzeit keine laufende Kampagne');
 const killed = withoutAggregate.filter((c) => c !== running && c.lastEvent >= since);
 if (killed.length) out(`  ohne Auswertung beendet (Prozess hart beendet?): ${killed.map((c) => c.name).join(', ')}`);
 
-// 2. Läufe im Zeitfenster
+// 2. Runs in the time window
 out('\nLäufe');
 const recent = campaigns.flatMap((c) => c.events
   .filter((e) => e.event === 'run_finished' && Date.parse(e.t) >= since)
@@ -172,7 +172,7 @@ if (!recent.length) {
   if (unknown) warn(`${unknown} Läufe ohne lesbaren Drosselstatus ungültig (vcgencmd auf dem Testserver prüfen)`);
 }
 
-// 3. Temperatur und Lastgenerator aus den Lauf-Protokollen des Zeitfensters
+// 3. Temperature and load generator from the run records of the time window
 let tempMax = null;
 let loadgenMax = null;
 for (const c of campaigns.filter((x) => x.lastEvent >= since)) {
@@ -195,7 +195,7 @@ if (loadgenMax != null) {
   if (loadgenMax > LIMITS.loadgenUtil) warn(`Lastgenerator bis ${pct(loadgenMax)} ausgelastet, k6 könnte zum Engpass werden`);
 }
 
-// 4. Kontrollmessung (Median der Latenz-Mittelwerte je Kontrollkampagne)
+// 4. Control measurement (median of the mean latencies per control campaign)
 out('\nKontrollmessung');
 const controls = campaigns
   .filter((c) => c.phase === 'control' && isComplete(c))
@@ -215,7 +215,7 @@ if (!controls.length) {
   if (Math.abs(drift) > LIMITS.controlDrift) warn(`Kontrollmessung weicht um ${pct(drift)} vom Ausgangswert ab, Drift des Aufbaus prüfen`);
 }
 
-// 5. Speicherplatz des Rechners, auf dem status.js läuft (Ergebnisse)
+// 5. Disk space of the machine running status.js (results)
 out('\nSpeicherplatz');
 try {
   const s = statfsSync(existsSync(RESULTS_DIR) ? RESULTS_DIR : REPO_ROOT);
@@ -226,7 +226,7 @@ try {
   out('  Ergebnisverzeichnis: nicht ermittelbar');
 }
 
-// 6. Testserver direkt abfragen (Zwei-Rechner-Aufbau)
+// 6. Query the test server directly (two-machine setup)
 const sutPath = opt('sut');
 if (sutPath) {
   out('\nTestserver (aktuell)');
@@ -234,7 +234,7 @@ if (sutPath) {
   const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
   const r = sut?.ssh && sut.repoDir
     ? spawnSync('ssh', ['-T', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10', sut.ssh,
-      // vcgencmd ergänzt den Drosselstatus, den der Sampler auf dem Pi 5 nicht lesen kann
+      // vcgencmd adds the throttling status that the sampler cannot read on the Pi 5
       `cd ${q(sut.repoDir)} && docker compose --profile tools exec -T resource-sampler node sampler.js info && (vcgencmd get_throttled 2>/dev/null || true)`],
     { encoding: 'utf-8', timeout: 30000 })
     : null;
@@ -244,7 +244,7 @@ if (sutPath) {
       info = JSON.parse(r.stdout.split(/\r?\n/).filter((l) => l.trim().startsWith('{')).pop());
       const m = r.stdout.match(/throttled=(0x[0-9a-f]+)/i);
       if (info.throttled == null && m) info.throttled = m[1];
-    } catch { /* unvollständige Ausgabe */ }
+    } catch { /* incomplete output */ }
   }
   if (!sut?.ssh || !sut?.repoDir) {
     warn(`${sutPath} enthält kein ssh und repoDir`);
@@ -254,7 +254,7 @@ if (sutPath) {
     const bits = Number.parseInt(String(info.throttled ?? '0'), 16);
     out(`  ${info.model ?? 'unbekanntes Modell'}, ${info.temp_c == null ? 'Temperatur unbekannt' : `${info.temp_c.toFixed(1)} °C`}, Drosselstatus ${info.throttled ?? 'unbekannt'}, Governor ${info.cpu_governor ?? 'unbekannt'}`);
     if (info.temp_c != null && info.temp_c > LIMITS.tempC) warn(`Testserver aktuell ${info.temp_c.toFixed(1)} °C warm`);
-    // Bits 0 bis 3: aktuell Unterspannung, Takt begrenzt, gedrosselt, Temperaturgrenze.
+    // Bits 0 to 3: currently under-voltage, frequency capped, throttled, soft temperature limit.
     if (!Number.isNaN(bits) && (bits & 0xF) !== 0) warn(`Testserver aktuell gedrosselt (${info.throttled})`);
     if (sut.pi && info.throttled == null) warn('Drosselstatus des Testservers nicht lesbar (vcgencmd get_throttled)');
     if (info.docker_disk_free_bytes != null && info.docker_disk_total_bytes) {

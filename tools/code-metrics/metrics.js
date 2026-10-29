@@ -1,23 +1,23 @@
 #!/usr/bin/env node
-// Code- und Betriebskennzahlen je Zelle als Antwort auf die Frage nach
-// Komplexität und Wartbarkeit (DECISIONS.md 5.22). Statische Auswertung des
-// Repository-Stands, keine Laufzeitmessung. Welche Dateien und Abhängigkeiten
-// zu einer Zelle gehören, legt variants.json fest.
+// Code and operations metrics per cell, answering the question of
+// complexity and maintainability (DECISIONS.md 5.22). Static analysis of the
+// repository state, no runtime measurement. variants.json defines which
+// files and dependencies belong to a cell.
 //
-// Kennzahlen je Zelle:
-//   - eigener Anwendungscode: Dateien und Codezeilen (ohne Leer- und
-//     Kommentarzeilen)
-//   - Betriebskonfiguration: Dateien und Zeilen (Dockerfile, FPM-Pool,
-//     Startskript)
-//   - Container bzw. Prozesse der Zelle (cells.json)
-//   - direkt genutzte Abhängigkeiten und alle davon abhängigen Pakete
-//     (transitiv, aus der Lock-Datei)
-// Kennzahlen je Prototyp:
-//   - Projektumfang ohne Abhängigkeiten: Dateien und Codezeilen
-//   - installierte Produktionspakete
+// Metrics per cell:
+//   - own application code, files and lines of code (without blank and
+//     comment lines)
+//   - operations configuration, files and lines (Dockerfile, FPM pool,
+//     start script)
+//   - containers or processes of the cell (cells.json)
+//   - directly used dependencies and all packages they depend on
+//     (transitive, from the lock file)
+// Metrics per prototype:
+//   - project size without dependencies, files and lines of code
+//   - installed production packages
 //
-// Aufruf: node tools/code-metrics/metrics.js
-// Ergebnis: results/<zeitstempel>_code-metrics/metrics.json und metrics.md
+// Usage: node tools/code-metrics/metrics.js
+// Output: results/<timestamp>_code-metrics/metrics.json and metrics.md
 
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -30,9 +30,9 @@ const PROTOTYPES = path.join(REPO_ROOT, 'prototypes');
 const config = JSON.parse(readFileSync(path.join(__dirname, 'variants.json'), 'utf-8'));
 const cells = JSON.parse(readFileSync(path.join(REPO_ROOT, 'tools', 'orchestrate', 'cells.json'), 'utf-8'));
 
-// Codezeilen: ohne Leerzeilen und reine Kommentarzeilen. Erkannt werden
-// //-, #- und ;-Kommentare sowie /* ... */-Blöcke (einschließlich PHPDoc).
-// Zeilen mit Code und angehängtem Kommentar zählen als Codezeile.
+// Lines of code exclude blank lines and lines that contain only a comment.
+// Recognized are //, # and ; comments as well as /* ... */ blocks (including
+// PHPDoc). Lines with code and a trailing comment count as code.
 function countLines(file) {
   const text = readFileSync(file, 'utf-8');
   const ext = path.extname(file);
@@ -74,8 +74,8 @@ function sumLines(files) {
   }, { files: 0, code: 0, total: 0 });
 }
 
-// Projektdateien eines Prototyps ohne Abhängigkeiten, Laufzeitdaten,
-// Lock-Dateien, Dokumentation und versteckte Dateien.
+// Project files of a prototype without dependencies, runtime data, lock
+// files, documentation and hidden files.
 const SKIP_DIRS = new Set(['vendor', 'node_modules', 'storage', 'cache']);
 const CODE_EXT = new Set(['.js', '.mjs', '.php', '.conf', '.sh', '.json', '.yml', '.yaml']);
 const LOCK_FILES = new Set(['composer.lock', 'package-lock.json']);
@@ -93,8 +93,8 @@ function projectFiles(dir) {
   return out;
 }
 
-// Abhängigkeitsgraph aus der Lock-Datei: alle Pakete, die von den direkt
-// genutzten Abhängigkeiten aus erreichbar sind (einschließlich dieser).
+// Dependency graph from the lock file, all packages reachable from the
+// directly used dependencies (including these).
 function npmGraph(dir) {
   const lock = JSON.parse(readFileSync(path.join(dir, 'package-lock.json'), 'utf-8'));
   const pkgs = lock.packages ?? {};

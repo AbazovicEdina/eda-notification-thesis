@@ -1,17 +1,17 @@
-# Ergänzung für den Raspberry-Pi-Testserver (DECISIONS.md 5.6.2, 5.14).
-# Aktivierung über COMPOSE_FILE in der .env des Pi (siehe .env.example),
-# Einrichtung des Pi: infra/pi/README.md.
+# Addition for the Raspberry Pi test server (DECISIONS.md 5.6.2, 5.14).
+# Enabled via COMPOSE_FILE in the .env of the Pi (see .env.example),
+# setup of the Pi in infra/pi/README.md.
 #
-# 1. Front-Nginx und Redis werden im LAN veröffentlicht, weil k6 und die
-#    Ereignisquellen auf einem separaten Lastgenerator laufen. Redis hat
-#    keine Authentifizierung: nur in einem isolierten Messnetz betreiben,
-#    bei Bedarf PI_BIND_ADDRESS auf die Adresse der Messnetz-Schnittstelle
-#    setzen.
-# 2. Jede Messzelle läuft in ihrem eigenen cgroup-Topf (systemd-Slice
-#    eda_<zelle>.slice). CPU- und Speicherbudget gelten damit für die
-#    gesamte Zelle — z. B. für Reverb und Listener bzw. FPM-Pool und
-#    Queue-Worker gemeinsam — statt pro Container. Die Slices legt
-#    infra/pi/setup-slices.sh an; die Zuordnung Dienst -> Zelle entspricht
+# 1. The front Nginx and Redis are published on the LAN, because k6 and the
+#    event sources run on a separate load generator. Redis has no
+#    authentication, so run it only in an isolated measurement network and
+#    set PI_BIND_ADDRESS to the address of the measurement network interface
+#    if needed.
+# 2. Each measurement cell runs in its own cgroup slice (systemd slice
+#    eda_<cell>.slice). The CPU and memory budget therefore applies to the
+#    whole cell, e.g. to Reverb and listener or FPM pool and queue worker
+#    together, instead of per container. infra/pi/setup-slices.sh creates
+#    the slices. The mapping of service -> cell matches
 #    tools/orchestrate/cells.json.
 
 services:

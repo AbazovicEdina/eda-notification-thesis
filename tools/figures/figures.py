@@ -1,25 +1,25 @@
-"""Abbildungen für die schriftliche Arbeit (DECISIONS.md 5.24, 5.25).
+"""Figures for the written thesis (DECISIONS.md 5.24, 5.25).
 
-Liest die Gesamtauswertung (evaluation.json aus tools/orchestrate/evaluate.js)
-und die Auswertung von Skalierung und Sättigung (series.json aus
-tools/orchestrate/series.js) und erzeugt Vektor-PDFs für Overleaf, dazu
-figures.md mit einer Beschreibung jeder Abbildung.
+Reads the overall evaluation (evaluation.json from tools/orchestrate/evaluate.js)
+and the evaluation of scaling and saturation (series.json from
+tools/orchestrate/series.js) and produces vector PDFs for Overleaf, plus
+figures.md with a description of each figure.
 
-Aufruf im Container (Pfade relativ zum Repository oder absolut unter /results):
+Usage in the container (paths relative to the repository or absolute under /results):
     docker compose --profile tools run --rm figures \
-        --evaluation results/<zeitstempel>_evaluation \
-        --series results/<zeitstempel>_series
+        --evaluation results/<timestamp>_evaluation \
+        --series results/<timestamp>_series
 
-Ergebnis: results/<zeitstempel>_figures/*.pdf und figures.md.
+Output: results/<timestamp>_figures/*.pdf and figures.md.
 
-Gestaltung wie die TikZ-Diagramme der Arbeit (diagram-styles.tex, Palette A):
-Farbe kodiert die Sprache (PHP, Node.js) oder die Queue, Grau die gemeinsame
-Infrastruktur, die Linienart den Transport (durchgezogen SSE, gestrichelt
-WebSocket). Schrift Latin Modern Roman wie in der HagenbergThesis-Vorlage
-(lmodern, 11 pt), in den optischen Größen, die LaTeX für \\small (10 pt) und
-\\scriptsize (8 pt) verwendet, eingebettet als TrueType. Schraffur und Markierung
-halten die Abbildungen im Schwarzweißdruck lesbar. Achsenbeschriftungen auf
-Englisch, da die Arbeit auf Englisch verfasst wird.
+Styled like the TikZ diagrams of the thesis (diagram-styles.tex, palette A).
+Color encodes the language (PHP, Node.js) or the queue, gray the shared
+infrastructure, the line style the transport (solid SSE, dashed
+WebSocket). Font Latin Modern Roman as in the HagenbergThesis template
+(lmodern, 11 pt), in the optical sizes LaTeX uses for \\small (10 pt) and
+\\scriptsize (8 pt), embedded as TrueType. Hatching and markers keep the
+figures readable in black-and-white print. Axis labels are in English,
+because the thesis is written in English.
 """
 
 import argparse
@@ -42,23 +42,23 @@ from matplotlib.text import Text  # noqa: E402
 
 RESULTS = "/results"
 
-# Die Latin-Modern-Schriften haben sehr alte Zeitstempel; fontTools meldet das
-# bei jedem Einbetten, ohne Folgen für die PDFs.
+# The Latin Modern fonts carry very old timestamps. fontTools reports this
+# on every embedding, without any effect on the PDFs.
 logging.getLogger("fontTools").setLevel(logging.ERROR)
 
-# Schrift der Vorlage: hgbthesis lädt lmodern bei 11 pt. LaTeX setzt \small mit
-# der 10-pt-Größe und \scriptsize mit der 8-pt-Größe von Latin Modern Roman.
-# Alle drei Dateien tragen denselben Familiennamen, deshalb wird die Datei je
-# Text über ihre Schriftgröße gewählt (apply_fonts).
-# Die Dateien sind beim Bau des Images nach TrueType umgewandelt (otf2ttf.py).
+# Font of the template. hgbthesis loads lmodern at 11 pt. LaTeX sets \small with
+# the 10 pt size and \scriptsize with the 8 pt size of Latin Modern Roman.
+# All three files share the same family name, so the file is chosen per
+# text by its font size (apply_fonts).
+# The files are converted to TrueType when the image is built (otf2ttf.py).
 LM_DIR = "/usr/local/share/fonts/lm-ttf"
 LM_FILES = {8: f"{LM_DIR}/lmroman8-regular.ttf", 9: f"{LM_DIR}/lmroman9-regular.ttf",
             10: f"{LM_DIR}/lmroman10-regular.ttf"}
 for _path in LM_FILES.values():
     font_manager.fontManager.addfont(_path)
-SMALL, SCRIPT = 10, 8  # \small und \scriptsize der Vorlage in pt
+SMALL, SCRIPT = 10, 8  # \small and \scriptsize of the template in pt
 
-# Palette A aus diagram-styles.tex (sRGB): je Rolle Füllung, Linie und Text.
+# Palette A from diagram-styles.tex (sRGB), fill, line and text per role.
 ROLES = {
     "php": ("#EEE8F8", "#7B68B5", "#3F3366"),
     "nodejs": ("#E6F1E8", "#5E8E68", "#2E4E35"),
@@ -67,16 +67,16 @@ ROLES = {
 }
 FLOW = "#776F73"  # flow-line
 INFRA_FILL, INFRA_LINE, INFRA_TEXT = ROLES["infra"]
-GRID = "#DDDAD9"  # infra-line, auf 30 % aufgehellt
-DASHED = (0, (3, 2))  # ws-Stil der Diagramme: on 3pt off 2pt
-DOTTED = (0, (1.5, 1.5))  # lifeline-Stil der Diagramme
+GRID = "#DDDAD9"  # infra-line, lightened to 30 %
+DASHED = (0, (3, 2))  # ws style of the diagrams, on 3pt off 2pt
+DOTTED = (0, (1.5, 1.5))  # lifeline style of the diagrams
 
-WIDTH = 5.75  # Textbreite der Vorlage in Zoll (A4, 32 mm Rand je Seite)
+WIDTH = 5.75  # text width of the template in inches (A4, 32 mm margin per side)
 
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["Latin Modern Roman"],
-    "mathtext.fontset": "cm",  # nur für ≥; Computer Modern entspricht Latin Modern
+    "mathtext.fontset": "cm",  # only for ≥, Computer Modern matches Latin Modern
     "axes.formatter.use_mathtext": True,
     "axes.unicode_minus": False,
     "font.size": SMALL,
@@ -120,7 +120,7 @@ MEASURES = {
 }
 
 def role_of(cell):
-    """Farbrolle einer Variante: Queue-Varianten in der Queue-Farbe, sonst die Sprache."""
+    """Color role of a variant, queue variants in the queue color, otherwise the language."""
     if cell.endswith("-queue"):
         return "queue"
     return "nodejs" if cell.startswith("node-") else "php"
@@ -130,9 +130,9 @@ def is_ws(cell):
     return cell.endswith("-ws")
 
 
-# Vergleichsgruppen aus plan.json. Stufe nach DECISIONS.md 5.24. Die zweite
-# Box eines Paares ist schraffiert, wenn Farbe und Linienart sie im
-# Schwarzweißdruck nicht von der ersten unterscheiden.
+# Comparison groups from plan.json, tier according to DECISIONS.md 5.24. The
+# second box of a pair is hatched when color and line style do not
+# distinguish it from the first in black-and-white print.
 SETS = [
     {"key": "language", "ids": [1, 2, 3, 4], "tier": "Kern (6.2)", "hatch_b": "////", "ws": True,
      "labels": {1: "minimal, SSE", 2: "minimal, WS", 3: "framework, SSE", 4: "framework, WS"},
@@ -152,7 +152,7 @@ SETS = [
      "labels": {11: "framework, SSE with queue"},
      "legend": [("nodejs", "", "-", "Node.js (BullMQ)"), ("php", "////", "-", "PHP (Laravel Queue)")]},
 ]
-# Linienart der Transporte für jede Gruppe mit WebSocket-Vergleichen ("ws").
+# Line style of the transports for every group with WebSocket comparisons ("ws").
 TRANSPORT_LEGEND = [("infra", "", "-", "Server-Sent Events"), ("infra", "", DASHED, "WebSocket")]
 
 FAMILIES = [
@@ -161,7 +161,7 @@ FAMILIES = [
     ("php-minimal", "PHP, minimal"),
     ("php-laravel", "PHP, Laravel"),
 ]
-# Linien der Skalierungsreihe: Farbe aus der Variante, Linienart aus dem Transport.
+# Lines of the scaling series, color from the variant, line style from the transport.
 SERIES_STYLE = {
     "sse": ("Server-Sent Events", "-", "o"),
     "ws": ("WebSocket", DASHED, "^"),
@@ -171,7 +171,7 @@ SERIES_SHORT = {"sse": "SSE", "ws": "WS", "sse-queue": "SSE + queue"}
 
 
 def resolve(path):
-    """Pfad relativ zum Repository (results/...) oder absolut im Container."""
+    """Path relative to the repository (results/...) or absolute in the container."""
     if path is None:
         return None
     if path.startswith("results/") or path.startswith("results\\"):
@@ -190,7 +190,7 @@ def load(path, name):
 
 
 def apply_fonts(fig):
-    """Optische Größe von Latin Modern je Text wählen, wie LaTeX es tut."""
+    """Choose the optical size of Latin Modern per text, as LaTeX does."""
     fig.canvas.draw()
     for text in fig.findobj(Text):
         if not text.get_text():
@@ -217,7 +217,7 @@ def legend_marker(marker, color, label, filled=True):
 
 
 def fmt_delta(delta):
-    """Cliff's Delta mit echtem Minuszeichen und Vorzeichen, zwei Nachkommastellen."""
+    """Cliff's delta with a true minus sign and explicit sign, two decimal places."""
     return f"{delta:+.2f}".replace("-", "−")
 
 
@@ -246,9 +246,9 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
         notes.append(f"{measure}: keine Familie in evaluation.json")
         return None
     label, scale = MEASURES[measure]
-    # Gleicher Startwert für jede Abbildung: identische Streuung der Punkte bei jeder Neuauswertung.
+    # Same seed for every figure, so the jitter of the points is identical on every re-evaluation.
     rng = np.random.default_rng(1)
-    # Drei Laststufen untereinander, damit die Gruppennamen in einer Zeile Platz haben.
+    # Three load levels stacked vertically, so the group names fit on one line.
     fig, axes = plt.subplots(3, 1, figsize=(WIDTH, 6.9), constrained_layout=True)
     counts = []
     missing = 0
@@ -274,7 +274,7 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
                 box = ax.boxplot([data], positions=[pos], widths=0.32, patch_artist=True, showfliers=False,
                                  manage_ticks=False, whis=1.5)
                 style_box(box, role_of(cell), spec["hatch_b"] if j == 1 else "", DASHED if is_ws(cell) else "-")
-                # Jeder Lauf als Punkt, damit Verteilung und Stichprobengröße sichtbar sind.
+                # Each run as a point, so that distribution and sample size are visible.
                 jitter = rng.uniform(-0.07, 0.07, len(data))
                 ax.plot(pos + jitter, data, linestyle="none", marker="o", markersize=1.6, markeredgewidth=0,
                         color=ROLES[role_of(cell)][1], alpha=0.6, zorder=3)
@@ -286,9 +286,9 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
         ax.set_xlim(-0.6, len(spec["ids"]) - 0.4)
         ax.grid(axis="x", visible=False)
         if drawn == 0:
-            ax.set_yticks([])  # leeres Feld ohne bedeutungslose Skala
+            ax.set_yticks([])  # empty panel without a meaningless scale
             continue
-        # Achse ab null: alle Messgrößen sind verhältnisskaliert, Unterschiede werden nicht überzeichnet.
+        # Axis from zero, all measures are on a ratio scale, so differences are not exaggerated.
         ax.set_ylim(0, top * 1.2)
         for i, delta, significant in deltas:
             ax.text(i, top * 1.08, rf"$\delta$ = {fmt_delta(delta)}{'*' if significant else ''}",
@@ -299,8 +299,8 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
         entries += TRANSPORT_LEGEND
     handles = [legend_patch(*e) for e in entries]
     handles.append(legend_marker("o", INFRA_LINE, "one run"))
-    # δ und * über den Paaren erklärt die Bildunterschrift (figures.md), damit die Legende in die Textbreite passt.
-    # Je Spalte ein Paar (Sprache, Framework, Transport), damit zusammengehörige Einträge untereinander stehen.
+    # The caption (figures.md) explains δ and * above the pairs, so that the legend fits the text width.
+    # One pair per column (language, framework, transport), so that related entries are stacked.
     fig.legend(handles=handles, loc="outside upper center", ncol=(len(handles) + 1) // 2 if len(handles) > 4 else len(handles),
                handlelength=1.6, columnspacing=1.5)
     name = f"box-{measure.replace('_', '-')}-{spec['key']}.pdf"
@@ -316,7 +316,7 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
 
 
 def place_labels(ax, items, log=False):
-    """Direkte Beschriftung am Linienende, vertikal entzerrt."""
+    """Direct labels at the end of each line, spread vertically so they do not overlap."""
     if not items:
         return
     to_axis = np.log10 if log else (lambda v: v)
@@ -330,7 +330,7 @@ def place_labels(ax, items, log=False):
         if placed and y - placed[-1][1] < min_gap:
             y = placed[-1][1] + min_gap
         placed.append((x, y, text, color))
-    # Gruppe um die ursprüngliche Mitte zentrieren und im Feld halten.
+    # Center the group around the original middle and keep it inside the panel.
     shift = np.mean([it[1] for it in items]) - np.mean([p[1] for p in placed])
     shift = min(shift, y1 - placed[-1][1])
     shift = max(shift, y0 - placed[0][1])
@@ -340,7 +340,7 @@ def place_labels(ax, items, log=False):
 
 
 def scaling_figure(series, metric, out_dir, notes):
-    # Messgröße, Achsentitel, Faktor, Datei, Felder der Spannweite (run.js, scalingSummary)
+    # Measure, axis title, factor, file, fields of the range (run.js, scalingSummary)
     configs = {
         "served": ("served_ratio_median", "Served clients (%)", 100.0, "scaling-served.pdf",
                    ("served_ratio_min", "served_ratio_max")),
@@ -387,9 +387,9 @@ def scaling_figure(series, metric, out_dir, notes):
         if not ends:
             ax.text(0.5, 0.5, "no data", transform=ax.transAxes, ha="center", va="center", color=INFRA_LINE,
                     fontsize=SCRIPT)
-        ax._eda_ends = ends  # nach dem Setzen der Achsengrenzen beschriften
-    # Logarithmische y-Achse, wenn die Werte mehr als eine Größenordnung und einen Faktor 20 umspannen;
-    # sonst wären die sparsamen Varianten in der gemeinsamen Achse nicht ablesbar.
+        ax._eda_ends = ends  # label after the axis limits are set
+    # Logarithmic y axis if the values span more than an order of magnitude and a factor of 20,
+    # otherwise the frugal variants would not be readable on the shared axis.
     positive = [v for v in values if v > 0]
     log_y = metric != "served" and positive and max(positive) / min(positive) > 20
     all_steps = sorted(steps_seen) or [10, 50, 100, 250, 500, 1000]
@@ -399,8 +399,8 @@ def scaling_figure(series, metric, out_dir, notes):
             ax.set_yscale("log")
             ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
             ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
-        ax.set_xlim(7, 2600)  # Platz rechts für die direkten Beschriftungen
-        # Jede Stufe bekommt einen Strich; 750 bleibt ohne Zahl, sonst kollidiert es mit 1000.
+        ax.set_xlim(7, 2600)  # room on the right for the direct labels
+        # Every level gets a tick. 750 has no number, otherwise it collides with 1000.
         ax.set_xticks(all_steps)
         ax.set_xticklabels(["" if s == 750 else str(s) for s in all_steps], rotation=0)
         ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
@@ -410,10 +410,10 @@ def scaling_figure(series, metric, out_dir, notes):
     for ax in axes[:, 0]:
         ax.set_ylabel(label + (" (log scale)" if log_y and "\n" not in label else "\n(log scale)" if log_y else ""))
     if metric != "served" and not log_y:
-        axes[0, 0].set_ylim(bottom=0)  # lineare Achse ab null, wie bei den Boxplots
+        axes[0, 0].set_ylim(bottom=0)  # linear axis from zero, as for the box plots
     if metric == "served":
         axes[0, 0].set_ylim(bottom=max(0, axes[0, 0].get_ylim()[0]), top=101)
-        # links unter der Linie, damit es die Beschriftungen am Linienende nicht verdeckt
+        # left below the line, so it does not cover the labels at the line ends
         axes[0, 0].annotate("99 % criterion", xy=(0, 99), xycoords=("axes fraction", "data"), xytext=(4, -9),
                             textcoords="offset points", ha="left", fontsize=SCRIPT, color=INFRA_TEXT)
     fig.canvas.draw()
@@ -444,7 +444,7 @@ def saturation_figure(series, out_dir, notes):
         return None
     rates = sorted({s["rate_per_s"] for c in saturation.values() for s in c["steps"]})
     top = rates[-1] if rates else None
-    # Punktdiagramm statt Balken: das Ergebnis ist die höchste bestandene Stufe, kein stetiger Messwert.
+    # Dot plot instead of bars, because the result is the highest level passed, not a continuous value.
     fig, ax = plt.subplots(figsize=(WIDTH, 3.0), constrained_layout=True)
     offsets = {"sse": -0.22, "ws": 0.0, "sse-queue": 0.22}
     floor = rates[0] / 1.8 if rates else 1
@@ -458,14 +458,14 @@ def saturation_figure(series, out_dir, notes):
             marker = SERIES_STYLE[suffix][2]
             value = cell.get("max_sustainable_rate_per_s")
             x = i + offsets[suffix]
-            # Der Wert steht auf einer Teilstrichlinie der getesteten Stufen und braucht keine Zahl.
+            # The value sits on a grid line of the tested levels and needs no number.
             if value is None:
                 ax.plot(x, floor, linestyle="none", marker=marker, markersize=5, markerfacecolor="none",
                         markeredgecolor=line, markeredgewidth=0.8, clip_on=False)
             else:
                 ax.plot(x, value, linestyle="none", marker=marker, markersize=5, color=line, markeredgewidth=0)
                 if value >= top:
-                    # Höchste Stufe bestanden: die Grenze liegt darüber, angezeigt durch einen Pfeil nach oben.
+                    # Highest level passed, the limit lies above, shown by an upward arrow.
                     ax.annotate("", xy=(x, value * 1.55), xytext=(x, value * 1.12),
                                 arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7,
                                             "mutation_scale": 6, "shrinkA": 0, "shrinkB": 0})

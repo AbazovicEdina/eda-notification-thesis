@@ -1,6 +1,6 @@
 <?php
 
-// Kanal "scans" (siehe App\Events\ScanReceived) ist öffentlich — keine
-// Autorisierung hier nötig. Bewusst ohne privaten Kanal/Auth-Roundtrip,
-// damit WS strukturell mit den anderen drei Konfigurationen vergleichbar
-// bleibt (kein zusätzlicher Auth-Schritt, der nur PHP/Laravel beträfe).
+// The channel "scans" (see App\Events\ScanReceived) is public, so no
+// authorization is needed here. Deliberately without a private channel or
+// auth round trip, so that WS stays structurally comparable with the other
+// three configurations (no extra auth step that would affect only PHP/Laravel).

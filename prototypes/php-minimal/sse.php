@@ -1,9 +1,9 @@
 <?php
-// Minimaler SSE-Endpunkt: reines PHP, kein Framework.
-// Läuft unter PHP-FPM — ein Worker pro offener Verbindung (DECISIONS.md 5.5).
-// Eine Redis-Subscription pro Prozess (DECISIONS.md 5.4), da hier "Prozess"
-// gleich "eine Client-Verbindung" ist (FPM-Modell), ist das auch die einzige
-// im Rahmen dieser einen Verbindung nötige Subscription.
+// Minimal SSE endpoint in plain PHP, without a framework.
+// Runs under PHP-FPM, one worker per open connection (DECISIONS.md 5.5).
+// One Redis subscription per process (DECISIONS.md 5.4). Since a "process"
+// equals "one client connection" here (FPM model), this is also the only
+// subscription needed for this one connection.
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
@@ -11,10 +11,10 @@ header('Connection: keep-alive');
 
 $channel = getenv('EVENT_CHANNEL') ?: 'scan-events';
 
-// SSE-Kommentar sofort senden: schickt die Antwort-Header ab, sodass der
-// Client den Verbindungsaufbau erkennt, bevor das erste Event kommt
-// (Messgröße Verbindungsaufbau, DECISIONS.md 5.9). Clients ignorieren
-// Kommentarzeilen.
+// Send an SSE comment right away. This flushes the response headers, so the
+// client detects the connection setup before the first event arrives
+// (measure connection setup, DECISIONS.md 5.9). Clients ignore comment
+// lines.
 echo ": connected\n\n";
 if (ob_get_level() > 0) {
     ob_flush();
@@ -31,9 +31,9 @@ $redis->subscribe([$channel], function (Redis $redis, string $channel, string $m
     if (connection_aborted()) {
         exit;
     }
-    // ob_flush() nur, wenn php.ini output_buffering einen Puffer angelegt hat
-    // (Default hängt von der php.ini ab) — ohne die Prüfung wirft ob_flush()
-    // sonst eine Notice, wenn kein aktiver Puffer existiert.
+    // ob_flush() only if php.ini output_buffering has created a buffer (the
+    // default depends on the php.ini). Without this check ob_flush() raises a
+    // notice when no buffer is active.
     if (ob_get_level() > 0) {
         ob_flush();
     }

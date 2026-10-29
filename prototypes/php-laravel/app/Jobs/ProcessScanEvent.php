@@ -9,12 +9,12 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Redis;
 
-// Job der Queue-Zelle php-laravel-sse-queue (DECISIONS.md 5.19): Der Worker
-// (`queue:work`) verarbeitet ein Scan-Ereignis aus der Queue "scan-events"
-// und veröffentlicht es auf dem Redis-Kanal "notifications", den der
-// SSE-Endpunkt dieser Zelle abonniert. Die Zellen ohne Queue beziehen die
-// Ereignisse direkt über Pub/Sub (5.4), damit der Vergleich php-minimal
-// gegen php-laravel nur den Framework-Overhead zeigt. Einzelner Test-Job:
+// Job of the queue cell php-laravel-sse-queue (DECISIONS.md 5.19). The
+// worker (`queue:work`) processes a scan event from the queue "scan-events"
+// and publishes it on the Redis channel "notifications", to which the SSE
+// endpoint of this cell subscribes. The cells without a queue receive the
+// events directly via pub/sub (5.4), so that the comparison php-minimal
+// versus php-laravel shows only the framework overhead. Single test job in
 // app/Console/Commands/DispatchTestScanCommand.php.
 class ProcessScanEvent implements ShouldQueue
 {

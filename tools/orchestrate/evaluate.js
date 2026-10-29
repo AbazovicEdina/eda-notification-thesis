@@ -1,17 +1,16 @@
 #!/usr/bin/env node
-// Gesamtauswertung über alle Hauptkampagnen (DECISIONS.md 5.8, 5.9, 5.15).
+// Overall evaluation across all main campaigns (DECISIONS.md 5.8, 5.9, 5.15).
 //
-// Liest die aggregate.json mehrerer Kampagnen-Verzeichnisse, ordnet jedes
-// Ergebnis einem der vorab geplanten Vergleiche aus plan.json zu und wendet
-// auf Block 1 (konfirmatorisch) die Holm-Korrektur je Familie (eine Familie
-// pro Messgröße) über ALLE geplanten Tests an — unabhängig davon, in wie
-// vielen Kampagnen sie gemessen wurden. Geplante, aber fehlende Tests gehen
-// mit p = 1 in die Korrektur ein; so wird die Korrektur durch Weglassen
-// nicht milder. Block 2 (Replikation) wird beschreibend gegen Block 1
-// abgeglichen.
+// Reads the aggregate.json of several campaign directories, assigns each
+// result to one of the comparisons planned in advance in plan.json, and
+// applies the Holm correction per family (one family per measure) to block 1
+// (confirmatory) over ALL planned tests, regardless of how many campaigns
+// measured them. Planned but missing tests enter the correction with p = 1,
+// so leaving tests out cannot make the correction milder. Block 2
+// (replication) is compared descriptively with block 1.
 //
-// Aufruf: node tools/orchestrate/evaluate.js <kampagnen-verzeichnis>... [--include-aborted]
-// Ergebnis: results/<zeitstempel>_evaluation/evaluation.json und evaluation.md
+// Usage: node tools/orchestrate/evaluate.js <campaign-directory>... [--include-aborted]
+// Output: results/<timestamp>_evaluation/evaluation.json and evaluation.md
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -33,7 +32,7 @@ if (dirs.length === 0) {
 const plan = JSON.parse(readFileSync(path.join(__dirname, 'plan.json'), 'utf-8'));
 const notes = [];
 
-// Ergebnis eines Kampagnen-Vergleichs in Planrichtung (a = plan.a) bringen.
+// Bring the result of a campaign comparison into the planned direction (a = plan.a).
 function oriented(result, flipped) {
   if (!flipped || !result.wilcoxon) return result;
   const [lo, hi] = result.median_diff_ci95;
@@ -48,7 +47,7 @@ function oriented(result, flipped) {
   };
 }
 
-// Kampagnen laden
+// Load campaigns
 const campaigns = [];
 for (const dir of dirs) {
   const file = path.join(path.resolve(dir), 'aggregate.json');
@@ -68,8 +67,8 @@ for (const dir of dirs) {
   campaigns.push(agg);
 }
 
-// Gemessene Vergleiche den geplanten zuordnen, getrennt nach Block
-// (1 = konfirmatorisch, 2 = Replikation; DECISIONS.md 5.9).
+// Assign measured comparisons to the planned ones, separately per block
+// (1 = confirmatory, 2 = replication, DECISIONS.md 5.9).
 const found = new Map(); // key: `${planId}|${scenario}|${block}` -> { campaign, entry, flipped }
 const duplicates = [];
 for (const agg of campaigns) {
@@ -118,17 +117,17 @@ function testsFor(measure, block) {
   return tests;
 }
 
-// Familien bilden und korrigieren (konfirmatorischer Block)
+// Build and correct the families (confirmatory block)
 const families = plan.families.map((family) => {
   const corrected = holmCorrection(testsFor(family.measure, plan.confirmatoryBlock), plan.alpha);
   return { ...family, block: plan.confirmatoryBlock, alpha: plan.alpha, m: corrected.length, tests: corrected };
 });
 
-// Replikation (Block 2): stimmen Richtung und Effektklasse mit Block 1
-// überein, und überlappen die Konfidenzintervalle? Beschreibend, ohne
-// eigene Signifikanzaussage. Als repliziert gilt ein Ergebnis bei gleicher
-// Richtung und überlappenden Intervallen (plan.json, decisionRules); die
-// Effektklasse wird berichtet, ist aber keine Bedingung.
+// Replication (block 2). Do direction and effect class agree with block 1,
+// and do the confidence intervals overlap? Descriptive, without a
+// significance statement of its own. A result counts as replicated if the
+// direction is the same and the intervals overlap (plan.json, decisionRules).
+// The effect class is reported but is not a condition.
 const sign = (v) => (v == null || v === 0 ? 0 : Math.sign(v));
 const replication = plan.families.map((family) => {
   const b1 = testsFor(family.measure, plan.confirmatoryBlock);
@@ -162,9 +161,9 @@ const replication = plan.families.map((family) => {
   };
 });
 
-// Deskriptive Übersicht je Zelle und Laststufe. Eine Zelle, die in zwei
-// Kampagnen vorkommt, erscheint zweimal (je Kampagne getrennt), da die
-// Werte aus unterschiedlichen Messzeiträumen stammen.
+// Descriptive overview per cell and load level. A cell that appears in two
+// campaigns is listed twice (separately per campaign), because the values
+// come from different measurement periods.
 const descriptives = [];
 for (const agg of campaigns) {
   for (const [scenarioName, scenario] of Object.entries(agg.scenarios)) {
@@ -190,8 +189,8 @@ const evaluation = {
 };
 writeFileSync(path.join(outDir, 'evaluation.json'), JSON.stringify(evaluation, null, 2));
 
-// Markdown-Tabellen für die schriftliche Arbeit. Zahlen mit Dezimalpunkt,
-// da die Arbeit auf Englisch verfasst wird.
+// Markdown tables for the written thesis. Numbers with decimal point,
+// because the thesis is written in English.
 const fmt = (v, digits = 3) => (v == null || Number.isNaN(v) ? '–' : Number(v).toFixed(digits));
 const fmtP = (v) => (v == null ? '–' : v < 0.001 ? '< 0.001' : fmt(v));
 const lines = [
@@ -202,7 +201,7 @@ const lines = [
   'Vorzeichen: Differenz = A − B. Negative Werte bedeuten, dass A kleiner (bei Latenz, CPU und Speicher: besser) ist.',
   '',
 ];
-// Einheit der Median-Differenz je Messgröße; Speicher in MiB statt Bytes.
+// Unit of the median difference per measure, memory in MiB instead of bytes.
 const unitOf = (measure) => (measure.includes('bytes') ? { label: 'MiB', scale: 1 / 2 ** 20, digits: 1 }
   : measure.includes('seconds') ? { label: 's', scale: 1, digits: 3 } : { label: 'ms', scale: 1, digits: 3 });
 for (const family of families) {

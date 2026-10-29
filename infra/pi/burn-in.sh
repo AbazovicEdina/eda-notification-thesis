@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Belastungstest des Testservers vor dem Pilot (DECISIONS.md 5.9, 5.14):
-# Alle Kerne laufen über die angegebene Dauer unter Volllast (stress-ng),
-# währenddessen wird jede Minute Temperatur, Takt und Drosselstatus
-# protokolliert. Ziel: zeigen, dass Kühlung und Netzteil wochenlangen
-# Dauerbetrieb ohne Drosselung tragen.
+# Burn-in test of the test server before the pilot (DECISIONS.md 5.9, 5.14).
+# All cores run at full load for the given duration (stress-ng), while
+# temperature, clock frequency and throttling status are logged every
+# minute. Goal is to show that cooling and power supply sustain weeks of
+# continuous operation without throttling.
 #
-# Ausführung auf dem Pi (stress-ng: sudo apt install stress-ng):
-#   bash infra/pi/burn-in.sh [stunden]        # Standard: 24
-# Ergebnis: results/<zeitstempel>_burn-in.csv
+# Usage on the Pi (stress-ng: sudo apt install stress-ng):
+#   bash infra/pi/burn-in.sh [hours]        # default: 24
+# Output: results/<timestamp>_burn-in.csv
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."

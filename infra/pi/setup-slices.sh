@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Legt pro Messzelle eine systemd-Slice mit gemeinsamem CPU- und
-# Speicherbudget an (DECISIONS.md 5.6.2). Die Werte stammen aus der .env im
-# Repository-Wurzelverzeichnis (SUT_CPU_LIMIT, SUT_MEM_LIMIT) — dieselben
-# Werte, die docker-compose.yml pro Container setzt.
+# Creates one systemd slice per measurement cell with a shared CPU and
+# memory budget (DECISIONS.md 5.6.2). The values come from the .env in the
+# repository root (SUT_CPU_LIMIT, SUT_MEM_LIMIT), the same values that
+# docker-compose.yml sets per container.
 #
-# Ausführung auf dem Pi (einmalig und nach jeder Änderung der Limits):
+# Usage on the Pi (once and after every change of the limits):
 #   sudo infra/pi/setup-slices.sh
 set -euo pipefail
 
@@ -18,9 +18,9 @@ value() { grep -E "^$1=" .env | tail -1 | cut -d= -f2- | tr -d '\r"' ; }
 cpu="$(value SUT_CPU_LIMIT)"; cpu="${cpu:-2}"
 mem="$(value SUT_MEM_LIMIT)"; mem="${mem:-1536m}"
 
-# Bei paarweisen Kampagnen laufen zwei Zellen gleichzeitig. Zwei Limits plus
-# Reserve für System, Docker, Redis, Nginx und Sampler müssen in den
-# Arbeitsspeicher passen, sonst wäre das Budget ohne Swap nicht garantiert.
+# In paired campaigns two cells run at the same time. Two limits plus a
+# reserve for system, Docker, Redis, Nginx and sampler must fit into memory,
+# otherwise the budget would not be guaranteed without swap.
 to_bytes() {
   awk -v v="$1" 'BEGIN {
     n = v + 0; u = tolower(substr(v, length(v)))
@@ -37,12 +37,12 @@ if [ "$need_bytes" -gt "$total_bytes" ]; then
   exit 1
 fi
 
-# systemd erwartet CPUQuota in Prozent eines Kerns und Speicher mit
-# Großbuchstaben-Suffix (1536m -> 1536M).
+# systemd expects CPUQuota in percent of one core and memory with an
+# upper-case suffix (1536m -> 1536M).
 quota="$(awk -v c="$cpu" 'BEGIN { printf "%d", c * 100 }')"
 mem_sd="$(echo "$mem" | tr 'kmg' 'KMG')"
 
-# Alle Zellen aus tools/orchestrate/cells.json (Bindestriche als Unterstriche).
+# All cells from tools/orchestrate/cells.json (hyphens as underscores).
 cells="node_minimal_sse node_minimal_ws node_express_sse node_express_ws php_minimal_sse php_minimal_ws php_laravel_sse php_laravel_ws node_express_sse_queue php_laravel_sse_queue"
 
 for cell in $cells; do

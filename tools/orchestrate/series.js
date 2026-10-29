@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-// Beschreibende Auswertung der Skalierungsreihe, des Sättigungstests und des
-// Ansturms über alle Zellen (DECISIONS.md 5.9, 5.10, 5.17, 5.23). Je Zelle: die
-// Stufen mit bedienten Clients, Verbindungsaufbau, Latenz, CPU und Speicher
-// bzw. mit Zustellquote und p95-Latenz, dazu Kapazitätsgrenze und höchste
-// nachhaltige Event-Rate, beim Ansturm rechtzeitig verbundene und bediente
-// Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe. Zusätzlich
-// stehen SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen
-// H4 und H11). Keine Signifikanztests: Jede Zelle wird in einer eigenen
-// Kampagne gemessen, die Werte sind nicht gepaart.
+// Descriptive evaluation of the scaling series, the saturation test and the
+// storm across all cells (DECISIONS.md 5.9, 5.10, 5.17, 5.23). Per cell the
+// levels with served clients, connection setup, latency, CPU and memory, or
+// with delivery ratio and p95 latency, plus capacity limit and highest
+// sustainable event rate. For the storm, clients connected in time and
+// served, kernel memory peak and reasons for invalid runs. SSE and WebSocket
+// of each language and variant are also shown side by side (hypotheses H4
+// and H11). No significance tests, because each cell is measured in its own
+// campaign and the values are not paired.
 //
-// Aufruf: node tools/orchestrate/series.js <kampagnen-verzeichnis>... [--include-aborted]
-// Ergebnis: results/<zeitstempel>_series/series.json und series.md
+// Usage: node tools/orchestrate/series.js <campaign-directory>... [--include-aborted]
+// Output: results/<timestamp>_series/series.json and series.md
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -56,7 +56,7 @@ for (const dir of dirs) {
     const cell = agg.configs.find((c) => c.name === configName)?.cell ?? configName;
     const target = series[agg.phase];
     if (target[cell]) duplicates.push(`${agg.phase} ${cell}: ${target[cell].campaign} und ${agg.campaign_dir}`);
-    // Beim Ansturm ist der Eintrag eine Liste von Stufen (stormSummary in run.js).
+    // For the storm the entry is a list of levels (stormSummary in run.js).
     target[cell] = Array.isArray(entry)
       ? { campaign: agg.campaign_dir, config: configName, steps: entry }
       : { campaign: agg.campaign_dir, config: configName, criteria: summary.criteria, ...entry };
@@ -68,8 +68,8 @@ if (duplicates.length) {
   process.exit(1);
 }
 
-// SSE- und WebSocket-Zelle derselben Sprache und Variante (ohne Queue-Zellen,
-// zu denen es keine WebSocket-Entsprechung gibt).
+// SSE and WebSocket cell of the same language and variant (without the queue
+// cells, which have no WebSocket counterpart).
 const transportPairs = [...new Set(Object.keys({ ...series.scaling, ...series.saturation })
   .filter((c) => /-(sse|ws)$/.test(c))
   .map((c) => c.replace(/-(sse|ws)$/, '')))]
@@ -106,7 +106,7 @@ writeFileSync(path.join(outDir, 'series.json'), JSON.stringify({
   transport,
 }, null, 2));
 
-// Markdown mit Dezimalpunkt (die Arbeit wird auf Englisch verfasst).
+// Markdown with decimal point (the thesis is written in English).
 const num = (v, digits = 1) => (v == null || Number.isNaN(v) ? '–' : Number(v).toFixed(digits));
 const pct = (v) => (v == null ? '–' : `${(100 * v).toFixed(1)} %`);
 const mib = (v) => (v == null ? '–' : (v / 2 ** 20).toFixed(0));
@@ -182,7 +182,7 @@ if (transport.length) {
   lines.push('Gleiche Sprache und Variante, unterschiedlicher Transport. Beschreibend, da die Zellen in getrennten Kampagnen gemessen werden. Gepaarte Tests zum Transport enthalten nur die Vergleiche 12 und 13 der Hauptmessung (evaluation.md).', '');
   lines.push('| Variante | Kapazitätsgrenze SSE | Kapazitätsgrenze WS | höchste Rate SSE (Events/s) | höchste Rate WS (Events/s) |');
   lines.push('|---|---|---|---|---|');
-  // „–" = nicht gemessen; „nicht erreicht" bzw. „keine" = gemessen, Kriterium nie bzw. schon auf der ersten Stufe verfehlt.
+  // "–" = not measured. "nicht erreicht" or "keine" = measured, the criterion was never missed or already missed at the first level.
   const val = (v, measured, none) => (measured ? (v ?? none) : '–');
   for (const t of transport) {
     const { scaling: ms, saturation: mr } = t.measured;

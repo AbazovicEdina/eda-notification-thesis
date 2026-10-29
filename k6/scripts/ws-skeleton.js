@@ -1,7 +1,7 @@
-// WebSocket-Lasttest für die Zellen mit rohem JSON über WS (node-minimal,
-// node-express, php-minimal; natives k6/ws). Gleiches Messprinzip wie beim
-// SSE-Test: Messfenster nach der Einschwingzeit, Latenz = Empfang − ts,
-// Zustellung und Verbindungsaufbau über k6/lib/delivery.js.
+// WebSocket load test for the cells with raw JSON over WS (node-minimal,
+// node-express, php-minimal, native k6/ws). Same measurement principle as
+// the SSE test, measurement window after the settle time, latency =
+// receive − ts, delivery and connection setup via k6/lib/delivery.js.
 import ws from 'k6/ws';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';

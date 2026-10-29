@@ -1,5 +1,5 @@
-// Prüft stats.js und pairing.js gegen von Hand gerechnete Werte.
-// Ausführen: node --test tools/orchestrate/test
+// Checks stats.js and pairing.js against values calculated by hand.
+// Run with: node --test tools/orchestrate/test/stats.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -16,7 +16,7 @@ test('describe: Mittelwert, Median (gerade n), Stichproben-Varianz', () => {
   assert.equal(d.n, 4);
   assert.equal(d.mean, 2.5);
   assert.equal(d.median, 2.5);
-  close(d.variance, 1.6667); // Σ(x − 2,5)² / (n − 1) = 5 / 3
+  close(d.variance, 1.6667); // Σ(x − 2.5)² / (n − 1) = 5 / 3
   assert.equal(d.min, 1);
   assert.equal(d.max, 4);
 });
@@ -39,17 +39,17 @@ test('Wilcoxon exakt, n = 6, W = 0: p = 2/64 (Tabellen-Kritischwert für α = 0,
 });
 
 test('Wilcoxon exakt, n = 6, W = 2: p = 2 · 3/64', () => {
-  // Differenzen 1, −2, 3, 4, 5, 6 -> W− = 2; Teilmengen der Ränge mit
-  // Summe ≤ 2: {}, {1}, {2} -> 3 von 64
+  // Differences 1, −2, 3, 4, 5, 6 -> W− = 2. Subsets of the ranks with
+  // sum ≤ 2 are {}, {1}, {2} -> 3 of 64
   const w = wilcoxonSignedRank([2, 1, 4, 5, 6, 7], [1, 3, 1, 1, 1, 1]);
   assert.equal(w.W, 2);
   close(w.pValue, 0.09375);
 });
 
 test('Wilcoxon mit Bindungen: Normalapproximation mit Bindungskorrektur', () => {
-  // Differenzen −2, 2, −5, 2, −5 -> |d| 2,2,2 (Rang 2) und 5,5 (Rang 4,5)
-  // W+ = 4, W− = 11, W = 4; Var = 5·6·11/24 − (3³−3 + 2³−2)/48 = 13,125
-  // z = (|4 − 7,5| − 0,5) / √13,125 = 0,8281 -> p = 0,4077
+  // Differences −2, 2, −5, 2, −5 -> |d| 2,2,2 (rank 2) and 5,5 (rank 4.5)
+  // W+ = 4, W− = 11, W = 4. Var = 5·6·11/24 − (3³−3 + 2³−2)/48 = 13.125
+  // z = (|4 − 7.5| − 0.5) / √13.125 = 0.8281 -> p = 0.4077
   const w = wilcoxonSignedRank([10, 20, 30, 40, 50], [12, 18, 35, 38, 55]);
   assert.equal(w.wPlus, 4);
   assert.equal(w.wMinus, 11);
@@ -82,7 +82,7 @@ test('Holm: Schwellen, Abbruch und adjustierte p-Werte', () => {
   assert.deepEqual(r.map((t) => t.significant), [true, false, false, true]);
   close(r[3].holmAlpha, 0.0125);
   close(r[0].holmAlpha, 0.05 / 3);
-  // adjustiert: 4·0,005 = 0,02; 3·0,01 = 0,03; 2·0,03 = 0,06; max(0,06, 1·0,04) = 0,06
+  // adjusted: 4·0.005 = 0.02, 3·0.01 = 0.03, 2·0.03 = 0.06, max(0.06, 1·0.04) = 0.06
   assert.deepEqual(r.map((t) => Number(t.pHolm.toFixed(4))), [0.03, 0.06, 0.06, 0.02]);
 });
 

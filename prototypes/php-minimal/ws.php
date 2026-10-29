@@ -1,13 +1,13 @@
 <?php
-// Minimaler WebSocket-Endpunkt: Ratchet (ReactPHP), kein Framework.
-// PHP-FPM kann keine dauerhaften WS-Verbindungen halten (DECISIONS.md 5.5)
-// — Ratchet ist hier das Gegenstück zu Reverb in php-laravel, für die
-// Minimalvariante. Läuft als eigener, dauerhafter Prozess (kein FPM).
+// Minimal WebSocket endpoint with Ratchet (ReactPHP), without a framework.
+// PHP-FPM cannot hold long-lived WS connections (DECISIONS.md 5.5), so
+// Ratchet is the counterpart of Reverb in php-laravel for the minimal
+// variant. Runs as its own long-running process (no FPM).
 //
-// Eine Redis-Subscription pro Prozess (DECISIONS.md 5.4): über den
-// asynchronen Client clue/redis-react, damit das Abonnement im selben
-// Event-Loop wie der Ratchet-Server läuft, statt den Prozess zu blockieren
-// (ein blockierendes phpredis-subscribe() würde den WS-Server einfrieren).
+// One Redis subscription per process (DECISIONS.md 5.4), through the
+// asynchronous client clue/redis-react, so that the subscription runs in
+// the same event loop as the Ratchet server instead of blocking the process
+// (a blocking phpredis subscribe() would freeze the WS server).
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -36,7 +36,7 @@ class ScanBroadcaster implements MessageComponentInterface
 
     public function onMessage(ConnectionInterface $from, $msg): void
     {
-        // Clients senden nichts — reine Server-zu-Client-Zustellung.
+        // Clients send nothing, delivery is purely server to client.
     }
 
     public function onClose(ConnectionInterface $conn): void
@@ -64,20 +64,20 @@ $port = (int) (getenv('PORT') ?: 8080);
 
 $broadcaster = new ScanBroadcaster();
 
-// Eine einzige, geteilte Event-Loop für Redis-Client und WS-Server: Ratchets
-// IoServer::factory() legt sonst intern eine EIGENE, neue Loop an (siehe
-// Ratchet\Server\IoServer::factory()) — der Redis-Client liefe dann auf
-// einer Loop, die nie tatsächlich ausgeführt wird, und das Abonnement
-// würde nie aktiv (genau dieser Fehler trat beim Testen auf: PUBSUB
-// CHANNELS blieb leer, obwohl subscribe() aufgerufen wurde). Deshalb hier
-// manuell verdrahtet statt der Kurzform IoServer::factory(...).
+// A single shared event loop for the Redis client and the WS server.
+// Otherwise Ratchet's IoServer::factory() creates its OWN new loop
+// internally (see Ratchet\Server\IoServer::factory()). The Redis client
+// would then run on a loop that is never executed, and the subscription
+// would never become active (exactly this error occurred during testing,
+// PUBSUB CHANNELS stayed empty although subscribe() was called). Hence the
+// manual wiring here instead of the shorthand IoServer::factory(...).
 $loop = Loop::get();
 
-// createClient() statt createLazyClient(): LazyClient ist für kurzlebige,
-// gelegentliche Befehle gedacht und schließt die Verbindung nach einer
-// Idle-Zeit automatisch wieder — ungeeignet für ein dauerhaftes Pub/Sub-
-// Abonnement. createClient() liefert eine Promise, die erst nach
-// tatsächlichem Verbindungsaufbau aufgelöst wird; erst darin abonnieren.
+// createClient() instead of createLazyClient(). LazyClient is meant for
+// short-lived, occasional commands and closes the connection automatically
+// after an idle time, which is unsuitable for a permanent pub/sub
+// subscription. createClient() returns a promise that resolves only once
+// the connection is actually established, so subscribe only inside it.
 (new RedisFactory($loop))->createClient("redis://{$redisHost}:{$redisPort}")->then(function ($redis) use ($channel, $broadcaster) {
     $redis->subscribe($channel);
     $redis->on('message', function (string $chan, string $message) use ($broadcaster) {

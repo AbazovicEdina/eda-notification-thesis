@@ -1,15 +1,16 @@
-# k6 mit SSE-Extension (xk6-sse) — k6 kann SSE nicht nativ.
-# Build läuft komplett im Container (Multi-Stage): kein lokales Go nötig,
-# identisch auf Windows/macOS/Linux. Siehe DECISIONS.md, Abschnitte 2 und 3.
+# k6 with the SSE extension (xk6-sse), because k6 cannot do SSE natively.
+# The build runs entirely in the container (multi-stage), so no local Go is
+# needed and it is identical on Windows, macOS and Linux. See DECISIONS.md,
+# sections 2 and 3.
 #
-# WICHTIG: k6 muss auf v1.x gepinnt bleiben. xk6 baut ohne Versionsangabe
-# k6 v2 (Modulpfad go.k6.io/k6/v2); xk6-sse hängt am v1-Modulpfad und wird
-# dann zwar kompiliert, aber nie aktiv ("conflicting k6 versions"-Warnung,
-# k6/x/sse ist zur Laufzeit unbekannt). v1.2.1 = die Version aus dem go.mod
-# von xk6-sse v0.1.12.
-# Builder ebenfalls gepinnt (1.4.7 = Version des Machbarkeitsnachweises):
-# ein ungepinnter Builder kann das Build-Verhalten still ändern — genau die
-# Fehlerklasse, die den v2-Konflikt oben verursacht hat.
+# IMPORTANT: k6 must stay pinned to v1.x. Without a version, xk6 builds
+# k6 v2 (module path go.k6.io/k6/v2). xk6-sse depends on the v1 module path
+# and is then compiled but never active ("conflicting k6 versions" warning,
+# k6/x/sse is unknown at runtime). v1.2.1 is the version from the go.mod of
+# xk6-sse v0.1.12.
+# The builder is pinned as well (1.4.7 = version of the feasibility check).
+# An unpinned builder can silently change the build behavior, which is
+# exactly the class of error that caused the v2 conflict above.
 FROM grafana/xk6:1.4.7@sha256:16a4044c63bbef291bd51c9213fdcfaee7342d0fac2c9bb9ec64eca23ac35377 AS builder
 WORKDIR /build
 RUN xk6 build v1.2.1 --with github.com/phymbert/xk6-sse@v0.1.12 --output /build/k6

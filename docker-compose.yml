@@ -1,35 +1,35 @@
-# Portable Basis — gilt unverändert auf jeder Umgebung (lokal wie auf dem
-# Raspberry-Pi-Testserver). Umgebungsspezifisches gehört in eine
-# Ergänzungsdatei (lokal: docker-compose.override.yml; Pi:
-# docker-compose.pi.yml, siehe infra/pi/README.md), alle Parameter in die
-# .env. Hier nichts hartcodieren.
+# Portable base, applies unchanged to every environment (locally and on the
+# Raspberry Pi test server). Environment-specific settings belong in an
+# additional file (locally docker-compose.override.yml, on the Pi
+# docker-compose.pi.yml, see infra/pi/README.md), all parameters in the
+# .env. Do not hard-code anything here.
 
-# Höheres File-Descriptor-Limit für alle Container, die viele gleichzeitige
-# SSE/WS-Verbindungen halten (README, Abschnitt "Dateideskriptor-Limits"):
-# Jede Verbindung braucht mehrere FDs, der übliche Linux-Default (oft 1024)
-# reicht für 500 und mehr Clients nicht.
+# Higher file descriptor limit for all containers that hold many concurrent
+# SSE/WS connections (README, section "Dateideskriptor-Limits"). Each
+# connection needs several FDs, and the usual Linux default (often 1024) is
+# not enough for 500 and more clients.
 x-high-nofile: &high-nofile
   ulimits:
     nofile:
       soft: 8192
       hard: 8192
 
-# Identische Ressourcen-Limits für die gemessenen Container (DECISIONS.md
-# 5.6.2, 5.10). `cpus`/`mem_limit` (nicht `deploy.resources.limits`) wirken
-# unter reinem `docker compose up`; `deploy.*` greift nur im Swarm-Modus.
-# Speicher 1536m (Raspberry Pi 5 mit 4 GB, DECISIONS.md 5.10). Mit über
-# 5 s verteiltem Verbindungsaufbau bleibt auch php-laravel/SSE bei 500
-# Clients mit rund 30 % Abstand darunter.
-# Auf dem Pi begrenzt zusätzlich ein gemeinsamer cgroup-Topf pro ZELLE
-# (docker-compose.pi.yml), da Zellen aus mehreren Containern bestehen können.
-# memswap_limit = mem_limit: kein zusätzlicher Swap für den Container.
+# Identical resource limits for the measured containers (DECISIONS.md
+# 5.6.2, 5.10). `cpus`/`mem_limit` (not `deploy.resources.limits`) take
+# effect under plain `docker compose up`, `deploy.*` only applies in swarm mode.
+# Memory 1536m (Raspberry Pi 5 with 4 GB, DECISIONS.md 5.10). With client
+# connects spread over 5 s, php-laravel/SSE at 500 clients also stays below
+# it with a margin of about 30 %.
+# On the Pi a shared cgroup slice per CELL limits additionally
+# (docker-compose.pi.yml), because cells can consist of several containers.
+# memswap_limit = mem_limit means no additional swap for the container.
 x-sut-resources: &sut-resources
   cpus: "${SUT_CPU_LIMIT:-2}"
   mem_limit: "${SUT_MEM_LIMIT:-1536m}"
   memswap_limit: "${SUT_MEM_LIMIT:-1536m}"
 
-# Log-Rotation für alle Dienste: Ohne Begrenzung wachsen die Container-Logs
-# bei wochenlangen Kampagnen unbegrenzt (DECISIONS.md 5.14).
+# Log rotation for all services. Without a limit the container logs grow
+# without bound during campaigns lasting several weeks (DECISIONS.md 5.14).
 x-logging: &default-logging
   logging:
     driver: json-file
@@ -37,10 +37,10 @@ x-logging: &default-logging
       max-size: "10m"
       max-file: "3"
 
-# Produktionsbetrieb nach offizieller Dokumentation (DECISIONS.md 5.5).
-# Für die Fehlersuche lokal per .env umschaltbar; tools/orchestrate
-# protokolliert den Modus und bricht Pilot- und Hauptkampagnen ab, wenn eine
-# Zelle nicht im Produktionsbetrieb läuft.
+# Production mode according to the official documentation (DECISIONS.md 5.5).
+# Can be switched locally via .env for debugging. tools/orchestrate logs the
+# mode and aborts pilot and main campaigns if a cell does not run in
+# production mode.
 x-laravel-env: &laravel-env
   APP_ENV: ${LARAVEL_APP_ENV:-production}
   APP_DEBUG: ${LARAVEL_APP_DEBUG:-false}
@@ -52,8 +52,8 @@ x-node-env: &node-env
   REDIS_URL: redis://redis:6379
 
 services:
-  # Event-Backbone (DECISIONS.md 5.4): Redis Pub/Sub für die Zustellung,
-  # BullMQ und Laravel Queue für die Queue-Achse (DECISIONS.md 5.19).
+  # Event backbone (DECISIONS.md 5.4). Redis pub/sub for delivery, BullMQ and
+  # Laravel Queue for the queue axis (DECISIONS.md 5.19).
   redis:
     <<: *default-logging
     image: redis:8.10.2-alpine@sha256:9f8d2d789b9a1d1e3f283f979aa9cbf393373806472e1ccd460e2f9c869b833b
@@ -63,7 +63,7 @@ services:
       timeout: 2s
       retries: 15
 
-  # Minimaler SSE-Server der xk6-sse-Machbarkeitsprüfung (kein Prototyp).
+  # Minimal SSE server of the xk6-sse feasibility check (not a prototype).
   sse-feasibility:
     <<: *default-logging
     build: ./tools/sse-feasibility
@@ -71,13 +71,13 @@ services:
       PORT: ${SSE_FEASIBILITY_PORT:-8081}
       EVENT_INTERVAL_MS: ${SSE_EVENT_INTERVAL_MS:-1000}
 
-  # --- Ereignisquellen (Lastseite) ------------------------------------------
-  # Ersetzen die RFID/MQTT-Hardware aus Lokato. tools/orchestrate startet pro
-  # Laststufe die Quellen, die die Zellen der Kampagne brauchen.
-  # SIMULATOR_REDIS_HOST: auf dem separaten Lastgenerator die Adresse des Pi
-  # (infra/pi/README.md), lokal der Compose-Service `redis`.
+  # --- Event sources (load side) ---------------------------------------------
+  # Replace the RFID/MQTT hardware of Lokato. Per load level, tools/orchestrate
+  # starts the sources needed by the cells of the campaign.
+  # SIMULATOR_REDIS_HOST is the address of the Pi on the separate load
+  # generator (infra/pi/README.md), locally the Compose service `redis`.
 
-  # Pub/Sub direkt auf scan-events (alle Zellen ohne Queue).
+  # Pub/sub directly on scan-events (all cells without a queue).
   event-simulator:
     <<: *default-logging
     build: ./tools/event-simulator
@@ -94,7 +94,7 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
-  # BullMQ-Jobs in die Queue scan-events (Zelle node-express-sse-queue).
+  # BullMQ jobs into the queue scan-events (cell node-express-sse-queue).
   event-simulator-bullmq:
     <<: *default-logging
     image: eda-thesis-event-simulator:latest
@@ -109,8 +109,8 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
-  # Laravel-Jobs in die Queue scan-events (Zelle php-laravel-sse-queue).
-  # Laravel-Jobs haben ein eigenes Format, das nur Laravel erzeugen kann
+  # Laravel jobs into the queue scan-events (cell php-laravel-sse-queue).
+  # Laravel jobs have their own format that only Laravel can create
   # (app/Console/Commands/ProduceScanEventsCommand.php).
   laravel-producer:
     <<: *default-logging
@@ -127,8 +127,8 @@ services:
         condition: service_healthy
     profiles: ["tools"]
 
-  # Abbildungen für die schriftliche Arbeit (tools/figures/README.md), einmalig
-  # per `docker compose --profile tools run --rm figures ...`.
+  # Figures for the written thesis (tools/figures/README.md), run once
+  # via `docker compose --profile tools run --rm figures ...`.
   figures:
     <<: *default-logging
     build: ./tools/figures
@@ -137,8 +137,8 @@ services:
       - ./results:/results
     profiles: ["tools"]
 
-  # k6 mit xk6-sse — startet nicht bei `up`, sondern per:
-  #   docker compose --profile load run --rm k6 run scripts/<skript>.js
+  # k6 with xk6-sse. Does not start with `up`, but via:
+  #   docker compose --profile load run --rm k6 run scripts/<script>.js
   k6:
     <<: *default-logging
     build: ./k6
@@ -152,11 +152,11 @@ services:
       - ./k6:/k6:ro
       - ./results:/results
 
-  # Ressourcen-Messung pro Lauf (DECISIONS.md 5.16): liest CPU-Zeit und
-  # Speicher direkt aus den cgroup-Dateien (exakt, kaum Eigenlast). `cgroup:
-  # host` macht die cgroup-Hierarchie des Hosts lesend sichtbar. Läuft auf
-  # der SUT-Seite (Zellen, Redis) und auf der Lastseite (Auslastung des
-  # Lastgenerators); siehe tools/resource-sampler.
+  # Resource measurement per run (DECISIONS.md 5.16). Reads CPU time and
+  # memory directly from the cgroup files (exact, hardly any load of its own).
+  # `cgroup: host` makes the host's cgroup hierarchy visible read-only. Runs on
+  # the SUT side (cells, Redis) and on the load side (load of the load
+  # generator), see tools/resource-sampler.
   resource-sampler:
     <<: *default-logging
     build: ./tools/resource-sampler
@@ -165,10 +165,10 @@ services:
     init: true
     profiles: ["tools"]
 
-  # Front-Nginx vor der jeweils gemessenen Zelle (DECISIONS.md 5.6.1).
-  # SUT_MODE wählt das Template: "http" (Reverse-Proxy für Node.js, Ratchet,
-  # Reverb) oder "fastcgi" (direkt zu PHP-FPM). SUT_HOST/SUT_PORT und die
-  # SUT_FASTCGI_*-Werte setzt tools/orchestrate pro Zelle (cells.json).
+  # Front Nginx in front of the cell currently measured (DECISIONS.md 5.6.1).
+  # SUT_MODE selects the template, "http" (reverse proxy for Node.js, Ratchet,
+  # Reverb) or "fastcgi" (directly to PHP-FPM). tools/orchestrate sets
+  # SUT_HOST/SUT_PORT and the SUT_FASTCGI_* values per cell (cells.json).
   nginx:
     <<: [*high-nofile, *default-logging]
     image: nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94
@@ -183,9 +183,9 @@ services:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./infra/nginx/templates/${SUT_MODE:-http}:/etc/nginx/templates:ro
 
-  # --- Node-Minimalvariante: http-Modul / ws-Library, kein Framework -----
-  # Ein Redis-Subscriber pro Prozess (DECISIONS.md 5.4); nur die Zellen der
-  # laufenden Kampagne laufen (DECISIONS.md 5.6.3).
+  # --- Node minimal variant: http module / ws library, no framework --------
+  # One Redis subscriber per process (DECISIONS.md 5.4). Only the cells of the
+  # running campaign are running (DECISIONS.md 5.6.3).
   node-minimal-sse:
     <<: [*high-nofile, *sut-resources, *default-logging]
     build: ./prototypes/node-minimal
@@ -211,10 +211,10 @@ services:
         condition: service_healthy
     profiles: ["node-minimal"]
 
-  # --- PHP-Minimalvariante: reines PHP, kein Framework -------------------
-  # SSE: PHP-FPM, ein Worker pro Verbindung (DECISIONS.md 5.5); der
-  # Front-Nginx spricht FastCGI direkt mit diesem Pool (Modus "fastcgi").
-  # WS: eigener Dauerprozess mit Ratchet/ReactPHP, spricht HTTP/WS selbst.
+  # --- PHP minimal variant: plain PHP, no framework ------------------------
+  # SSE: PHP-FPM, one worker per connection (DECISIONS.md 5.5). The front
+  # Nginx speaks FastCGI directly to this pool ("fastcgi" mode).
+  # WS: own long-running process with Ratchet/ReactPHP, speaks HTTP/WS itself.
   php-minimal-fpm:
     <<: [*high-nofile, *sut-resources, *default-logging]
     build: ./prototypes/php-minimal
@@ -242,11 +242,11 @@ services:
         condition: service_healthy
     profiles: ["php-minimal"]
 
-  # --- Laravel: SSE über PHP-FPM, WS über Reverb ---------------------------
-  # Ein Image (prototypes/php-laravel/Dockerfile) für alle Prozesse. Jeder
-  # startet über laravel-start (Caches im Produktionsbetrieb, docker/start.sh).
-  # env_file statt gebackenem .env im Image, damit Secrets (APP_KEY,
-  # REVERB_*) nie im Image landen; environment überschreibt den Modus.
+  # --- Laravel: SSE via PHP-FPM, WS via Reverb -----------------------------
+  # One image (prototypes/php-laravel/Dockerfile) for all processes. Each one
+  # starts via laravel-start (caches in production mode, docker/start.sh).
+  # env_file instead of a .env baked into the image, so that secrets
+  # (APP_KEY, REVERB_*) never end up in the image. environment overrides the mode.
   php-laravel-fpm:
     <<: [*high-nofile, *sut-resources, *default-logging]
     build: ./prototypes/php-laravel
@@ -272,7 +272,7 @@ services:
         condition: service_healthy
     profiles: ["php-laravel"]
 
-  # Redis -> Reverb (scan:listen). Gehört zur Zelle php-laravel/WS.
+  # Redis -> Reverb (scan:listen). Belongs to the cell php-laravel/WS.
   php-laravel-listener:
     <<: *default-logging
     image: eda-thesis-php-laravel:latest
@@ -285,10 +285,10 @@ services:
         condition: service_healthy
     profiles: ["php-laravel"]
 
-  # --- Queue-Achse, PHP (DECISIONS.md 5.19) --------------------------------
-  # Zelle php-laravel-sse-queue: Laravel-Worker verarbeitet die Jobs aus
-  # scan-events und veröffentlicht auf notifications; ein eigener FPM-Pool
-  # mit derselben SSE-Route abonniert notifications statt scan-events.
+  # --- Queue axis, PHP (DECISIONS.md 5.19) ---------------------------------
+  # Cell php-laravel-sse-queue. A Laravel worker processes the jobs from
+  # scan-events and publishes on notifications. A separate FPM pool with the
+  # same SSE route subscribes to notifications instead of scan-events.
   php-laravel-fpm-queue:
     <<: [*high-nofile, *sut-resources, *default-logging]
     image: eda-thesis-php-laravel:latest
@@ -302,8 +302,8 @@ services:
         condition: service_healthy
     profiles: ["php-laravel-queue"]
 
-  # block_for: Worker wartet blockierend auf Jobs statt bei leerer Queue
-  # 3 s zu schlafen (dokumentierte Laravel-Einstellung, DECISIONS.md 5.20).
+  # block_for: the worker waits blocking for jobs instead of sleeping 3 s
+  # while the queue is empty (documented Laravel setting, DECISIONS.md 5.20).
   php-laravel-queue-worker:
     <<: *default-logging
     image: eda-thesis-php-laravel:latest
@@ -317,9 +317,9 @@ services:
         condition: service_healthy
     profiles: ["php-laravel-queue"]
 
-  # --- Express-Variante ------------------------------------------------------
-  # sse.js/ws.js sind inhaltlich identisch zu node-minimal (Express statt
-  # http-Modul), siehe dortige Kommentare.
+  # --- Express variant -------------------------------------------------------
+  # sse.js/ws.js are identical in content to node-minimal (Express instead of
+  # the http module), see the comments there.
   node-express-sse:
     <<: [*high-nofile, *sut-resources, *default-logging]
     build: ./prototypes/node-express
@@ -345,10 +345,10 @@ services:
         condition: service_healthy
     profiles: ["node-express"]
 
-  # --- Queue-Achse, Node.js (DECISIONS.md 5.19) ----------------------------
-  # Zelle node-express-sse-queue: BullMQ-Worker verarbeitet die Jobs aus
-  # scan-events und veröffentlicht auf notifications; ein eigener
-  # SSE-Prozess abonniert notifications statt scan-events.
+  # --- Queue axis, Node.js (DECISIONS.md 5.19) -----------------------------
+  # Cell node-express-sse-queue. A BullMQ worker processes the jobs from
+  # scan-events and publishes on notifications. A separate SSE process
+  # subscribes to notifications instead of scan-events.
   node-express-sse-queue:
     <<: [*high-nofile, *sut-resources, *default-logging]
     image: eda-thesis-node-express:latest
@@ -374,7 +374,7 @@ services:
         condition: service_healthy
     profiles: ["node-express-queue"]
 
-  # Einzelner Test-Job zum manuellen Ausprobieren des Workers.
+  # Single test job for trying out the worker by hand.
   node-express-producer:
     <<: *default-logging
     image: eda-thesis-node-express:latest

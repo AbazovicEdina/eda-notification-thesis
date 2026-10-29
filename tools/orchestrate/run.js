@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-// Orchestrierung der Messkampagnen (DECISIONS.md 5.6–5.9, 5.16–5.19).
+// Orchestration of the measurement campaigns (DECISIONS.md 5.6–5.9, 5.16–5.19).
 //
-// Eine Kampagne misst Zellen aus cells.json über eine oder mehrere
-// Laststufen; bei zwei oder mehr Konfigurationen im alternierenden Design
-// A, B, A, B. Pro Lauf entsteht eine vollständige JSON-Datei (k6-Ergebnis,
-// Zustellung, Verbindungsaufbau, Ressourcen von Zelle, Redis und
-// Lastgenerator, Kontext), dazu ein fortlaufendes Kampagnen-Log (JSON
-// Lines) und am Ende eine Kampagnen-Auswertung (aggregate.json). Die
-// Holm-Korrektur über alle Kampagnen erfolgt getrennt in evaluate.js.
+// A campaign measures cells from cells.json over one or more load levels,
+// with two or more configurations in the alternating design A, B, A, B.
+// Each run produces a complete JSON file (k6 result, delivery, connection
+// setup, resources of cell, Redis and load generator, context), plus a
+// running campaign log (JSON Lines) and, at the end, a campaign evaluation
+// (aggregate.json). The Holm correction across all campaigns is done
+// separately in evaluate.js.
 //
-// Aufruf: node tools/orchestrate/run.js <kampagne.json>
-// Kampagnenformat und Phasen: README.md in diesem Ordner.
+// Usage: node tools/orchestrate/run.js <campaign.json>
+// Campaign format and phases are described in README.md in this folder.
 //
-// Das Skript läuft direkt mit Node auf dem steuernden Rechner (nicht in
-// Docker), weil es selbst `docker compose` aufruft: für die SUT-Seite lokal
-// oder im Zwei-Rechner-Aufbau per ssh auf dem Raspberry Pi
-// (DECISIONS.md 5.14), für k6 und die Ereignisquellen immer lokal.
+// The script runs directly with Node on the controlling machine (not in
+// Docker), because it calls `docker compose` itself. For the SUT side it
+// does so locally or, in the two-machine setup, via ssh on the Raspberry Pi
+// (DECISIONS.md 5.14). For k6 and the event sources it always runs locally.
 
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, appendFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
@@ -29,33 +29,33 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const RESULTS_DIR = path.join(REPO_ROOT, 'results');
 const SUMMARY_TREND_STATS = 'avg,min,med,max,p(90),p(95),p(99)';
 
-// Ereignisquellen je Zelle (cells.json "producer") -> Compose-Dienst.
+// Event sources per cell (cells.json "producer") -> Compose service.
 const PRODUCER_SERVICES = {
   pubsub: 'event-simulator',
   bullmq: 'event-simulator-bullmq',
   laravel: 'laravel-producer',
 };
-// Dienste ohne Zellbezug, die während jeder Kampagne laufen dürfen. Alle
-// übrigen laufenden Dienste werden vor Kampagnenbeginn gestoppt
+// Services without a cell that may run during every campaign. All other
+// running services are stopped before the campaign starts
 // (DECISIONS.md 5.6.3).
 const INFRA_SERVICES = new Set(['redis', 'nginx', 'resource-sampler', ...Object.values(PRODUCER_SERVICES)]);
 
-// Phasen (DECISIONS.md 5.9): pilot und main sind statistisch auswertbar
-// (main mit Block 1 = konfirmatorisch, Block 2 = Replikation); control,
-// scaling, saturation und storm sind beschreibend. storm misst den
-// gleichzeitigen Verbindungsaufbau aller Clients (DECISIONS.md 5.10).
+// Phases (DECISIONS.md 5.9). pilot and main allow statistical evaluation
+// (main with block 1 = confirmatory, block 2 = replication). control,
+// scaling, saturation and storm are descriptive. storm measures all clients
+// connecting at the same moment (DECISIONS.md 5.10).
 const PHASES = new Set(['pilot', 'main', 'control', 'scaling', 'saturation', 'storm']);
-// Phasen, in denen ausgefallene Läufe ein Messergebnis sind und kein
-// Abbruchgrund (Überlast, Ansturm).
+// Phases in which failed runs are a measurement result and not a reason to
+// abort (overload, storm).
 const DESCRIPTIVE_PHASES = new Set(['scaling', 'saturation', 'storm']);
 const COMPARING_PHASES = new Set(['pilot', 'main']);
-// In diesen Phasen müssen alle Clients bis zum Ende der Einschwingzeit
-// verbunden sein und alle Zellen im Produktionsbetrieb laufen.
+// In these phases all clients must be connected by the end of the settle
+// time and all cells must run in production mode.
 const STRICT_PHASES = new Set(['pilot', 'main', 'control']);
 
-// Messgrößen mit statistischem Vergleich je Kampagne (Familien in plan.json).
+// Measures with a statistical comparison per campaign (families in plan.json).
 const TESTED_MEASURES = ['latency_mean_ms', 'cpu_seconds_total', 'working_set_peak_bytes_total', 'connect_mean_ms'];
-// Messgrößen, für die pro Konfiguration deskriptive Kennzahlen entstehen.
+// Measures for which descriptive statistics are computed per configuration.
 const DESCRIBED_MEASURES = [
   'latency_mean_ms', 'latency_median_ms', 'latency_p95_ms', 'latency_p99_ms', 'latency_max_ms',
   'connect_mean_ms', 'connect_p95_ms', 'connected_ratio', 'served_ratio',
@@ -64,14 +64,14 @@ const DESCRIBED_MEASURES = [
   'working_set_peak_bytes', 'working_set_peak_bytes_redis', 'working_set_peak_bytes_total', 'working_set_avg_bytes', 'mem_peak_kernel_bytes',
   'data_received_bytes_per_s', 'connection_errors', 'loadgen_cpu_util_avg', 'loadgen_cpu_util_max',
 ];
-// Mittlere Auslastung des Lastgenerators, ab der ein Lauf im
-// Zwei-Rechner-Aufbau als vom Lastwerkzeug begrenzt gilt (DECISIONS.md 5.14).
+// Mean load of the load generator above which a run in the two-machine
+// setup counts as limited by the load tool (DECISIONS.md 5.14).
 const LOADGEN_UTIL_LIMIT = 0.8;
 
 class CampaignError extends Error {}
 
 // ---------------------------------------------------------------------------
-// Prozesse
+// Processes
 // ---------------------------------------------------------------------------
 
 function exec(cmd, args, { env = {}, timeoutMs = 0 } = {}) {
@@ -97,8 +97,8 @@ function exec(cmd, args, { env = {}, timeoutMs = 0 } = {}) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const shQuote = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 
-// SUT-Seite (Redis, Front-Nginx, Zellen, Sampler) lokal oder per ssh;
-// Lastseite (k6, Ereignisquellen, Sampler für die Auslastung) immer lokal.
+// SUT side (Redis, front Nginx, cells, sampler) locally or via ssh.
+// Load side (k6, event sources, sampler for the load) always locally.
 function createSides(sut = {}) {
   const remote = Boolean(sut.ssh);
   if (remote && !sut.repoDir) throw new CampaignError('sut.ssh gesetzt, aber sut.repoDir fehlt');
@@ -136,9 +136,9 @@ function createSides(sut = {}) {
       const [head, ...dirty] = r.stdout.split(/\r?\n/).filter(Boolean);
       return { commit: head.trim(), dirty_files: dirty.length };
     },
-    // Drosselstatus per vcgencmd auf dem Host der SUT-Seite. Der Sampler im
-    // Container liest ihn aus sysfs, die Datei fehlt aber auf dem Pi 5.
-    // Lokal (ein Rechner, kein Pi) null.
+    // Throttling status via vcgencmd on the host of the SUT side. The sampler in
+    // the container reads it from sysfs, but the file is missing on the Pi 5.
+    // null locally (single machine, no Pi).
     async sutThrottled() {
       if (!remote) return null;
       const r = await exec('ssh', sshArgs('vcgencmd get_throttled'), { timeoutMs: 15000 });
@@ -158,7 +158,7 @@ async function gitState() {
 }
 
 // ---------------------------------------------------------------------------
-// Kampagne laden
+// Load the campaign
 // ---------------------------------------------------------------------------
 
 function readJson(file) {
@@ -172,9 +172,9 @@ function readEnvFileValue(file, key) {
   return m ? m[1].trim().replace(/^"(.*)"$/, '$1') : null;
 }
 
-// Konfiguration = Zelle aus cells.json, optional mit eigenem Namen und
-// eigenem script/metric/env (DECISIONS.md 5.9). Vorrang: Konfiguration >
-// Kampagne > Zellen-Standard.
+// Configuration = cell from cells.json, optionally with its own name and its
+// own script/metric/env (DECISIONS.md 5.9). Precedence is configuration >
+// campaign > cell default.
 function resolveConfigs(campaign, cells) {
   return (campaign.configs ?? []).map((entry) => {
     const spec = typeof entry === 'string' ? { cell: entry } : entry;
@@ -224,12 +224,12 @@ function resolveScenarios(campaign) {
 function resolveSettings(campaign) {
   const phase = campaign.phase ?? 'main';
   if (!PHASES.has(phase)) throw new CampaignError(`phase muss eine von ${[...PHASES].join(', ')} sein, nicht "${phase}"`);
-  // In beschreibenden Phasen jenseits der Kapazität sind ausgefallene Läufe
-  // Messergebnisse und kein Abbruchgrund (DECISIONS.md 5.9).
+  // In descriptive phases beyond capacity, failed runs are measurement results
+  // and not a reason to abort (DECISIONS.md 5.9).
   const descriptiveOverload = DESCRIPTIVE_PHASES.has(phase);
-  // Verteilter Verbindungsaufbau (DECISIONS.md 5.10, Möglichkeit 5). 0 heißt,
-  // alle Clients verbinden sich gleichzeitig (5.9). Die Verteilung muss vor
-  // dem Ende der Einschwingzeit abgeschlossen sein.
+  // Spread connects (DECISIONS.md 5.10, option 5). 0 means that all clients
+  // connect at the same moment (5.9). The spread must be complete before the
+  // end of the settle time.
   const connectSpreadSeconds = campaign.connectSpreadSeconds ?? 0;
   if (!(connectSpreadSeconds >= 0 && connectSpreadSeconds < (campaign.settleSeconds ?? 10))) {
     throw new CampaignError(`connectSpreadSeconds muss mindestens 0 und kleiner als settleSeconds sein, nicht ${connectSpreadSeconds}`);
@@ -237,8 +237,8 @@ function resolveSettings(campaign) {
   if (phase === 'storm' && connectSpreadSeconds !== 0) {
     throw new CampaignError('Phase storm misst den gleichzeitigen Verbindungsaufbau, connectSpreadSeconds muss 0 sein');
   }
-  // Beim Ansturm startet die Zelle vor jedem Lauf neu (runOnce), ein
-  // Warm-up würde dadurch sofort wieder verworfen.
+  // In the storm the cell restarts before every run (runOnce), so a warm-up
+  // would be discarded right away.
   const warmupRuns = campaign.warmupRuns ?? (phase === 'storm' ? 0 : 5);
   if (phase === 'storm' && warmupRuns !== 0) {
     throw new CampaignError('Phase storm startet die Zelle vor jedem Lauf neu, warmupRuns muss 0 sein');
@@ -250,14 +250,14 @@ function resolveSettings(campaign) {
     warmupRuns,
     settleSeconds: campaign.settleSeconds ?? 10,
     connectSpreadSeconds,
-    // Vorlauf vor dem Warm-up (DECISIONS.md 5.9): so viele Clients, wie ein
-    // statischer FPM-Pool Worker hat (pm.max_children in
-    // prototypes/*/fpm-pool.conf), damit jeder Worker einmal gearbeitet hat.
-    // 0 schaltet den Vorlauf ab. Beim Ansturm entfällt er.
+    // Priming pass before the warm-up (DECISIONS.md 5.9) with as many clients as
+    // a static FPM pool has workers (pm.max_children in
+    // prototypes/*/fpm-pool.conf), so that every worker has served once.
+    // 0 disables the priming pass. It is skipped in the storm.
     primeClients: phase === 'storm' ? 0 : (campaign.primeClients ?? 550),
     primeHoldSeconds: campaign.primeHoldSeconds ?? 5,
-    // Wartezeit nach dem Neustart der Zelle beim Ansturm, damit der Start
-    // abgeschlossen ist (z. B. alle 550 FPM-Worker geforkt).
+    // Wait time after restarting the cell in the storm, so that the start is
+    // complete (e.g. all 550 FPM workers forked).
     restartSettleMs: campaign.restartSettleMs ?? 5000,
     pauseMinMs: campaign.pauseMinMs ?? 100,
     pauseMaxMs: campaign.pauseMaxMs ?? 500,
@@ -281,7 +281,7 @@ function resolveSettings(campaign) {
       ssh: campaign.sut?.ssh ?? null,
       repoDir: campaign.sut?.repoDir ?? null,
       pi: campaign.sut?.pi ?? false,
-      // ohne abschließenden Schrägstrich, sonst fragen die Skripte "//sse" an
+      // without a trailing slash, otherwise the scripts request "//sse"
       targetBaseUrl: (campaign.sut?.targetBaseUrl ?? 'http://nginx').replace(/\/+$/, ''),
       redisHost: campaign.sut?.redisHost ?? null,
     },
@@ -289,7 +289,7 @@ function resolveSettings(campaign) {
 }
 
 // ---------------------------------------------------------------------------
-// Vorabprüfungen und Kontext
+// Preflight checks and context
 // ---------------------------------------------------------------------------
 
 async function k6Version(sides) {
@@ -320,11 +320,11 @@ function throttleBits(value) {
   return Number.isNaN(n) ? null : n;
 }
 
-// Raspberry-Pi-Firmware: Bits 0–3 = aktuell Unterspannung / Takt begrenzt /
-// gedrosselt / Temperaturgrenze; Bits 16–19 = dasselbe "seit dem Booten".
-// Ein Lauf gilt als gedrosselt, wenn zu Beginn oder am Ende eine aktuelle
-// Drosselung anliegt oder während des Laufs ein "seit dem Booten"-Bit neu
-// gesetzt wurde.
+// Raspberry Pi firmware: bits 0–3 = currently under-voltage / frequency
+// capped / throttled / soft temperature limit, bits 16–19 = the same "since
+// boot". A run counts as throttled if current throttling is present at the
+// start or at the end, or if a "since boot" bit was newly set during the
+// run.
 function throttledDuring(start, end) {
   const s = throttleBits(start);
   const e = throttleBits(end);
@@ -375,8 +375,8 @@ async function inspectContainers(sides, ids) {
       const i = e.indexOf('=');
       return [e.slice(0, i), e.slice(i + 1)];
     }));
-    // Tatsächlich wirksame Limits des laufenden Containers (nicht die
-    // Compose-Datei), damit das Log belegt, womit gemessen wurde.
+    // Limits actually in effect for the running container (not the Compose
+    // file), so that the log documents what the measurement ran with.
     return {
       id: c.Id,
       name: c.Name?.replace(/^\//, ''),
@@ -398,9 +398,9 @@ async function inspectContainers(sides, ids) {
   });
 }
 
-// Betriebsmodus je Container (DECISIONS.md 5.5): Node.js über NODE_ENV,
-// Laravel über APP_ENV/APP_DEBUG, PHP allgemein über die geladene php.ini
-// (php.ini-production setzt display_errors aus).
+// Operating mode per container (DECISIONS.md 5.5). Node.js via NODE_ENV,
+// Laravel via APP_ENV/APP_DEBUG, PHP in general via the loaded php.ini
+// (php.ini-production turns display_errors off).
 async function productionMode(sides, container) {
   const reasons = [];
   const isPhp = /php/.test(container.image ?? '');
@@ -421,7 +421,7 @@ async function productionMode(sides, container) {
 }
 
 // ---------------------------------------------------------------------------
-// Container-Lebenszyklus
+// Container life cycle
 // ---------------------------------------------------------------------------
 
 async function prepareSut(sides, configs, log) {
@@ -448,8 +448,8 @@ async function prepareSut(sides, configs, log) {
   }
   await switchFront(sides, configs[0]);
   if (sides.remote) {
-    // Auslastung des Lastgenerators (DECISIONS.md 5.14) misst ein Sampler
-    // auf der Lastseite.
+    // The load of the load generator (DECISIONS.md 5.14) is measured by a
+    // sampler on the load side.
     const r = await sides.loadCompose(['--profile', 'tools', 'up', '-d', '--no-deps', 'resource-sampler']);
     if (r.status !== 0) throw new CampaignError(`resource-sampler auf dem Lastgenerator ließ sich nicht starten:\n${r.stderr.trim()}`);
   }
@@ -471,9 +471,9 @@ function frontEnv(config) {
 async function switchFront(sides, config) {
   const r = await sides.sutCompose(['up', '-d', '--force-recreate', '--no-deps', 'nginx'], frontEnv(config));
   if (r.status !== 0) throw new CampaignError(`Front-Nginx ließ sich nicht auf ${config.name} umschalten:\n${r.stderr.trim()}`);
-  // Erreichbarkeit: jede HTTP-Antwort der Zelle zählt (WS-Server antworten
-  // auf einfache GET-Anfragen z. B. mit 4xx); nur 502/503/504 bedeuten,
-  // dass Nginx die Zelle nicht erreicht.
+  // Reachability. Any HTTP response of the cell counts (WS servers answer a
+  // plain GET request with 4xx, for example). Only 502/503/504 mean that Nginx
+  // cannot reach the cell.
   for (let attempt = 0; attempt < 60; attempt++) {
     const h = await sides.sutCompose(['exec', '-T', 'nginx', 'sh', '-c', 'wget -S -O /dev/null -T 2 http://127.0.0.1/healthz 2>&1 || true']);
     const m = h.stdout.match(/HTTP\/1\.[01] (\d{3})/);
@@ -483,10 +483,10 @@ async function switchFront(sides, config) {
   throw new CampaignError(`Front-Nginx erreicht ${config.name} (${config.front.mode} ${config.front.host}:${config.front.port}) nicht`);
 }
 
-// Ansturm (DECISIONS.md 5.10): Vor jedem Lauf startet die Zelle mit frischen
-// Containern neu, wie nach einem Neustart des Servers. Alle Läufe beginnen
-// damit im selben Zustand, und ein Absturz im vorigen Lauf beendet die
-// Kampagne nicht, sondern ist dessen Ergebnis.
+// Storm (DECISIONS.md 5.10). Before every run the cell restarts with fresh
+// containers, as after a server restart. All runs therefore start from the
+// same state, and a crash in the previous run does not end the campaign but
+// is that run's result.
 async function restartCell(sides, settings, config, log, runId) {
   const r = await sides.sutCompose(['up', '-d', '--force-recreate', '--no-deps', ...config.services], {}, { timeoutMs: 600000 });
   if (r.status !== 0) throw new CampaignError(`Neustart von ${config.cell} fehlgeschlagen:\n${r.stderr.trim()}`);
@@ -495,7 +495,7 @@ async function restartCell(sides, settings, config, log, runId) {
   log('cell_restarted', { run: runId, services: config.services });
 }
 
-// docker-compose-Argumente für einen k6-Lauf gegen eine Konfiguration.
+// docker compose arguments for a k6 run against one configuration.
 function k6RunArgs(settings, config, { vus, holdSeconds, connectSpreadSeconds, summaryRel }) {
   const env = {
     K6_TARGET_BASE_URL: settings.sut.targetBaseUrl,
@@ -513,18 +513,18 @@ function k6RunArgs(settings, config, { vus, holdSeconds, connectSpreadSeconds, s
 
 const k6TimeoutMs = (settings, holdSeconds) => (settings.settleSeconds + holdSeconds + 180) * 1000;
 
-// Abgestürzte oder vom OOM-Killer getroffene Container einer Zelle.
+// Containers of a cell that crashed or were hit by the OOM killer.
 const failedContainers = (containers) => containers
   .filter((c) => c.status !== 'running' || c.oom_killed)
   .map((c) => `${c.service}${c.oom_killed ? '(OOM)' : ''}`);
 
-// Vorlauf (DECISIONS.md 5.9): Ein statischer FPM-Pool belegt den Speicher
-// eines Workers erst, wenn dieser zum ersten Mal eine Anfrage bearbeitet
-// hat, und neue Verbindungen gehen reihum an andere Worker. Ohne Vorlauf
-// wüchse der Speicher bei wenigen Clients deshalb von Lauf zu Lauf, bis alle
-// Worker einmal gearbeitet haben. Der Vorlauf verbindet so viele Clients,
-// wie der Pool Worker hat, verteilt über die halbe Einschwingzeit. Er wird
-// nicht gewertet und läuft für alle Zellen gleich, auch für Node.js.
+// Priming pass (DECISIONS.md 5.9). A static FPM pool only takes up a
+// worker's memory once that worker has served its first request, and new
+// connections go to the workers in turn. Without priming, memory would
+// therefore grow from run to run at low client counts until every worker
+// has served once. The priming pass connects as many clients as the pool
+// has workers, spread over half the settle time. It is not recorded and
+// runs the same way for all cells, including Node.js.
 async function primeCells(ctx, configs) {
   const { sides, settings, campaignDirName, log } = ctx;
   const vus = settings.primeClients;
@@ -557,8 +557,8 @@ async function primeCells(ctx, configs) {
   }
 }
 
-// Startet alle Ereignisquellen, die die Zellen der Kampagne brauchen, mit
-// der Rate der Laststufe (DECISIONS.md 5.17, 5.19).
+// Starts all event sources that the cells of the campaign need, at the rate
+// of the load level (DECISIONS.md 5.17, 5.19).
 async function startProducers(sides, settings, configs, rate, log) {
   const services = [...new Set(configs.map((c) => PRODUCER_SERVICES[c.producer]))];
   const env = { SIMULATOR_RATE: String(rate) };
@@ -579,7 +579,7 @@ async function stopProducers(sides, log) {
 }
 
 // ---------------------------------------------------------------------------
-// Ressourcen-Sampler (tools/resource-sampler)
+// Resource sampler (tools/resource-sampler)
 // ---------------------------------------------------------------------------
 
 function startSampler(spawnCompose, groups, { intervalMs, hostCpu = false }) {
@@ -631,13 +631,13 @@ function startSampler(spawnCompose, groups, { intervalMs, hostCpu = false }) {
       return msg;
     },
     kill() {
-      try { child.kill(); } catch { /* bereits beendet */ }
+      try { child.kill(); } catch { /* already exited */ }
     },
   };
 }
 
 // ---------------------------------------------------------------------------
-// Ein Lauf
+// A single run
 // ---------------------------------------------------------------------------
 
 function extractMeasures(summary, config, scenario, resources, loadgen) {
@@ -690,8 +690,8 @@ function extractMeasures(summary, config, scenario, resources, loadgen) {
     working_set_avg_bytes: cell.working_set_avg_bytes ?? null,
     working_set_peak_bytes: cell.working_set_peak_bytes ?? null,
     mem_peak_bytes: cell.mem_peak_bytes ?? null,
-    // exakter Höchstwert des Kernels seit Containerstart, Summe über die
-    // Container der Zelle. mem_peak_kernel_new zeigt, ob er im Lauf gestiegen ist.
+    // exact kernel peak since container start, summed over the containers of the
+    // cell. mem_peak_kernel_new shows whether it rose during the run.
     mem_peak_kernel_bytes: cell.mem_peak_lifetime_bytes ?? null,
     mem_peak_kernel_new: cell.mem_peak_lifetime_new ?? null,
     cpu_seconds_redis: redis.cpu_seconds ?? null,
@@ -733,7 +733,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       metric: config.metric,
       target_base_url: settings.sut.targetBaseUrl,
       front_mode: config.front.mode,
-      // Nur die Namen zusätzlicher Variablen, nie deren Werte (z. B. App-Keys).
+      // Only the names of additional variables, never their values (e.g. app keys).
       extra_env_keys: Object.keys(config.env),
     },
     measures: null,
@@ -783,8 +783,8 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     }
   }
   if (sampler) {
-    // Auslastung des Lastgenerators; lokal misst derselbe Host auch das
-    // System selbst, der Wert wird dann nur protokolliert.
+    // Load of the load generator. Locally the same host also measures the
+    // system itself, so the value is only logged.
     loadSampler = startSampler((a) => sides.loadSpawnCompose(a), {}, { intervalMs: 1000, hostCpu: true });
     try {
       await loadSampler.ready();
@@ -812,8 +812,8 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       sampler.kill();
       invalid(`resource_sampler:${err.message}`);
     }
-    // Liefert der Sampler keinen Drosselstatus (Pi 5), gelten die Werte
-    // von vcgencmd direkt vor dem Start und direkt nach dem Ende der Messung.
+    // If the sampler provides no throttling status (Pi 5), the vcgencmd values
+    // taken directly before the start and after the end of the measurement apply.
     const host = record.resources?.host;
     if (host && host.throttled_start == null && host.throttled_end == null) {
       Object.assign(host, { throttled_start: throttledStart, throttled_end: await sides.sutThrottled(), throttled_source: 'vcgencmd' });
@@ -828,8 +828,8 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     }
   }
 
-  // Ein Absturz der Zelle ist die Ursache aller übrigen Befunde des Laufs
-  // (keine Events, Fehlerseiten) und steht deshalb als Grund vorn.
+  // A crash of the cell causes all other findings of the run (no events,
+  // error pages) and is therefore listed as the reason first.
   record.containers = await inspectContainers(sides, Object.values(ids));
   const failed = failedContainers(record.containers);
   if (failed.length) record.run.invalid_reason = `sut_container_failed:${failed.join(',')}`;
@@ -847,8 +847,8 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   if (settings.requireAllConnected && record.measures.clients_connected_in_time < scenario.vus) {
     invalid(`clients_not_connected_in_settle:${record.measures.clients_connected_in_time}/${scenario.vus}`);
   }
-  // Fehlerseite statt Datenstrom oder gescheiterter Handshake bei einzelnen
-  // Clients (je Client genau eine Prüfung im k6-Skript).
+  // Error page instead of the stream, or failed handshake, for individual
+  // clients (exactly one check per client in the k6 script).
   if (settings.requireAllConnected && record.measures.checks_failed > 0) {
     invalid(`http_status_errors:${record.measures.checks_failed}`);
   }
@@ -889,11 +889,11 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
 }
 
 // ---------------------------------------------------------------------------
-// Auswertung einer Kampagne
+// Evaluation of a campaign
 // ---------------------------------------------------------------------------
 
-// Startwert pro Vergleich aus dem Kampagnen-Seed und einem Label (FNV-1a),
-// damit Vergleiche unabhängige, aber reproduzierbare Resamples erhalten.
+// Seed per comparison from the campaign seed and a label (FNV-1a), so that
+// comparisons get independent but reproducible resamples.
 function hashSeed(base, label) {
   let h = 0x811c9dc5;
   for (const ch of label) {
@@ -934,8 +934,8 @@ function aggregateScenario(scenario, configs, comparisons, results, settings) {
     configs: {},
     comparisons: [],
   };
-  // In Überlast-Phasen zählen auch ungültige Läufe mit ihren Messwerten
-  // (z. B. Anteil bedienter Clients); sonst nur gültige.
+  // In overload phases invalid runs also count with their values (e.g. share
+  // of served clients), otherwise only valid runs.
   const usable = (r) => r.valid || DESCRIPTIVE_PHASES.has(settings.phase);
   for (const config of configs) {
     const all = results[config.name];
@@ -975,9 +975,9 @@ function aggregateScenario(scenario, configs, comparisons, results, settings) {
   return agg;
 }
 
-// Sättigung (DECISIONS.md 5.17): höchste Rate, bis zu der eine
-// Konfiguration auf JEDER Stufe im Median mindestens minDeliveryRatio
-// zustellt und im Median eine p95-Latenz von höchstens maxP95LatencyMs hält.
+// Saturation (DECISIONS.md 5.17). Highest rate up to which a configuration
+// delivers at least minDeliveryRatio in the median on EVERY level and keeps
+// a median p95 latency of at most maxP95LatencyMs.
 function saturationSummary(scenarios, configs, scenarioAggs, criteria) {
   const byRate = [...scenarios].sort((x, y) => x.eventRatePerSecond - y.eventRatePerSecond);
   const summary = { criteria, configs: {} };
@@ -1006,9 +1006,9 @@ function saturationSummary(scenarios, configs, scenarioAggs, criteria) {
   return summary;
 }
 
-// Skalierung (DECISIONS.md 5.9, H4): je Clientzahl Anteil bedienter Clients,
-// Latenz und Ressourcen; Kapazitätsgrenze = kleinste Clientzahl, bei der im
-// Median weniger als minServedRatio der Clients bedient werden.
+// Scaling (DECISIONS.md 5.9, H4). Per client count the share of served
+// clients, latency and resources. Capacity limit = smallest client count at
+// which fewer than minServedRatio of the clients are served in the median.
 function scalingSummary(scenarios, configs, scenarioAggs, criteria) {
   const byVus = [...scenarios].sort((x, y) => x.vus - y.vus);
   const summary = { criteria, configs: {} };
@@ -1025,7 +1025,7 @@ function scalingSummary(scenarios, configs, scenarioAggs, criteria) {
         latency_p95_median_ms: d.latency_p95_ms.median,
         cpu_cores_avg_median: d.cpu_cores_avg.median,
         working_set_peak_total_median_bytes: d.working_set_peak_bytes_total.median,
-        // Spannweite der Läufe je Stufe für die Fehlerbalken der Abbildungen (DECISIONS.md 5.25)
+        // Range of the runs per level for the error bars of the figures (DECISIONS.md 5.25)
         served_ratio_min: d.served_ratio.min,
         served_ratio_max: d.served_ratio.max,
         latency_mean_min_ms: d.latency_mean_ms.min,
@@ -1040,10 +1040,10 @@ function scalingSummary(scenarios, configs, scenarioAggs, criteria) {
   return summary;
 }
 
-// Ansturm (Phase storm, DECISIONS.md 5.10). Je Zelle, wie viele Clients
-// beim gleichzeitigen Verbindungsaufbau rechtzeitig verbunden und bedient
-// wurden, wie lange der Aufbau dauerte, wie viel Speicher die Zelle dabei
-// höchstens belegte und warum Läufe ungültig waren (z. B. OOM).
+// Storm (phase storm, DECISIONS.md 5.10). Per cell, how many clients were
+// connected in time and served when all connected at once, how long the
+// connection setup took, the most memory the cell used and why runs were
+// invalid (e.g. OOM).
 function stormSummary(scenarios, configs, scenarioAggs) {
   const summary = { configs: {} };
   for (const config of configs) {
@@ -1069,9 +1069,9 @@ function stormSummary(scenarios, configs, scenarioAggs) {
   return summary;
 }
 
-// Zwischenstand der Latenz-Vergleiche (DECISIONS.md 5.9): dient im Pilot
-// der Wahl der Wiederholungszahl, in der Hauptkampagne nur der Kontrolle —
-// kein Abbruchkriterium.
+// Interim state of the latency comparisons (DECISIONS.md 5.9). In the pilot
+// it serves to choose the number of repetitions, in the main campaign only as
+// a check, never as a stopping criterion.
 function interimReport(scenario, comparisons, results, settings, runIndex) {
   const entries = [];
   for (const [nameA, nameB] of comparisons) {
@@ -1102,7 +1102,7 @@ function interimReport(scenario, comparisons, results, settings, runIndex) {
 }
 
 // ---------------------------------------------------------------------------
-// Ablauf
+// Procedure
 // ---------------------------------------------------------------------------
 
 async function runScenario(ctx, scenario, configs, comparisons, interim) {
@@ -1113,8 +1113,8 @@ async function runScenario(ctx, scenario, configs, comparisons, interim) {
     + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration${spread}${restart} ===`);
   log('scenario_started', { scenario });
   await startProducers(sides, settings, configs, scenario.eventRatePerSecond, log);
-  // Einmal je Kampagne vor dem ersten Warm-up. Die Zellen laufen danach bis
-  // zum Ende der Kampagne weiter.
+  // Once per campaign before the first warm-up. The cells then keep running
+  // until the end of the campaign.
   if (settings.primeClients > 0 && !ctx.primed) {
     await primeCells(ctx, configs);
     ctx.primed = true;
@@ -1294,9 +1294,9 @@ async function main() {
       log('preflight_warning', { message: msg });
     }
 
-    // Kampagnendatei relativ zum Repository; liegt sie außerhalb, nur der
-    // Dateiname (keine lokalen Pfade im Protokoll). Der Inhalt steht ohnehin
-    // vollständig in campaign.json des Ergebnisverzeichnisses.
+    // Campaign file relative to the repository. If it lies outside, only the
+    // file name is logged (no local paths in the log). The content is in
+    // campaign.json of the results directory anyway.
     const relCampaign = path.relative(REPO_ROOT, path.resolve(campaignPath));
     const campaignFile = relCampaign.startsWith('..') || path.isAbsolute(relCampaign) ? path.basename(campaignPath) : relCampaign;
     ctx.context = {
@@ -1326,8 +1326,8 @@ async function main() {
     log('campaign_aborted', { reason: err.message });
     console.error(`\nABBRUCH: ${err.message}`);
     if (!(err instanceof CampaignError)) console.error(err.stack);
-    // Bereits gemessene Läufe der abgebrochenen Laststufe bleiben sichtbar,
-    // gelten aber nicht als vollständige Laststufe.
+    // Runs already measured in the aborted load level stay visible but do not
+    // count as a complete load level.
     if (currentScenario && ctx.partialResults) {
       aggregate.scenarios[currentScenario.name] = {
         ...aggregateScenario(currentScenario, configs, comparisons, ctx.partialResults, settings),

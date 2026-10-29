@@ -6,11 +6,11 @@ use App\Events\ScanReceived;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Redis;
 
-// Bindeglied zwischen dem rohen Redis-Pub/Sub-Kanal (scan-events) und Reverb:
-// Reverb abonniert selbst keinen Redis-Kanal, sondern erhält Broadcasts über
-// die Laravel-Anwendung. Ein Prozess, eine Redis-Subscription
-// (DECISIONS.md 5.4) — läuft dauerhaft neben php-laravel-fpm und
-// php-laravel-reverb (siehe docker-compose.yml).
+// Link between the raw Redis pub/sub channel (scan-events) and Reverb.
+// Reverb does not subscribe to a Redis channel itself but receives
+// broadcasts through the Laravel application. One process, one Redis
+// subscription (DECISIONS.md 5.4). Runs permanently next to php-laravel-fpm
+// and php-laravel-reverb (see docker-compose.yml).
 class ScanListenCommand extends Command
 {
     protected $signature = 'scan:listen';

@@ -1,11 +1,11 @@
-// SSE-Lasttest (ursprünglich Machbarkeitsprüfung xk6-sse, inzwischen das
-// Messskript aller SSE-Zellen): N VUs halten je eine SSE-Verbindung. Im
-// Messfenster (nach der Einschwingzeit, k6/lib/config.js) wird pro Event die
-// Zustell-Latenz gemessen (Empfangszeit minus Sendezeitstempel `ts`) und die
-// Zustellung gezählt (k6/lib/delivery.js); dazu kommt pro Verbindung die
-// Dauer des Verbindungsaufbaus.
-// sse.open() blockiert die VU, solange die Verbindung offen ist; geschlossen
-// wird im Event-Handler, sobald das Messfenster endet.
+// SSE load test (originally the xk6-sse feasibility check, now the
+// measurement script of all SSE cells). N VUs each hold one SSE connection.
+// Within the measurement window (after the settle time, k6/lib/config.js)
+// the delivery latency is measured per event (receive time minus send
+// timestamp `ts`) and delivery is counted (k6/lib/delivery.js). In addition,
+// the connection setup time is recorded per connection.
+// sse.open() blocks the VU as long as the connection is open. It is closed
+// in the event handler as soon as the measurement window ends.
 import sse from 'k6/x/sse';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
@@ -23,8 +23,8 @@ export default function () {
   staggerStart();
   const window = measurementWindow();
   const tracker = newTracker();
-  // xk6-sse meldet "open" bei jeder Antwort, auch bei einer Fehlerseite von
-  // Nginx. Als Verbindung zählt sie erst, wenn der Status 200 war.
+  // xk6-sse reports "open" for every response, including an error page from
+  // Nginx. It only counts as a connection if the status was 200.
   let openedAt = null;
 
   const response = sse.open(`${BASE_URL}/sse`, {}, (client) => {

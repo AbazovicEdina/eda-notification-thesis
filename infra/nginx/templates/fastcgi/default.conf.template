@@ -1,13 +1,13 @@
-# Front-Nginx, Modus "fastcgi" (DECISIONS.md 5.6.1): spricht FastCGI direkt
-# mit dem PHP-FPM-Pool einer SSE-Zelle (php-minimal/SSE, php-laravel/SSE und
-# deren Queue-Variante). Entspricht dem üblichen Betrieb von PHP-FPM
-# (Client → Nginx → PHP-FPM) und gibt PHP damit genau einen Nginx, wie den
-# Node.js-Zellen im Modus "http". Die Pflicht-Direktiven entsprechen denen
-# des HTTP-Modus: keine Pufferung, gleicher Lese-Timeout.
+# Front Nginx in "fastcgi" mode (DECISIONS.md 5.6.1). Speaks FastCGI
+# directly to the PHP-FPM pool of an SSE cell (php-minimal/SSE,
+# php-laravel/SSE and its queue variant). This matches the usual way of
+# running PHP-FPM (client -> Nginx -> PHP-FPM) and gives PHP exactly one
+# Nginx, like the Node.js cells in "http" mode. The mandatory directives
+# match those of the HTTP mode, no buffering and the same read timeout.
 #
-# SUT_HOST/SUT_PORT: FPM-Pool (z. B. php-minimal-fpm:9000)
-# SUT_FASTCGI_SCRIPT, SUT_FASTCGI_SCRIPT_NAME, SUT_FASTCGI_ROOT: Skript im
-# FPM-Container (tools/orchestrate/cells.json)
+# SUT_HOST/SUT_PORT: FPM pool (e.g. php-minimal-fpm:9000)
+# SUT_FASTCGI_SCRIPT, SUT_FASTCGI_SCRIPT_NAME, SUT_FASTCGI_ROOT: script in
+# the FPM container (tools/orchestrate/cells.json)
 resolver 127.0.0.11 valid=10s;
 
 server {
@@ -15,8 +15,8 @@ server {
 
     set $sut_upstream ${SUT_HOST}:${SUT_PORT};
 
-    # Eingebauter Erreichbarkeits-Endpunkt von PHP-FPM (ping.path in
-    # fpm-pool.conf), beantwortet ohne PHP-Skript.
+    # Built-in health endpoint of PHP-FPM (ping.path in fpm-pool.conf),
+    # answered without a PHP script.
     location = /healthz {
         fastcgi_pass $sut_upstream;
         include fastcgi_params;
@@ -24,8 +24,8 @@ server {
         fastcgi_param SCRIPT_FILENAME /healthz;
     }
 
-    # SSE — fastcgi_buffering MUSS aus sein: sonst hält Nginx Events zurück,
-    # und die Latenzmessung misst Pufferung statt Zustellung.
+    # SSE: fastcgi_buffering MUST be off, otherwise Nginx holds back events and
+    # the latency measurement measures buffering instead of delivery.
     location /sse {
         fastcgi_pass $sut_upstream;
         include fastcgi_params;

@@ -1,9 +1,9 @@
-// Statistische Auswertungsfunktionen für tools/orchestrate (DECISIONS.md 5.8).
-// Bewusst ohne externe Statistik-Bibliothek (konsistent mit den übrigen
-// Tools dieser Arbeit) — jede Funktion ist einzeln klein genug, um sie beim
-// Gegenlesen der Arbeit nachzuvollziehen. Quellen: siehe LITERATUR.md.
-// Gegen von Hand gerechnete Beispiele geprüft: test/stats.test.js
-// (`node --test "tools/orchestrate/test/*.test.js"`).
+// Statistical evaluation functions for tools/orchestrate (DECISIONS.md 5.8).
+// Deliberately without an external statistics library (consistent with the
+// other tools of this thesis). Each function is small enough to be followed
+// when reviewing the thesis. Sources are listed in LITERATUR.md.
+// Checked against examples calculated by hand in test/stats.test.js
+// (`node --test tools/orchestrate/test/stats.test.js`).
 
 export function mean(values) {
   if (values.length === 0) return null;
@@ -21,7 +21,7 @@ export function stddev(values) {
   return v == null ? null : Math.sqrt(v);
 }
 
-// Perzentil nach der Nearest-Rank-Methode (kein Interpolieren).
+// Percentile by the nearest-rank method (no interpolation).
 export function percentile(sortedAsc, p) {
   if (sortedAsc.length === 0) return null;
   const idx = Math.min(sortedAsc.length - 1, Math.ceil((p / 100) * sortedAsc.length) - 1);
@@ -35,9 +35,9 @@ export function median(values) {
   return n % 2 === 1 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 }
 
-// Deskriptive Kennzahlen einer Pro-Lauf-Verteilung (DECISIONS.md 5.8, zu
-// Frage 9: Mittelwert/Min/Max/Standardabweichung/Varianz zusätzlich zu
-// Median/p95/p99).
+// Descriptive statistics of a per-run distribution (DECISIONS.md 5.8,
+// question 9: mean, min, max, standard deviation and variance in addition
+// to median, p95 and p99).
 export function describe(values) {
   const sorted = [...values].filter((v) => v != null && Number.isFinite(v)).sort((a, b) => a - b);
   if (sorted.length === 0) {
@@ -56,9 +56,9 @@ export function describe(values) {
   };
 }
 
-// Reproduzierbarer Zufallsgenerator (mulberry32) für den Bootstrap: gleicher
-// Startwert -> gleiche Resamples -> gleiches Konfidenzintervall bei jeder
-// Neuauswertung (DECISIONS.md 5.8). Math.random() ist nicht seedbar.
+// Reproducible random number generator (mulberry32) for the bootstrap. The
+// same seed gives the same resamples and thus the same confidence interval
+// on every re-evaluation (DECISIONS.md 5.8). Math.random() cannot be seeded.
 export function createRng(seed) {
   let a = seed >>> 0;
   return function rng() {
@@ -70,8 +70,8 @@ export function createRng(seed) {
   };
 }
 
-// Standardnormalverteilung, kumulative Dichtefunktion — Näherung nach
-// Abramowitz & Stegun (1964), Formel 7.1.26, Fehler < 1.5e-7.
+// Cumulative distribution function of the standard normal distribution,
+// approximation by Abramowitz & Stegun (1964), formula 7.1.26, error < 1.5e-7.
 function normalCdf(z) {
   const sign = z < 0 ? -1 : 1;
   z = Math.abs(z) / Math.SQRT2;
@@ -82,9 +82,9 @@ function normalCdf(z) {
   return 0.5 * (1 + sign * y);
 }
 
-// Exakte Nullverteilung der Rangsumme W+ für n Ränge 1..n (ohne Bindungen):
-// counts[s] = Anzahl der 2^n Vorzeichenkombinationen mit W+ = s.
-// Bis n = 50 in double-Genauigkeit exakt (2^50 < 2^53).
+// Exact null distribution of the rank sum W+ for n ranks 1..n (without ties).
+// counts[s] is the number of the 2^n sign combinations with W+ = s.
+// Exact in double precision up to n = 50 (2^50 < 2^53).
 function exactSignedRankCounts(n) {
   const maxSum = (n * (n + 1)) / 2;
   const counts = new Array(maxSum + 1).fill(0);
@@ -97,16 +97,16 @@ function exactSignedRankCounts(n) {
 
 const EXACT_MAX_N = 50;
 
-// Wilcoxon-Vorzeichen-Rang-Test (gepaart, zweiseitig; Wilcoxon 1945) auf
-// gleich langen, bereits gepaarten Arrays a[i] <-> b[i] (Paarbildung über
-// die Laufnummer macht der Aufrufer, DECISIONS.md 5.8). Differenzen von
-// exakt 0 werden verworfen (Wilcoxons ursprüngliches Verfahren).
-//   - ohne Bindungen und n <= 50: exakter p-Wert aus der Nullverteilung
-//   - sonst: Normalapproximation mit Stetigkeits- und Bindungskorrektur
-//     der Varianz (Σ(t³ − t)/48 je Bindungsgruppe der |d|).
-// Zusätzlich die rangbiseriale Korrelation für gepaarte Daten (Kerby 2014):
-// r = (W+ − W−) / (W+ + W−), das zum Test passende Effektmaß
-// (positiv = a tendenziell größer als b).
+// Wilcoxon signed-rank test (paired, two-sided, Wilcoxon 1945) on arrays of
+// equal length that are already paired, a[i] <-> b[i] (the caller pairs by
+// run number, DECISIONS.md 5.8). Differences of exactly 0 are discarded
+// (Wilcoxon's original procedure).
+//   - without ties and n <= 50, exact p-value from the null distribution
+//   - otherwise normal approximation with continuity correction and tie
+//     correction of the variance (Σ(t³ − t)/48 per tie group of |d|)
+// Also returns the rank-biserial correlation for paired data (Kerby 2014),
+// r = (W+ − W−) / (W+ + W−), the effect size that matches the test
+// (positive means a tends to be larger than b).
 export function wilcoxonSignedRank(a, b) {
   if (a.length !== b.length) throw new Error('wilcoxonSignedRank erwartet gepaarte Arrays gleicher Länge');
   const diffs = [];
@@ -123,7 +123,7 @@ export function wilcoxonSignedRank(a, b) {
   const abs = diffs.map((d) => Math.abs(d));
   const order = abs.map((v, i) => i).sort((i, j) => abs[i] - abs[j]);
 
-  // Mittlere Ränge bei Bindungen; Bindungsgruppen für die Varianzkorrektur.
+  // Mean ranks for ties, tie groups for the variance correction.
   const ranks = new Array(n);
   let tieCorrection = 0;
   let hasTies = false;
@@ -164,10 +164,10 @@ export function wilcoxonSignedRank(a, b) {
   return { n, zeros, wPlus, wMinus, W, z, pValue: Math.min(1, pValue), method: 'Normalapproximation (Bindungs- und Stetigkeitskorrektur)', rankBiserial };
 }
 
-// Cliff's Delta (Cliff 1993) als Effektstärke — Dominanz-Statistik über alle
-// Kombinationen beider Stichproben: δ = (#(a_i > b_j) − #(a_i < b_j)) / (n_a · n_b).
-// Positiv = a tendenziell größer. Einordnung nach Romano, Kromrey,
-// Coraggio & Skowronek (2006), vor Sichtung der Ergebnisse festgelegt.
+// Cliff's delta (Cliff 1993) as effect size, a dominance statistic over all
+// combinations of both samples, δ = (#(a_i > b_j) − #(a_i < b_j)) / (n_a · n_b).
+// Positive means a tends to be larger. Classification according to Romano,
+// Kromrey, Coraggio & Skowronek (2006), fixed before looking at the results.
 export function cliffsDelta(a, b) {
   let gt = 0, lt = 0;
   for (const x of a) {
@@ -189,9 +189,9 @@ export function cliffsMagnitude(delta) {
   return 'groß';
 }
 
-// Nichtparametrischer Bootstrap (Efron & Tibshirani 1993, Perzentil-
-// Methode) für das Konfidenzintervall des Medians der gepaarten
-// Differenzen a[i] − b[i]. `seed` macht das Ergebnis reproduzierbar.
+// Nonparametric bootstrap (Efron & Tibshirani 1993, percentile method) for
+// the confidence interval of the median of the paired differences
+// a[i] − b[i]. `seed` makes the result reproducible.
 export function bootstrapMedianDiffCI(a, b, { resamples = 10000, alpha = 0.05, seed = 1 } = {}) {
   if (a.length !== b.length) throw new Error('bootstrapMedianDiffCI erwartet gepaarte Arrays gleicher Länge');
   const n0 = a.length;
@@ -214,13 +214,12 @@ export function bootstrapMedianDiffCI(a, b, { resamples = 10000, alpha = 0.05, s
   return { ci: [lo, hi], medianDiff, resamples, seed };
 }
 
-// Holm-Korrektur (Holm 1979) für eine vorab festgelegte Familie von Tests
-// (DECISIONS.md 5.8/5.15). Kontrolliert die familienweise Fehlerrate bei
-// beliebiger Abhängigkeit zwischen den Tests. `tests`: Array von
-// { pValue, ... }. Rückgabe: dasselbe Array, ergänzt um `holmAlpha`
-// (Schwelle an dieser Rangstelle), `pHolm` (Holm-adjustierter p-Wert) und
-// `significant` (sequentiell — ab der ersten nicht-signifikanten
-// Rangstelle ist alles Weitere nicht signifikant).
+// Holm correction (Holm 1979) for a family of tests fixed in advance
+// (DECISIONS.md 5.8, 5.15). Controls the family-wise error rate under any
+// dependence between the tests. `tests` is an array of { pValue, ... }.
+// Returns the same array, extended by `holmAlpha` (threshold at this rank),
+// `pHolm` (Holm-adjusted p-value) and `significant` (sequential, from the
+// first non-significant rank onward nothing is significant).
 export function holmCorrection(tests, alpha = 0.05) {
   const m = tests.length;
   const order = tests.map((t, i) => i).sort((i, j) => tests[i].pValue - tests[j].pValue);
@@ -241,10 +240,10 @@ export function holmCorrection(tests, alpha = 0.05) {
   return result;
 }
 
-// Vollständiger Vergleich zweier Konfigurationen für EINE Messgröße auf
-// gepaarten Werten (gleicher Index = gleiche Laufnummer). `minPairs`: unter
-// dieser Zahl verwertbarer Paare (Differenz ≠ 0) wird das Ergebnis als
-// nicht aussagekräftig markiert statt kommentarlos p = 1 zu melden.
+// Complete comparison of two configurations for ONE measure on paired
+// values (same index = same run number). Below `minPairs` usable pairs
+// (difference ≠ 0) the result is marked as not conclusive instead of
+// silently reporting p = 1.
 export function comparePaired(a, b, { resamples = 10000, seed = 1, minPairs = 10 } = {}) {
   const w = wilcoxonSignedRank(a, b);
   const cliff = cliffsDelta(a, b);

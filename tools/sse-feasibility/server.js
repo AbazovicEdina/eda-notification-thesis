@@ -1,6 +1,6 @@
-// Minimaler SSE-Endpunkt für die xk6-sse-Machbarkeitsprüfung (DECISIONS.md
-// Abschnitt 3) — Hilfswerkzeug, NICHT Teil der Prototypen. Sendet pro Verbindung alle EVENT_INTERVAL_MS ein
-// Event mit Server-Zeitstempel, damit k6 die Zustell-Latenz messen kann.
+// Minimal SSE endpoint for the xk6-sse feasibility check (DECISIONS.md
+// section 3), a helper tool and NOT part of the prototypes. Sends one event
+// with a server timestamp every EVENT_INTERVAL_MS per connection, so that k6 can measure the delivery latency.
 const http = require('http');
 
 const PORT = Number(process.env.PORT || 8081);
