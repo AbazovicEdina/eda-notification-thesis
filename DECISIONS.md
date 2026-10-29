@@ -137,6 +137,8 @@ Festlegungen:
 - **Event-Format.** Ein Scan-Event im Originalformat von Lokato (`event`, `device`, `uid`, `timestamp`), ergänzt um die Messfelder `seq` (laufende Nummer, Verlustzählung, 5.17) und `ts`. Größe ca. 140 Byte (5.21).
 - Jedes Backend hält **eine** Redis-Subscription pro Prozess und verteilt die Events prozessintern an alle Clients. Eine Subscription pro Verbindung würde Redis zum Engpass machen und die Stacks unterschiedlich stark verzerren. Ausnahme ist PHP-FPM/SSE. Dort ist jeder Worker ein eigener Prozess mit eigener Verbindung. Die Verteilung an alle Clients übernimmt Redis (5.6.2, H8).
 
+**Persistenz (entschieden am 2026-10-29).** Redis läuft in der Standardeinstellung und schreibt Schnappschüsse auf den Datenträger, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue, denn reines Pub/Sub ändert keine Schlüssel. Im vollständigen Probelauf (5.14) schrieb Redis sechs Schnappschüsse, alle erfolgreich. Der letzte hielt Redis für 0,5 ms an (`latest_fork_usec` 488), dauerte unter einer Sekunde und kopierte rund 300 KB. Die Einstellung bleibt, weil sie dem Auslieferungszustand entspricht (5.5) und eine Queue ohne jede Persistenz Jobs bei einem Neustart verlieren würde. Ein Betrieb ganz ohne Persistenz würde den Preis der Queue also zu niedrig ansetzen. Die kurzen Pausen sind gegenüber Läufen von 60 s und Latenzen um 10 ms vernachlässigbar und werden in der Arbeit als Grenze in einem Satz genannt.
+
 ### 5.5 PHP-Laufzeitmodell und Betriebsmodus — ENTSCHIEDEN (abgestimmt am 2026-10-16)
 
 SSE läuft über PHP-FPM, WebSockets über einen separaten, langlaufenden Prozess. Durchgehend asynchrones PHP (Octane/Swoole) ist nicht vorgesehen. Gründe, warum PHP-FPM den höheren Vergleichswert hat:
@@ -835,7 +837,6 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Ansturm-Phase | beschreibende Messung unter Aufsicht, nicht im unbeaufsichtigten Zeitplan, weil ein Speicherengpass den Pi kurzzeitig blockieren kann (5.9, 5.10) | Messphase |
 | Festplatte unter Last | 30-minütiger Test mit gleichzeitiger CPU- und Schreiblast ausstehend (5.14) | vor dem Pilot |
 | Ergebnisse vom Lastgenerator | Die Probeläufe vom 2026-10-27 liegen nur auf dem Laptop. Für die Messphase braucht der Laptop einen Weg, Ergebnisse ins Repository zu übertragen | vor dem Pilot |
-| Redis-Persistenz | Redis läuft in der Standardeinstellung, die Schnappschüsse auf den Datenträger schreibt, sobald sich genug Schlüssel geändert haben. Das betrifft nur die Zellen mit Queue. Im vollständigen Probelauf prüfen, ob und wie oft das geschieht, danach entscheiden (5.20) | vor dem Pilot |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -861,6 +862,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-29 | **Redis-Persistenz entschieden (5.4).** Standardeinstellung bleibt. Schnappschüsse nur in den Queue-Zellen, Pause 0,5 ms, vernachlässigbar. |
 | 2026-10-29 | **Vollständiger Probelauf bestanden (5.14).** Vergleiche 1, 4 und 10 auf allen Laststufen, keiner von 59 Messläufen ungültig. Speicherspitze von Laravel bei 500 Clients höchstens 1 097 MiB. |
 | 2026-10-27 | **Verteilter Verbindungsaufbau als Standard, Phase Ansturm, Speicherspitze laut Kernel (5.9, 5.10, 5.16).** Alle Messphasen verbinden die Clients über 5 s verteilt. Das Budget von 1,5 GiB bleibt und ist auf dem Pi mit beiden Laravel-Zellen bei 500 Clients bestätigt. Der gleichzeitige Ansturm wird beschreibend gemessen (`phase: storm`). |
 | 2026-10-27 | **Verteilter Verbindungsaufbau als Einstellung (5.10, Möglichkeit 5).** `connectSpreadSeconds` in Kampagnen und `--connect-spread` in `plan-campaigns.js`, Standard 0. Lokal senkt ein über 5 s verteilter Aufbau die Spitze von php-laravel-sse bei 500 Clients von 1 350 auf 1 052 MiB. |
