@@ -72,6 +72,22 @@ ssh -t pi@192.168.50.10 "sudo date -u -s @$(date +%s)"
 
    Das Skript protokolliert jede Minute Temperatur, Takt und Drosselstatus nach `results/<zeitstempel>_burn-in.csv` und meldet am Ende Höchsttemperatur und ob eine Drosselung aufgetreten ist. Tritt eine Drosselung auf, ist die Kühlung zu verbessern, bevor gemessen wird. Damit der Test eine getrennte ssh-Verbindung übersteht, läuft er in `tmux` (`sudo apt install tmux`, dann `tmux new -s burnin 'bash infra/pi/burn-in.sh 24; bash'`). Während des Tests laufen auf dem Pi keine Messcontainer.
 
+10. **Test unter Schreiblast,** nötig bei einem Datenträger, der seinen Strom über USB vom Pi bezieht. 30 Minuten volle CPU-Last mit gleichzeitigem Schreiben auf den Datenträger, danach Drosselstatus und Kernel-Meldungen zu Unterspannung und USB:
+
+    ```bash
+    mkdir -p ~/io-test && cd ~/io-test && stress-ng --cpu 4 --hdd 2 --timeout 30m --metrics-brief; vcgencmd get_throttled; journalctl -k --no-pager | grep -i -E "under-voltage|undervoltage|i/o error|usb.*disconnect|reset high-speed" | tail -10; cd ~ && rm -rf ~/io-test
+    ```
+
+    Erwartet werden `failed: 0`, `throttled=0x0` und keine Zeile aus dem Kernel-Protokoll (Ergebnis vom 2026-10-29 in DECISIONS.md 5.14).
+
+11. **Feste Adresse im Messnetz,** erst wenn alle Images gebaut sind, weil der Pi im Messnetz kein Internet hat. Ausgeführt vom Lastgenerator, solange beide noch am Router hängen. Das Profil wird drei Sekunden verzögert eingeschaltet, damit die ssh-Verbindung vorher sauber endet. Danach ist der Pi nur noch unter 192.168.50.10 erreichbar, auch nach einem Neustart:
+
+    ```bash
+    ssh -t pi@<bisherige-adresse> 'sudo nmcli con add type ethernet ifname eth0 con-name messnetz ipv4.method manual ipv4.addresses 192.168.50.10/24 ipv4.never-default yes ipv6.method disabled connection.autoconnect yes connection.autoconnect-priority 10 && sudo systemd-run --on-active=3 nmcli con up messnetz'
+    ```
+
+    Danach das Kabel vom Router an den Lastgenerator umstecken und einmal `ssh pi@192.168.50.10` aufrufen, um den Schlüssel des Pi zu bestätigen. Der Orchestrator kann diese Rückfrage später nicht beantworten.
+
 ### Was setup.sh einrichtet
 
 | Schritt | Zweck | Manuelle Entsprechung |
@@ -125,11 +141,11 @@ Den Block `sut` in eine eigene Datei schreiben, z. B. `sut.pi.json`:
 
 ```json
 {
-  "ssh": "pi@192.168.0.50",
+  "ssh": "pi@192.168.50.10",
   "repoDir": "/home/pi/eda-notification-thesis",
   "pi": true,
-  "targetBaseUrl": "http://192.168.0.50:8080",
-  "redisHost": "192.168.0.50"
+  "targetBaseUrl": "http://192.168.50.10:8080",
+  "redisHost": "192.168.50.10"
 }
 ```
 
@@ -149,7 +165,7 @@ node tools/orchestrate/schedule.js campaigns/smoke/schedule.json
 node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut sut.pi.json --hours 2
 ```
 
-Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit bleiben. Mit verteiltem Verbindungsaufbau lag sie am 2026-10-27 bei rund 1 060 MiB (DECISIONS.md 5.10). Die exakte Spitze laut Kernel steht in jedem Lauf-Protokoll unter `measures.mem_peak_kernel_bytes`. Der Wert des Topfes unter `/sys/fs/cgroup` gilt dagegen seit dessen Entstehung und umfasst frühere Läufe. Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
+Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit bleiben. Mit verteiltem Verbindungsaufbau lag sie im vollständigen Probelauf vom 2026-10-29 bei 1 066 und 1 097 MiB (DECISIONS.md 5.14). Die exakte Spitze laut Kernel steht in jedem Lauf-Protokoll unter `measures.mem_peak_kernel_bytes`. Der Wert des Topfes unter `/sys/fs/cgroup` gilt dagegen seit dessen Entstehung und umfasst frühere Läufe. Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
 
 Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen in DECISIONS.md 5.9):
 
@@ -159,11 +175,11 @@ node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,mediu
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 ```
 
-Alle Phasen verteilen den Verbindungsaufbau standardmäßig über 5 s (`--connect-spread`). Der Ansturm verbindet dagegen alle Clients gleichzeitig. Er läuft unter Aufsicht und nicht im unbeaufsichtigten Zeitplan, weil ein Speicherengpass den Pi kurzzeitig blockieren kann:
+Alle Phasen verteilen den Verbindungsaufbau standardmäßig über 5 s (`--connect-spread`), und jede Kampagne beginnt mit einem Vorlauf mit 550 Clients (DECISIONS.md 5.9). Der Ansturm startet die Zelle dagegen vor jedem Lauf neu und verbindet dann alle Clients gleichzeitig. Er läuft unter Aufsicht und nicht im unbeaufsichtigten Zeitplan, weil ein Speicherengpass den Pi kurzzeitig blockieren kann. Am 2026-10-29 ist er mit dem Präfix `restart-` gemessen (DECISIONS.md 5.14). Eine Wiederholung braucht ein neues Präfix, sonst gelten die Kampagnen als erledigt:
 
 ```bash
-node tools/orchestrate/plan-campaigns.js storm --clients 500 --runs 3 --hold 20 --sut sut.pi.json --out campaigns/storm
-node tools/orchestrate/schedule.js campaigns/storm/schedule.json
+node tools/orchestrate/plan-campaigns.js storm --clients 500 --runs 3 --hold 20 --sut sut.pi.json --prefix <praefix>- --out campaigns/<praefix>-storm
+node tools/orchestrate/schedule.js campaigns/<praefix>-storm/schedule.json
 ```
 
 Für den mehrwöchigen Betrieb empfiehlt sich `tmux` oder ein systemd-User-Dienst auf dem Lastgenerator (README.md im Wurzelverzeichnis, Abschnitt zu langen Messkampagnen). Ein erneuter Start des Zeitplans setzt an der nächsten unvollständigen Kampagne fort.
@@ -194,4 +210,4 @@ Pro Lauf werden Temperatur (Beginn, Ende, Maximum), Drosselstatus und die Auslas
 
 ## Stand
 
-Am 2026-10-22 auf dem eingesetzten Pi 5 erprobt (DECISIONS.md 5.14). `setup.sh` lief nach einem Neustart mit Exit-Code 0, alle Images ließen sich bauen, und `sampler.js info` lieferte die erwarteten Werte. Dabei zeigte sich, dass der Pi 5 den Drosselstatus nicht in sysfs bereitstellt. Er wird seitdem per `vcgencmd` auf dem Pi gelesen. Der Belastungstest über 24 Stunden ist bestanden, ohne Drosselung und mit höchstens 67,2 °C (DECISIONS.md 5.14). Am 2026-10-27 lief der Zwei-Rechner-Aufbau im Probelauf. ssh-Steuerung, veröffentlichte Ports, cgroup-Töpfe, Drosselprüfung, Auslastung des Lastgenerators und die Abfrage des Pi durch `status.js` funktionieren. Mit gleichzeitigem Verbindungsaufbau scheiterte Laravel/SSE bei 500 Clients am Speicherbudget von 1,5 GiB. Mit verteiltem Aufbau liefen beide Laravel-Zellen fehlerfrei, und der Pi hatte immer mindestens 1,4 GB frei (DECISIONS.md 5.10). Vor dem Pilot stehen noch der Test der Festplatte unter Last und ein vollständiger Probelauf aus.
+Am 2026-10-22 auf dem eingesetzten Pi 5 erprobt (DECISIONS.md 5.14). `setup.sh` lief nach einem Neustart mit Exit-Code 0, alle Images ließen sich bauen, und `sampler.js info` lieferte die erwarteten Werte. Dabei zeigte sich, dass der Pi 5 den Drosselstatus nicht in sysfs bereitstellt. Er wird seitdem per `vcgencmd` auf dem Pi gelesen. Der Belastungstest über 24 Stunden ist bestanden, ohne Drosselung und mit höchstens 67,2 °C (DECISIONS.md 5.14). Am 2026-10-27 lief der Zwei-Rechner-Aufbau im Probelauf. ssh-Steuerung, veröffentlichte Ports, cgroup-Töpfe, Drosselprüfung, Auslastung des Lastgenerators und die Abfrage des Pi durch `status.js` funktionieren. Mit gleichzeitigem Verbindungsaufbau scheiterte Laravel/SSE bei 500 Clients am Speicherbudget von 1,5 GiB. Mit verteiltem Aufbau liefen beide Laravel-Zellen fehlerfrei, und der Pi hatte immer mindestens 1,4 GB frei (DECISIONS.md 5.10). Am 2026-10-29 folgten der vollständige Probelauf ohne ungültigen Messlauf, der Test der Festplatte unter Last und der Ansturm. Seit dem 2026-10-29 läuft der Pilot.

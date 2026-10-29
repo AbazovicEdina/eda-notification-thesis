@@ -132,7 +132,8 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
     { "name": "baseline", "vus": 10, "holdSeconds": 60, "runsPerConfig": 85, "eventRatePerSecond": 1 }
   ],
   "warmupRuns": 5,
-  "settleSeconds": 10
+  "settleSeconds": 10,
+  "connectSpreadSeconds": 5
 }
 ```
 

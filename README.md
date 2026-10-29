@@ -92,7 +92,7 @@ docker compose --profile node-minimal up -d
 
 ## Messungen
 
-Gemessen wird in Phasen (DECISIONS.md 5.9), nämlich Belastungstest, Pilot, Hauptmessung (Block 1), Replikation (Block 2), Skalierungsreihe, Sättigungstest und Ansturm, dazu eine tägliche Kontrollmessung. Die Clients verbinden sich verteilt über die ersten 5 s der Einschwingzeit, nur der Ansturm verbindet alle gleichzeitig (DECISIONS.md 5.10). Die Kampagnen einer Phase erzeugt `plan-campaigns.js` aus dem Auswerteplan, `schedule.js` arbeitet sie unbeaufsichtigt ab:
+Gemessen wird in Phasen (DECISIONS.md 5.9), nämlich Belastungstest, Pilot, Hauptmessung (Block 1), Replikation (Block 2), Skalierungsreihe, Sättigungstest und Ansturm, dazu eine tägliche Kontrollmessung. Die Clients verbinden sich verteilt über die ersten 5 s der Einschwingzeit, nur der Ansturm verbindet alle gleichzeitig, jeweils direkt nach einem Neustart der Zelle (DECISIONS.md 5.10). Jede andere Kampagne beginnt mit einem nicht gewerteten Vorlauf mit 550 Clients, damit der Speicher der statischen FPM-Pools nicht von Lauf zu Lauf wächst (DECISIONS.md 5.9). Die Kampagnen einer Phase erzeugt `plan-campaigns.js` aus dem Auswerteplan, `schedule.js` arbeitet sie unbeaufsichtigt ab:
 
 ```bash
 node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1

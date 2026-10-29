@@ -1,5 +1,5 @@
 {
-  "_comment": "Wie campaign.example.json, aber im Zwei-Rechner-Aufbau: der Orchestrator läuft auf dem Lastgenerator und steuert die SUT-Seite per ssh auf dem Pi (infra/pi/README.md). Adressen und Pfad anpassen. Für ganze Phasen den sut-Block als eigene Datei an plan-campaigns.js übergeben (--sut).",
+  "_comment": "Same as campaign.example.json, but for the two-machine setup. The orchestrator runs on the load generator and controls the SUT side on the Pi via ssh (infra/pi/README.md). Adjust addresses and path. For whole phases, pass the sut block as a separate file to plan-campaigns.js (--sut).",
   "name": "b1-c04-baseline",
   "phase": "main",
   "block": 1,
@@ -9,14 +9,15 @@
   ],
   "warmupRuns": 5,
   "settleSeconds": 10,
+  "connectSpreadSeconds": 5,
   "maxFailureRate": 0.05,
   "minPairs": 20,
   "bootstrap": { "seed": 20261016, "resamples": 10000 },
   "sut": {
-    "ssh": "pi@192.168.0.50",
+    "ssh": "pi@192.168.50.10",
     "repoDir": "/home/pi/eda-notification-thesis",
     "pi": true,
-    "targetBaseUrl": "http://192.168.0.50:8080",
-    "redisHost": "192.168.0.50"
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
   }
 }

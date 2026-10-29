@@ -857,7 +857,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
-| Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Belastungstest (2026-10-23), vollständiger Probelauf und Test der Festplatte unter Last (2026-10-29) sind bestanden (5.14) | auf dem Pi |
+| Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Belastungstest (2026-10-23), vollständiger Probelauf, Test der Festplatte unter Last und Ansturm (2026-10-29) sind abgeschlossen (5.14). Der Pilot läuft seit 2026-10-29 mit den Vergleichen 1, 4, 7 und 10 | auf dem Pi |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -865,7 +865,8 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 - Prototypen enthalten minimalen Vergleichscode (Abschnitt 1).
 - Konfiguration ausschließlich über `.env`. Geheimnisse (z. B. `prototypes/php-laravel/.env`) werden nie versioniert und nie in Images übernommen.
 - Ergebnisdateien werden nie überschrieben (Zeitstempel im Verzeichnisnamen).
-- Commit-Nachrichten auf Englisch im Format `<typ>: <zusammenfassung>` mit den Typen `feat`, `fix`, `infra`, `docs`, `test`.
+- Commit-Nachrichten auf Englisch im Format `<typ>: <zusammenfassung>` mit den Typen `feat`, `fix`, `infra`, `docs`, `test`. Ohne KI-Vermerk, die KI-Nutzung beschreibt `docs/KI-NUTZUNG.md`.
+- Kommentare im Code auf Englisch (seit 2026-10-29), passend zur englischen Arbeit, aus der Codeausschnitte zitiert werden. Die Dokumentation bleibt auf Deutsch, ebenso die Ausgaben der Werkzeuge. Die Images werden für die Übersetzung nicht neu gebaut, weil Kommentare das Verhalten nicht ändern. Pilot, Block 1 und Block 2 laufen so auf denselben Images.
 
 ## 8. Änderungsverlauf
 
