@@ -749,12 +749,12 @@ Zehn Varianten, dreizehn Vergleiche, elf Hypothesen, Replikation, Skalierung, S�
 
 | Stufe | Inhalt | Darstellung |
 |---|---|---|
-| Kern | **Sprache und Laufzeitmodell unter Last.** Vergleiche 1–4, H1, H3, H4, H6, H8 (Anteil von Redis an der CPU), Skalierungsreihe, Ansturm | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
+| Kern | **Sprache und Laufzeitmodell unter Last.** Vergleiche 1–4, H1, H3, H4, H6, H8 (Anteil von Redis an der CPU), Skalierungsreihe | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
 | Kern | **Transport.** Vergleiche 12 und 13, H9–H11, SSE gegen WebSocket im Sättigungstest | ausführlich, mit eigenen Abbildungen, zentral in der Diskussion |
 | Ergänzung | **Kosten der Architektur.** Framework (Vergleiche 5–8, H5), Queue (Vergleiche 9–11, H7) | ein Abschnitt, je Achse eine Tabelle und wenige Absätze |
 | übergreifend | H2 (alle dreizehn Vergleiche bei 10 Clients) | Belege in den jeweiligen Abschnitten, Bewertung in der Hypothesentabelle |
 | Ergänzung | Komplexität und Wartbarkeit (RQ3, 5.13, 5.22) | ein Abschnitt mit einer Tabelle der Kennzahlen und dem qualitativen Vergleich |
-| Ergänzung | Messbetrieb, Zustellung, Replikation | knapp, Zusammenfassung im Text |
+| Ergänzung | Messbetrieb, Zustellung, Replikation, Ansturm (5.10) | knapp, Zusammenfassung im Text, der Ansturm in höchstens einem Absatz |
 | Anhang | vollständige Tabellen aller 39 Tests je Messgröße, rangbiseriale Korrelation, Replikation je Vergleich, Stufen von Skalierung und Sättigung je Variante, Verlauf von Pilot und Kontrollmessung | nur Tabellen, im Text verwiesen |
 
 Regeln:
@@ -772,6 +772,8 @@ Regeln:
 3. Block 2 ganz entfallen lassen. Die Arbeit berichtet dann die fehlende Replikation als Grenze.
 
 Nicht gekürzt werden Belastungstest, Pilot, Block 1 mit allen dreizehn Vergleichen, Kontrollmessung, Skalierungsreihe, Sättigungstest und Ansturm. Diese drei beschreibenden Phasen kosten zusammen weniger als einen Tag und tragen RQ2, H4 und H11. Jede Kürzung wird mit Umfang und Grund in der Arbeit genannt.
+
+**Kürzungen im Text** (2026-10-27). Gemessen wird alles oben Genannte, der Text wird dagegen knapp gehalten. Wird die Arbeit zu lang, wandern zuerst vollständige Tabellen und der Ansturm in den Anhang. Danach werden die Grundlagen, die verwandten Arbeiten, Framework und Queue sowie Wartbarkeit gestrafft. Nicht gekürzt werden die Methodik, die Kernabschnitte der Ergebnisse, die Antworten auf RQ1 und RQ2 und die Grenzen der Arbeit. Einrichtung, Fehlersuche und die einzelnen Probeläufe gehören nicht in die Arbeit. Jede Entscheidung zur Methode bekommt höchstens einen Absatz mit dem, was entschieden wurde, warum und mit welchem Beleg.
 
 ### 5.25 Abbildungen für die Arbeit — ENTSCHIEDEN (2026-10-17)
 
