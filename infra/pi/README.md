@@ -15,6 +15,12 @@ Beide Geräte sind per Kabel im selben, nach Möglichkeit isolierten Netz verbun
 
 Eine Uhrensynchronisation zwischen den Geräten ist nicht erforderlich. Der Sendezeitstempel (Ereignisquelle) und der Empfangszeitpunkt (k6) stammen beide vom Lastgenerator. Die Netzwerkstrecke ist in jeder gemessenen Latenz enthalten, für alle Zellen gleich und verzerrt den Vergleich daher nicht.
 
+Die Uhr des Pi selbst geht nach einer Trennung vom Strom falsch. Der Pi hat keine Batterie für die Uhr und im Messnetz kein Internet, über das er sie stellen könnte. Die Messwerte betrifft das nicht, wohl aber die Zeitangaben im Systemprotokoll und bei den Containern des Pi. Nach jeder Trennung vom Strom wird die Uhr deshalb vom Lastgenerator aus gestellt. Der Pi fragt dabei nach dem Passwort von `pi`:
+
+```bash
+ssh -t pi@192.168.50.10 "sudo date -u -s @$(date +%s)"
+```
+
 ## Hardware
 
 - **Testserver.** Raspberry Pi 5, eingesetzt mit 4 GB RAM (zwei Zellen à 1,5 GiB Budget gleichzeitig plus Redis, Nginx und Betriebssystem). Das reicht für alle Zellen bei 500 Clients, weil sich die Clients verteilt verbinden (DECISIONS.md 5.10), aktiver Kühler (offizieller Active Cooler oder Lüftergehäuse), offizielles 27-W-Netzteil, SSD statt SD-Karte (z. B. M.2 HAT+ mit NVMe-SSD oder USB-3-SSD). SD-Karten verschleißen bei wochenlangem Schreiben.

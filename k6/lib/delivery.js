@@ -10,10 +10,11 @@
 // sind prinzipbedingt nicht erkennbar — bei einer Haltezeit weit über dem
 // Event-Intervall vernachlässigbar, aber als Limitation zu nennen.
 //
-// Verbindung: Dauer bis zum Verbindungsaufbau (SSE: Antwort-Header
-// empfangen, WS: Handshake abgeschlossen), Zahl der bis zum Beginn des
-// Messfensters verbundenen Clients und Zahl der Clients, die im Messfenster
-// mindestens ein Event erhalten haben ("bediente Clients").
+// Verbindung: Dauer bis zum Verbindungsaufbau (SSE: Antwort-Header mit
+// HTTP 200 empfangen, WS: Handshake abgeschlossen), Zahl der bis zum Beginn
+// des Messfensters verbundenen Clients und Zahl der Clients, die im
+// Messfenster mindestens ein Event erhalten haben ("bediente Clients").
+// Eine Fehlerseite statt des Datenstroms ist keine Verbindung.
 import { Counter, Trend } from 'k6/metrics';
 
 // Metriken müssen im Init-Kontext angelegt werden (k6-Regel), deshalb
@@ -44,9 +45,11 @@ export function newTracker() {
   };
 }
 
-export function markConnected(metrics, tracker, window) {
+// `at` ist der Zeitpunkt der Antwort. SSE erfährt den Statuscode erst nach
+// dem Ende der Verbindung und trägt den Zeitpunkt deshalb nachträglich ein.
+export function markConnected(metrics, tracker, window, at = Date.now()) {
   if (tracker.connectedAt !== null) return;
-  tracker.connectedAt = Date.now();
+  tracker.connectedAt = at;
   metrics.connectMs.add(tracker.connectedAt - tracker.connectStartedAt);
   if (tracker.connectedAt < window.start) metrics.connectedInTime.add(1);
 }

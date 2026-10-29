@@ -21,7 +21,8 @@
 //   --connect-spread <s>   Verbindungsaufbau der Clients über s Sekunden verteilen
 //                          (Standard 5, muss kleiner als --settle sein,
 //                          DECISIONS.md 5.10). storm verbindet immer gleichzeitig.
-//   --warmup <n>           Warm-up-Läufe je Konfiguration (Standard: pilot/main 5, sonst 1)
+//   --warmup <n>           Warm-up-Läufe je Konfiguration (Standard: pilot/main 5, sonst 1).
+//                          storm hat keine, weil die Zelle vor jedem Lauf neu startet.
 //   --sut <datei>          JSON mit dem sut-Block für den Zwei-Rechner-Aufbau
 //   --seed <n>             Startwert der zufälligen Reihenfolge in schedule.js
 // Nur pilot und main:
@@ -152,9 +153,9 @@ if (kind === 'pilot' || kind === 'main') {
     });
   }
 } else if (kind === 'storm') {
-  // Ansturm (DECISIONS.md 5.10): Alle Clients verbinden sich im selben
-  // Moment, etwa nach einem Neustart des Servers. Jede Zelle einzeln,
-  // beschreibend, ohne Hypothesentest.
+  // Ansturm (DECISIONS.md 5.10): Die Zelle startet vor jedem Lauf neu, dann
+  // verbinden sich alle Clients im selben Moment, wie nach einem Neustart
+  // des Servers. Jede Zelle einzeln, beschreibend, ohne Hypothesentest.
   const clients = Number(opt('clients', 500));
   const runs = Number(opt('runs', 3));
   for (const cell of selectedCells()) {
@@ -162,7 +163,8 @@ if (kind === 'pilot' || kind === 'main') {
       phase: 'storm',
       configs: [cell],
       connectSpreadSeconds: 0,
-      scenarios: [{ name: `storm-${String(clients).padStart(4, '0')}`, vus: clients, holdSeconds: hold, runsPerConfig: runs + warmup, eventRatePerSecond: 1 }],
+      warmupRuns: 0,
+      scenarios: [{ name: `storm-${String(clients).padStart(4, '0')}`, vus: clients, holdSeconds: hold, runsPerConfig: runs, eventRatePerSecond: 1 }],
     });
   }
 } else {

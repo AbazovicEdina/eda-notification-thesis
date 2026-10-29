@@ -62,7 +62,7 @@ Optionen von `plan-campaigns.js`:
 | `--clients` | `saturation`, `storm` | Zahl der Clients (Standard 50 beim Sättigungstest, 500 beim Ansturm) |
 | `--steps`, `--clients`, `--rates` | `scaling`, `saturation` | Clientzahlen bzw. feste Clientzahl und Event-Raten |
 | `--prefix` | alle | Präfix aller Kampagnennamen, z. B. `smoke-` |
-| `--hold`, `--settle`, `--warmup` | alle | Haltezeit (Standard 60 s), Einschwingzeit (Standard 10 s), Warm-up-Läufe (Standard 5 bei `pilot` und `main`, sonst 1) |
+| `--hold`, `--settle`, `--warmup` | alle | Haltezeit (Standard 60 s), Einschwingzeit (Standard 10 s), Warm-up-Läufe (Standard 5 bei `pilot` und `main`, bei `storm` keine, sonst 1) |
 | `--connect-spread` | alle außer `storm` | Verbindungsaufbau der Clients über so viele Sekunden verteilen (Standard 5, kleiner als `--settle`, DECISIONS.md 5.10). `storm` verbindet immer alle gleichzeitig |
 | `--sut` | alle | Datei mit dem sut-Block für den Zwei-Rechner-Aufbau (siehe unten) |
 | `--seed` | alle | Startwert der zufälligen Reihenfolge in `schedule.js` (Standard 20261016) |
@@ -116,9 +116,9 @@ Das Protokoll liegt bewusst außerhalb von `results/`, damit es nicht versehentl
 | `control` | tägliche Kontrollmessung einer festen Zelle zur Erkennung von Drift | ≥ 1 | beschreibend |
 | `scaling` | Clientzahl stufenweise steigern | ≥ 1 | beschreibend, inklusive erster Clientzahl mit weniger als 99 % bedienten Clients |
 | `saturation` | Event-Rate stufenweise steigern bei fester Clientzahl | ≥ 1 | beschreibend, inklusive höchster nachhaltiger Rate |
-| `storm` | alle Clients verbinden sich im selben Moment, je Zelle einzeln | ≥ 1 | beschreibend, rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel, Gründe ungültiger Läufe |
+| `storm` | Zelle vor jedem Lauf neu starten, danach verbinden sich alle Clients im selben Moment. Je Zelle einzeln, ohne Warm-up | ≥ 1 | beschreibend, rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel, Gründe ungültiger Läufe |
 
-In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufen und alle Clients bis zum Ende der Einschwingzeit verbunden sein. In `scaling` und `saturation` sind ausgefallene Läufe Messergebnisse und kein Abbruchgrund. Zwischenauswertungen der Hauptmessung dienen nur der Kontrolle, nicht als Abbruchkriterium (DECISIONS.md 5.9).
+In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufen, alle Clients bis zum Ende der Einschwingzeit verbunden sein und alle Verbindungen mit dem erwarteten Status beantwortet werden. In `scaling`, `saturation` und `storm` sind ausgefallene Läufe Messergebnisse und kein Abbruchgrund. Zwischenauswertungen der Hauptmessung dienen nur der Kontrolle, nicht als Abbruchkriterium (DECISIONS.md 5.9).
 
 ## Kampagnenformat
 
@@ -145,12 +145,14 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
 | `comparisons` | alle Paare | Konfigurationspaare, die verglichen werden (nur `pilot`, `main`) |
 | `scenarios` | — | Laststufen mit `name`, `vus`, `holdSeconds`, `runsPerConfig` (einschließlich Warm-up), optional `eventRatePerSecond` (Standard 1) |
 | `script`, `metric` | aus `cells.json` | kampagnenweite Überschreibung mit dem Vorrang Konfiguration > Kampagne > Zelle |
-| `warmupRuns` | 5 | Läufe pro Konfiguration, die nicht ausgewertet werden |
+| `warmupRuns` | 5 (bei `storm` 0) | Läufe pro Konfiguration, die nicht ausgewertet werden. Bei `storm` Pflicht 0, weil die Zelle vor jedem Lauf neu startet |
+| `primeClients`, `primeHoldSeconds` | 550, 5 | **Vorlauf** vor dem ersten Warm-up, je Konfiguration ein nicht gewerteter k6-Lauf mit so vielen Clients, verteilt über die halbe Einschwingzeit. 550 entspricht `pm.max_children` der FPM-Pools, danach hat jeder Worker einmal gearbeitet (DECISIONS.md 5.9). 0 schaltet ihn ab. Bei `storm` entfällt er |
+| `restartSettleMs` | 5000 | nur `storm`, Wartezeit nach dem Neustart der Zelle, bevor sich die Clients verbinden |
 | `settleSeconds` | 10 | Einschwingzeit je Lauf. Events davor werden nicht gewertet |
 | `connectSpreadSeconds` | 0 (`plan-campaigns.js` setzt 5) | Verbindungsaufbau gleichmäßig über so viele Sekunden verteilt, Client n startet nach (n − 1) / Clients mal diesem Wert. 0 heißt, alle verbinden sich gleichzeitig, in der Phase `storm` Pflicht. Muss kleiner als `settleSeconds` sein. Der Wert steht in jedem Lauf-Protokoll (`load.connect_spread_seconds`) |
 | `pauseMinMs`, `pauseMaxMs` | 100, 500 | zufällige Pause zwischen den Läufen |
 | `reportEvery` | 0 | Zwischenauswertung alle N Laufnummern (0 = aus) |
-| `maxFailureRate` | 0,05 (bei `scaling` und `saturation` 1) | Anteil ungültiger Läufe pro Konfiguration, ab dem die Kampagne abbricht |
+| `maxFailureRate` | 0,05 (bei `scaling`, `saturation` und `storm` 1) | Anteil ungültiger Läufe pro Konfiguration, ab dem die Kampagne abbricht |
 | `minPairs` | 20 | unter dieser Zahl verwertbarer Paare gilt ein Vergleich als nicht aussagekräftig |
 | `requireProduction`, `requireAllConnected` | `true` in `pilot`, `main`, `control` | Produktionsbetrieb bzw. vollständiger Verbindungsaufbau als Bedingung |
 | `bootstrap.seed`, `bootstrap.resamples` | 20261016, 10000 | Startwert und Zahl der Resamples des Bootstraps |
@@ -171,13 +173,15 @@ Zusätzliche Umgebungsvariablen einer Zelle können aus einer Datei gelesen werd
    - Betriebsmodus jedes Containers prüfen (`NODE_ENV`, `APP_ENV`, `APP_DEBUG`, geladene `php.ini`).
 2. **Je Laststufe:**
    - Die Ereignisquellen starten, die die Zellen brauchen (Event-Simulator, BullMQ-Quelle, Laravel-Quelle), mit der Rate der Stufe.
+   - **Vorlauf**, einmal je Kampagne vor dem ersten Warm-up und nicht bei `storm`. Je Konfiguration verbinden sich 550 Clients verteilt, danach hat jeder FPM-Worker einmal gearbeitet. Fällt dabei ein Container aus, bricht die Kampagne ab. Protokolliert als `cell_primed`.
    - Läufe alternierend A, B, A, B ausführen. Je Lauf:
+     - nur `storm`, die Container der Zelle neu erzeugen, warten, bis sie erreichbar ist, und weitere 5 s warten (`cell_restarted`),
      - Front-Nginx auf die Zelle umschalten (Modus `http` oder `fastcgi`) und ihre Erreichbarkeit prüfen,
      - k6-Erweiterung prüfen,
      - Ressourcenmessung von Zelle und Redis sowie die Auslastungsmessung des Lastgenerators starten, k6 ausführen, Messungen beenden,
      - Container-Status prüfen (Absturz, OOM),
      - Lauf-Protokoll schreiben.
-3. **Gültigkeit.** Ein Lauf ist ungültig bei k6-Fehler, fehlender k6-Zusammenfassung, ohne empfangene Events, bei abgestürztem oder per OOM beendetem Container, fehlgeschlagener Ressourcenmessung, Drosselung des Pi, in strengen Phasen zusätzlich bei nicht vollständig verbundenen Clients und (Zwei-Rechner-Aufbau) bei einer mittleren Auslastung des Lastgenerators über 80 %. Überschreitet der Anteil ungültiger Läufe `maxFailureRate`, bricht die Kampagne ab.
+3. **Gültigkeit.** Ein Lauf ist ungültig bei k6-Fehler, fehlender k6-Zusammenfassung, ohne empfangene Events, bei abgestürztem oder per OOM beendetem Container, fehlgeschlagener Ressourcenmessung, Drosselung des Pi, in strengen Phasen zusätzlich bei nicht vollständig verbundenen Clients, bei Clients mit falschem Status (Fehlerseite statt SSE-Datenstrom, gescheiterter WebSocket-Handshake, `http_status_errors`) und (Zwei-Rechner-Aufbau) bei einer mittleren Auslastung des Lastgenerators über 80 %. Ein Absturz der Zelle steht als Grund vor allen anderen, weil er deren Ursache ist (`sut_container_failed`). Als verbunden zählt bei SSE nur eine Antwort mit Status 200. Überschreitet der Anteil ungültiger Läufe `maxFailureRate`, bricht die Kampagne ab.
 4. **Abschluss.** Ereignisquellen stoppen, `aggregate.json` schreiben. Bei Abbruch (auch per Strg-C) wird die angefangene Laststufe als `incomplete` gekennzeichnet. `evaluate.js` berücksichtigt sie nicht, `schedule.js` wiederholt die Kampagne beim nächsten Start.
 
 ## Ergebnisse

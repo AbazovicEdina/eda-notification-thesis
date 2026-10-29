@@ -237,13 +237,28 @@ function resolveSettings(campaign) {
   if (phase === 'storm' && connectSpreadSeconds !== 0) {
     throw new CampaignError('Phase storm misst den gleichzeitigen Verbindungsaufbau, connectSpreadSeconds muss 0 sein');
   }
+  // Beim Ansturm startet die Zelle vor jedem Lauf neu (runOnce), ein
+  // Warm-up würde dadurch sofort wieder verworfen.
+  const warmupRuns = campaign.warmupRuns ?? (phase === 'storm' ? 0 : 5);
+  if (phase === 'storm' && warmupRuns !== 0) {
+    throw new CampaignError('Phase storm startet die Zelle vor jedem Lauf neu, warmupRuns muss 0 sein');
+  }
   return {
     name: campaign.name ?? 'kampagne',
     phase,
     block: campaign.block ?? (phase === 'main' ? 1 : null),
-    warmupRuns: campaign.warmupRuns ?? 5,
+    warmupRuns,
     settleSeconds: campaign.settleSeconds ?? 10,
     connectSpreadSeconds,
+    // Vorlauf vor dem Warm-up (DECISIONS.md 5.9): so viele Clients, wie ein
+    // statischer FPM-Pool Worker hat (pm.max_children in
+    // prototypes/*/fpm-pool.conf), damit jeder Worker einmal gearbeitet hat.
+    // 0 schaltet den Vorlauf ab. Beim Ansturm entfällt er.
+    primeClients: phase === 'storm' ? 0 : (campaign.primeClients ?? 550),
+    primeHoldSeconds: campaign.primeHoldSeconds ?? 5,
+    // Wartezeit nach dem Neustart der Zelle beim Ansturm, damit der Start
+    // abgeschlossen ist (z. B. alle 550 FPM-Worker geforkt).
+    restartSettleMs: campaign.restartSettleMs ?? 5000,
     pauseMinMs: campaign.pauseMinMs ?? 100,
     pauseMaxMs: campaign.pauseMaxMs ?? 500,
     reportEvery: campaign.reportEvery ?? 0,
@@ -468,6 +483,80 @@ async function switchFront(sides, config) {
   throw new CampaignError(`Front-Nginx erreicht ${config.name} (${config.front.mode} ${config.front.host}:${config.front.port}) nicht`);
 }
 
+// Ansturm (DECISIONS.md 5.10): Vor jedem Lauf startet die Zelle mit frischen
+// Containern neu, wie nach einem Neustart des Servers. Alle Läufe beginnen
+// damit im selben Zustand, und ein Absturz im vorigen Lauf beendet die
+// Kampagne nicht, sondern ist dessen Ergebnis.
+async function restartCell(sides, settings, config, log, runId) {
+  const r = await sides.sutCompose(['up', '-d', '--force-recreate', '--no-deps', ...config.services], {}, { timeoutMs: 600000 });
+  if (r.status !== 0) throw new CampaignError(`Neustart von ${config.cell} fehlgeschlagen:\n${r.stderr.trim()}`);
+  await switchFront(sides, config);
+  await sleep(settings.restartSettleMs);
+  log('cell_restarted', { run: runId, services: config.services });
+}
+
+// docker-compose-Argumente für einen k6-Lauf gegen eine Konfiguration.
+function k6RunArgs(settings, config, { vus, holdSeconds, connectSpreadSeconds, summaryRel }) {
+  const env = {
+    K6_TARGET_BASE_URL: settings.sut.targetBaseUrl,
+    K6_VUS: String(vus),
+    K6_HOLD_SECONDS: String(holdSeconds),
+    K6_SETTLE_SECONDS: String(settings.settleSeconds),
+    K6_CONNECT_SPREAD_SECONDS: String(connectSpreadSeconds),
+    ...config.env,
+  };
+  const args = ['--profile', 'load', 'run', '--rm', '--no-deps'];
+  for (const [k, v] of Object.entries(env)) args.push('-e', `${k}=${v}`);
+  args.push('k6', 'run', '--quiet', `--summary-export=/results/${summaryRel}`, `--summary-trend-stats=${SUMMARY_TREND_STATS}`, `scripts/${config.script}`);
+  return args;
+}
+
+const k6TimeoutMs = (settings, holdSeconds) => (settings.settleSeconds + holdSeconds + 180) * 1000;
+
+// Abgestürzte oder vom OOM-Killer getroffene Container einer Zelle.
+const failedContainers = (containers) => containers
+  .filter((c) => c.status !== 'running' || c.oom_killed)
+  .map((c) => `${c.service}${c.oom_killed ? '(OOM)' : ''}`);
+
+// Vorlauf (DECISIONS.md 5.9): Ein statischer FPM-Pool belegt den Speicher
+// eines Workers erst, wenn dieser zum ersten Mal eine Anfrage bearbeitet
+// hat, und neue Verbindungen gehen reihum an andere Worker. Ohne Vorlauf
+// wüchse der Speicher bei wenigen Clients deshalb von Lauf zu Lauf, bis alle
+// Worker einmal gearbeitet haben. Der Vorlauf verbindet so viele Clients,
+// wie der Pool Worker hat, verteilt über die halbe Einschwingzeit. Er wird
+// nicht gewertet und läuft für alle Zellen gleich, auch für Node.js.
+async function primeCells(ctx, configs) {
+  const { sides, settings, campaignDirName, log } = ctx;
+  const vus = settings.primeClients;
+  const holdSeconds = settings.primeHoldSeconds;
+  for (const config of configs) {
+    if (ctx.interrupted) throw new CampaignError('Abbruch auf Anforderung (Strg-C)');
+    process.stdout.write(`Vorlauf ${config.name} mit ${vus} Clients … `);
+    await switchFront(sides, config);
+    const ids = await containerIds(sides, config.services);
+    const summaryRel = `${campaignDirName}/runs/.tmp-prime-${config.name}.json`;
+    const summaryPath = path.join(RESULTS_DIR, summaryRel);
+    const k6 = await sides.loadCompose(
+      k6RunArgs(settings, config, { vus, holdSeconds, connectSpreadSeconds: settings.settleSeconds / 2, summaryRel }),
+      {}, { timeoutMs: k6TimeoutMs(settings, holdSeconds) },
+    );
+    let summary = null;
+    if (existsSync(summaryPath)) {
+      summary = readJson(summaryPath);
+      unlinkSync(summaryPath);
+    }
+    const m = extractMeasures(summary, config, { vus, holdSeconds }, null, null);
+    const missing = config.services.filter((s) => !ids[s]);
+    const failed = [...missing, ...failedContainers(await inspectContainers(sides, Object.values(ids)))];
+    log('cell_primed', {
+      config: config.name, clients: vus, k6_exit: k6.status, connected_ratio: m.connected_ratio,
+      served_ratio: m.served_ratio, checks_failed: m.checks_failed, failed_containers: failed,
+    });
+    if (failed.length) throw new CampaignError(`Vorlauf: ${config.name} ist mit ${vus} Clients ausgefallen (${failed.join(', ')})`);
+    console.log(`bedient ${(100 * (m.served_ratio ?? 0)).toFixed(1)} %`);
+  }
+}
+
 // Startet alle Ereignisquellen, die die Zellen der Kampagne brauchen, mit
 // der Rate der Laststufe (DECISIONS.md 5.17, 5.19).
 async function startProducers(sides, settings, configs, rate, log) {
@@ -658,7 +747,8 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     if (!record.run.invalid_reason) record.run.invalid_reason = reason;
   };
 
-  await switchFront(sides, config);
+  if (settings.phase === 'storm') await restartCell(sides, settings, config, log, runId);
+  else await switchFront(sides, config);
   await k6Version(sides);
 
   const ids = await containerIds(sides, config.services);
@@ -707,20 +797,12 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
 
   const tmpRel = `${campaignDirName}/runs/.tmp-${runId}.json`;
   const tmpPath = path.join(RESULTS_DIR, tmpRel);
-  const k6Env = {
-    K6_TARGET_BASE_URL: settings.sut.targetBaseUrl,
-    K6_VUS: String(scenario.vus),
-    K6_HOLD_SECONDS: String(scenario.holdSeconds),
-    K6_SETTLE_SECONDS: String(settings.settleSeconds),
-    K6_CONNECT_SPREAD_SECONDS: String(settings.connectSpreadSeconds),
-    ...config.env,
-  };
-  const k6Args = ['--profile', 'load', 'run', '--rm', '--no-deps'];
-  for (const [k, v] of Object.entries(k6Env)) k6Args.push('-e', `${k}=${v}`);
-  k6Args.push('k6', 'run', '--quiet', `--summary-export=/results/${tmpRel}`, `--summary-trend-stats=${SUMMARY_TREND_STATS}`, `scripts/${config.script}`);
+  const k6Args = k6RunArgs(settings, config, {
+    vus: scenario.vus, holdSeconds: scenario.holdSeconds, connectSpreadSeconds: settings.connectSpreadSeconds, summaryRel: tmpRel,
+  });
 
   record.run.started_at = new Date().toISOString();
-  const k6 = await sides.loadCompose(k6Args, {}, { timeoutMs: (settings.settleSeconds + scenario.holdSeconds + 180) * 1000 });
+  const k6 = await sides.loadCompose(k6Args, {}, { timeoutMs: k6TimeoutMs(settings, scenario.holdSeconds) });
   record.run.ended_at = new Date().toISOString();
 
   if (sampler) {
@@ -746,6 +828,12 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     }
   }
 
+  // Ein Absturz der Zelle ist die Ursache aller übrigen Befunde des Laufs
+  // (keine Events, Fehlerseiten) und steht deshalb als Grund vorn.
+  record.containers = await inspectContainers(sides, Object.values(ids));
+  const failed = failedContainers(record.containers);
+  if (failed.length) record.run.invalid_reason = `sut_container_failed:${failed.join(',')}`;
+
   if (k6.status !== 0) invalid(`k6_exit_${k6.status}`);
   if (existsSync(tmpPath)) {
     record.k6_summary = readJson(tmpPath);
@@ -759,10 +847,11 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   if (settings.requireAllConnected && record.measures.clients_connected_in_time < scenario.vus) {
     invalid(`clients_not_connected_in_settle:${record.measures.clients_connected_in_time}/${scenario.vus}`);
   }
-
-  record.containers = await inspectContainers(sides, Object.values(ids));
-  const failed = record.containers.filter((c) => c.status !== 'running' || c.oom_killed);
-  if (failed.length) invalid(`sut_container_failed:${failed.map((c) => `${c.service}${c.oom_killed ? '(OOM)' : ''}`).join(',')}`);
+  // Fehlerseite statt Datenstrom oder gescheiterter Handshake bei einzelnen
+  // Clients (je Client genau eine Prüfung im k6-Skript).
+  if (settings.requireAllConnected && record.measures.checks_failed > 0) {
+    invalid(`http_status_errors:${record.measures.checks_failed}`);
+  }
 
   const hostState = record.resources?.host;
   if (hostState && throttledDuring(hostState.throttled_start, hostState.throttled_end)) {
@@ -1019,10 +1108,17 @@ function interimReport(scenario, comparisons, results, settings, runIndex) {
 async function runScenario(ctx, scenario, configs, comparisons, interim) {
   const { settings, sides, log } = ctx;
   const spread = settings.connectSpreadSeconds ? `, Verbindungsaufbau über ${settings.connectSpreadSeconds} s verteilt` : '';
+  const restart = settings.phase === 'storm' ? ', Neustart der Zelle vor jedem Lauf' : '';
   console.log(`\n=== Laststufe "${scenario.name}": ${scenario.vus} Clients, ${settings.settleSeconds} s + ${scenario.holdSeconds} s, `
-    + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration${spread} ===`);
+    + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration${spread}${restart} ===`);
   log('scenario_started', { scenario });
   await startProducers(sides, settings, configs, scenario.eventRatePerSecond, log);
+  // Einmal je Kampagne vor dem ersten Warm-up. Die Zellen laufen danach bis
+  // zum Ende der Kampagne weiter.
+  if (settings.primeClients > 0 && !ctx.primed) {
+    await primeCells(ctx, configs);
+    ctx.primed = true;
+  }
 
   const results = Object.fromEntries(configs.map((c) => [c.name, []]));
   const measuredRuns = Math.max(0, scenario.runsPerConfig - settings.warmupRuns);
@@ -1141,7 +1237,7 @@ async function main() {
   const log = (event, data = {}) => appendFileSync(logFile, `${JSON.stringify({ t: new Date().toISOString(), event, ...data })}\n`);
 
   const sides = createSides(settings.sut);
-  const ctx = { sides, settings, campaignDir, campaignDirName, log, context: null, interrupted: false, partialResults: null };
+  const ctx = { sides, settings, campaignDir, campaignDirName, log, context: null, interrupted: false, partialResults: null, primed: false };
   process.on('SIGINT', () => {
     if (ctx.interrupted) process.exit(130);
     ctx.interrupted = true;

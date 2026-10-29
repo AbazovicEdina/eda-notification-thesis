@@ -23,9 +23,14 @@ export default function () {
   staggerStart();
   const window = measurementWindow();
   const tracker = newTracker();
+  // xk6-sse meldet "open" bei jeder Antwort, auch bei einer Fehlerseite von
+  // Nginx. Als Verbindung zählt sie erst, wenn der Status 200 war.
+  let openedAt = null;
 
   const response = sse.open(`${BASE_URL}/sse`, {}, (client) => {
-    client.on('open', () => markConnected(delivery, tracker, window));
+    client.on('open', () => {
+      if (openedAt === null) openedAt = Date.now();
+    });
 
     client.on('event', (event) => {
       const now = Date.now();
@@ -47,6 +52,7 @@ export default function () {
     });
   });
 
+  const ok = check(response, { 'SSE-Verbindung: HTTP 200': (r) => r && r.status === 200 });
+  if (ok && openedAt !== null) markConnected(delivery, tracker, window, openedAt);
   flush(delivery, tracker);
-  check(response, { 'SSE-Verbindung: HTTP 200': (r) => r && r.status === 200 });
 }
