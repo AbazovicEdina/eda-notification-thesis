@@ -1,0 +1,173 @@
+{
+  "schema": "eda-thesis/run/2",
+  "run": {
+    "id": "control_node-minimal-sse_run0006",
+    "config": "node-minimal-sse",
+    "cell": "node-minimal-sse",
+    "scenario": "control",
+    "phase": "control",
+    "block": null,
+    "run_index": 6,
+    "warmup": false,
+    "valid": false,
+    "invalid_reason": "resource_sampler:Sampler beendet ohne Ergebnis: ",
+    "started_at": "2026-10-27T16:52:50.809Z",
+    "ended_at": "2026-10-27T16:53:11.142Z"
+  },
+  "load": {
+    "vus": 50,
+    "settle_seconds": 10,
+    "hold_seconds": 10,
+    "event_rate_nominal_per_s": 1,
+    "producer": "pubsub",
+    "script": "sse-feasibility.js",
+    "metric": "sse_event_latency_ms",
+    "target_base_url": "http://192.168.50.10:8080",
+    "front_mode": "http",
+    "extra_env_keys": []
+  },
+  "measures": {
+    "latency_mean_ms": null,
+    "latency_min_ms": null,
+    "latency_median_ms": null,
+    "latency_p90_ms": null,
+    "latency_p95_ms": null,
+    "latency_p99_ms": null,
+    "latency_max_ms": null,
+    "connect_mean_ms": null,
+    "connect_median_ms": null,
+    "connect_p95_ms": null,
+    "connect_max_ms": null,
+    "clients": 50,
+    "clients_connected_in_time": 0,
+    "clients_served": 0,
+    "connected_ratio": 0,
+    "served_ratio": 0,
+    "events_received": null,
+    "events_unique": null,
+    "events_expected": null,
+    "events_lost": null,
+    "events_duplicate": null,
+    "delivery_ratio": null,
+    "delivered_events_per_s": null,
+    "source_rate_eps": null,
+    "connection_errors": 0,
+    "checks_passed": null,
+    "checks_failed": null,
+    "data_received_bytes": null,
+    "data_received_bytes_per_s": null,
+    "data_sent_bytes": null,
+    "data_sent_bytes_per_s": null,
+    "cpu_seconds": null,
+    "cpu_cores_avg": null,
+    "working_set_avg_bytes": null,
+    "working_set_peak_bytes": null,
+    "mem_peak_bytes": null,
+    "cpu_seconds_redis": null,
+    "working_set_peak_bytes_redis": null,
+    "cpu_seconds_total": null,
+    "working_set_peak_bytes_total": null,
+    "loadgen_cpu_util_avg": null,
+    "loadgen_cpu_util_max": null
+  },
+  "resources": null,
+  "loadgen": null,
+  "containers": [
+    {
+      "id": "7a32cc37cb9ebbd2db6322e49aca14063e7321d890a299d590a0941a6c0199d5",
+      "name": "eda-thesis-node-minimal-sse-1",
+      "service": "node-minimal-sse",
+      "image": "eda-thesis-node-minimal:latest",
+      "image_id": "sha256:6f3b7f411bcddf4a15997090452872a1ca32187566f33c678e6eca6c10a2ba6d",
+      "status": "running",
+      "oom_killed": false,
+      "started_at": "2026-10-27T16:39:19.44794032Z",
+      "runtime_env": {
+        "APP_ENV": null,
+        "APP_DEBUG": null,
+        "NODE_ENV": "production"
+      },
+      "limits": {
+        "cpus": 2,
+        "memory_bytes": 1610612736,
+        "memory_swap_bytes": 1610612736,
+        "cgroup_parent": "eda_node_minimal_sse.slice",
+        "nofile": 8192
+      }
+    }
+  ],
+  "context": {
+    "campaign": {
+      "name": "smoke-control-node-minimal-sse",
+      "phase": "control",
+      "block": null,
+      "dir": "2026-10-27T16-50-18-741Z_smoke-control-node-minimal-sse",
+      "file": "campaigns/smoke/smoke-control-node-minimal-sse.json"
+    },
+    "topology": "zwei Rechner (SUT-Seite per ssh)",
+    "git": {
+      "load": {
+        "commit": "d9f8bded455b9cdb6c1d35db1abf9031aa7c9782",
+        "dirty_files": 15
+      },
+      "sut": {
+        "commit": "d9f8bded455b9cdb6c1d35db1abf9031aa7c9782",
+        "dirty_files": 1
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": "Raspberry Pi 5 Model B Rev 1.1",
+      "kernel": "6.18.50+rpt-rpi-2712",
+      "arch": "arm64",
+      "cpus": 4,
+      "mem_total_bytes": 4245749760,
+      "swap_total_bytes": 0,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "pids"
+      ],
+      "memory_controller": true,
+      "cpu_governor": "performance",
+      "cpu_freq_khz": 2400000,
+      "temp_c": 48.5,
+      "throttled": "0x0",
+      "docker_disk_free_bytes": 1881453129728,
+      "docker_disk_total_bytes": 1968554557440,
+      "sampled_at": "2026-10-27T16:50:34.699Z",
+      "throttled_source": "vcgencmd"
+    },
+    "containers": {
+      "node-minimal-sse": {
+        "image": "eda-thesis-node-minimal:latest",
+        "image_id": "sha256:6f3b7f411bcddf4a15997090452872a1ca32187566f33c678e6eca6c10a2ba6d",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 1610612736,
+          "memory_swap_bytes": 1610612736,
+          "cgroup_parent": "eda_node_minimal_sse.slice",
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": "production"
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": null
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v24.22.0",
+      "platform": "linux"
+    }
+  },
+  "k6_summary": null
+}

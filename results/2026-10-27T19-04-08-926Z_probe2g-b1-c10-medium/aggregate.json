@@ -1,0 +1,112 @@
+{
+  "schema": "eda-thesis/aggregate/2",
+  "name": "probe2g-b1-c10-medium",
+  "phase": "main",
+  "block": 1,
+  "campaign_dir": "2026-10-27T19-04-08-926Z_probe2g-b1-c10-medium",
+  "started_at": "2026-10-27T19:04:08.926Z",
+  "finished_at": "2026-10-27T19:04:10.186Z",
+  "aborted": true,
+  "abort_reason": "Git-Stand auf der SUT-Seite nicht lesbar: ssh: connect to host 192.168.50.10 port 22: No route to host",
+  "settings": {
+    "name": "probe2g-b1-c10-medium",
+    "phase": "main",
+    "block": 1,
+    "warmupRuns": 1,
+    "settleSeconds": 10,
+    "pauseMinMs": 100,
+    "pauseMaxMs": 500,
+    "reportEvery": 0,
+    "maxFailureRate": 0.05,
+    "minPairs": 20,
+    "requireProduction": true,
+    "requireAllConnected": true,
+    "bootstrapSeed": 20261016,
+    "bootstrapResamples": 10000,
+    "resourceIntervalMs": 250,
+    "producerSettleMs": 3000,
+    "saturation": {
+      "minDeliveryRatio": 0.99,
+      "maxP95LatencyMs": 1000
+    },
+    "scaling": {
+      "minServedRatio": 0.99
+    },
+    "sut": {
+      "ssh": "pi@192.168.50.10",
+      "repoDir": "/home/pi/eda-notification-thesis",
+      "pi": true,
+      "targetBaseUrl": "http://192.168.50.10:8080",
+      "redisHost": "192.168.50.10"
+    }
+  },
+  "configs": [
+    {
+      "name": "php-laravel-sse",
+      "cell": "php-laravel-sse",
+      "language": "php",
+      "variant": "framework",
+      "transport": "sse",
+      "queue": false,
+      "services": [
+        "php-laravel-fpm"
+      ],
+      "front": {
+        "mode": "fastcgi",
+        "host": "php-laravel-fpm",
+        "port": 9000,
+        "script": "/var/www/public/index.php",
+        "scriptName": "/index.php",
+        "root": "/var/www/public"
+      },
+      "producer": "pubsub",
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    },
+    {
+      "name": "php-laravel-sse-queue",
+      "cell": "php-laravel-sse-queue",
+      "language": "php",
+      "variant": "framework",
+      "transport": "sse",
+      "queue": true,
+      "services": [
+        "php-laravel-fpm-queue",
+        "php-laravel-queue-worker"
+      ],
+      "front": {
+        "mode": "fastcgi",
+        "host": "php-laravel-fpm-queue",
+        "port": 9000,
+        "script": "/var/www/public/index.php",
+        "scriptName": "/index.php",
+        "root": "/var/www/public"
+      },
+      "producer": "laravel",
+      "script": "sse-feasibility.js",
+      "metric": "sse_event_latency_ms",
+      "metricPrefix": "sse",
+      "extra_env_keys": []
+    }
+  ],
+  "comparisons": [
+    [
+      "php-laravel-sse",
+      "php-laravel-sse-queue"
+    ]
+  ],
+  "tested_measures": [
+    "latency_mean_ms",
+    "cpu_seconds_total",
+    "working_set_peak_bytes_total",
+    "connect_mean_ms"
+  ],
+  "note": "p-Werte hier unkorrigiert; Holm-Korrektur über alle Kampagnen in evaluate.js (DECISIONS.md 5.15).",
+  "context": null,
+  "scenarios": {},
+  "interim": [],
+  "saturation": null,
+  "scaling": null
+}

@@ -1,0 +1,25 @@
+{
+  "name": "smoke-control-node-minimal-sse",
+  "phase": "control",
+  "configs": [
+    "node-minimal-sse"
+  ],
+  "scenarios": [
+    {
+      "name": "control",
+      "vus": 50,
+      "holdSeconds": 10,
+      "runsPerConfig": 6,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080/",
+    "redisHost": "192.168.50.10"
+  }
+}

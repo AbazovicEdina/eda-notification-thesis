@@ -1,0 +1,25 @@
+{
+  "name": "probe3gb-scaling-php-laravel-sse",
+  "phase": "scaling",
+  "configs": [
+    "php-laravel-sse"
+  ],
+  "scenarios": [
+    {
+      "name": "clients-0500",
+      "vus": 500,
+      "holdSeconds": 10,
+      "runsPerConfig": 1,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 0,
+  "settleSeconds": 10,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
+  }
+}

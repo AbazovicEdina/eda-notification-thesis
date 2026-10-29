@@ -1,0 +1,27 @@
+{
+  "name": "smoke-b1-c04-baseline",
+  "phase": "main",
+  "block": 1,
+  "configs": [
+    "node-express-ws",
+    "php-laravel-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 10,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080/",
+    "redisHost": "192.168.50.10"
+  }
+}

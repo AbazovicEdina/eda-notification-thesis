@@ -1,0 +1,12 @@
+# Prüfung von Vorlauf, Neustart beim Ansturm und Statusprüfung (2026-10-29)
+
+Lokale Kurzkampagnen (Docker Desktop unter Windows 11/WSL2) nach den Änderungen am Orchestrator und am SSE-Skript vom 2026-10-29 (DECISIONS.md 5.9, 5.10, 5.16). Die Läufe sind bewusst kurz und **keine Messergebnisse der Arbeit**. Absolute Werte sind nicht auf den Raspberry Pi übertragbar.
+
+| Verzeichnis | Prüfgegenstand | Ergebnis |
+|---|---|---|
+| `…_check-storm-php-laravel-sse` | Ansturm mit 500 Clients, zwei Läufe, Limit absichtlich auf 700 MiB gesenkt (`SUT_MEM_LIMIT=700m`), damit die Zelle abstürzt | beide Läufe mit frisch erzeugtem Container (verschiedene Container-IDs und Startzeiten, `cell_restarted` im Protokoll). In beiden Läufen beendete der OOM-Killer FPM. Die Kampagne lief trotzdem zu Ende. Grund im Protokoll `sut_container_failed:php-laravel-fpm(OOM)` statt bisher `no_events_received`, rechtzeitig verbunden 0 von 500 statt bisher 500 von 500, 500 fehlgeschlagene Statusprüfungen |
+| `…_check-storm-node-minimal-sse` | Ansturm mit 500 Clients, zwei Läufe, normales Limit | beide Läufe gültig mit frischem Container, alle Clients verbunden und bedient, Zustellung 100 %. Die Speicherspitze laut Kernel ist in jedem Lauf neu (74 und 72 MiB), weil jeder Container erst vor dem Lauf startet |
+| `…_check-noprime-c10-medium` | Vergleich 10 mit 50 Clients **ohne** Vorlauf (`primeClients: 0`), Zellen vorher frisch erzeugt, je ein Warm-up und vier Läufe mit 10 s Haltezeit | alle Läufe gültig. Das Working Set wächst von Lauf zu Lauf, bei php-laravel-sse von 310 über 379, 453 und 527 auf 599 MiB, bei php-laravel-sse-queue von 340 auf 628 MiB. Das entspricht dem Befund aus dem vollständigen Probelauf auf dem Pi (DECISIONS.md 5.14) |
+| `…_check-pilot-c10-medium` | dieselbe Kampagne **mit** Vorlauf (550 Clients je Zelle), Zellen vorher frisch erzeugt | Vorlauf bei beiden Zellen mit allen 550 Clients bedient, kein Container ausgefallen (`cell_primed`). Danach bleibt das Working Set in allen Läufen gleich, 1 149 bis 1 151 MiB bei php-laravel-sse und 1 138 bis 1 142 MiB bei php-laravel-sse-queue, Spitze laut Kernel 1 168 bzw. 1 158 MiB. Auch der Verbindungsaufbau ist gleichmäßiger, rund 6 ms statt 8 bis 11 ms, weil kein Client mehr auf einen Worker trifft, der zum ersten Mal arbeitet |
+
+Der Vergleich der Latenzen ist bei n = 4 Paaren erwartungsgemäß nicht aussagekräftig. Der Hinweis auf aktiven Swap betrifft nur den lokalen Rechner, auf dem Pi ist Swap abgeschaltet und wird vor jeder Kampagne geprüft.

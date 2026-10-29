@@ -1,0 +1,27 @@
+{
+  "name": "smoke-b1-c10-medium",
+  "phase": "main",
+  "block": 1,
+  "configs": [
+    "php-laravel-sse",
+    "php-laravel-sse-queue"
+  ],
+  "scenarios": [
+    {
+      "name": "medium",
+      "vus": 50,
+      "holdSeconds": 10,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    }
+  ],
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080/",
+    "redisHost": "192.168.50.10"
+  }
+}
