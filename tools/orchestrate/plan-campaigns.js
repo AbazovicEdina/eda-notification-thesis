@@ -7,7 +7,7 @@
 //
 // Usage:
 //   node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --out campaigns/pilot
-//   node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
+//   node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=90,medium=90,stress=90 --out campaigns/block1
 //   node tools/orchestrate/plan-campaigns.js scaling --steps 10,50,100,250,500,750,1000 --runs 3 --out campaigns/scaling
 //   node tools/orchestrate/plan-campaigns.js saturation --clients 50 --rates 10,50,100,200,500 --runs 6 --out campaigns/saturation
 //   node tools/orchestrate/plan-campaigns.js storm --clients 500 --runs 3 --hold 20 --out campaigns/storm
@@ -102,7 +102,7 @@ function selectedCells() {
 function runsPerScenario() {
   const runs = Object.fromEntries(list(opt('runs', '')).map((kv) => kv.split('=')).map(([k, v]) => [k, Number(v)]));
   for (const s of plan.scenarios) {
-    if (!runs[s]) fail(`--runs braucht einen Wert für "${s}" (z. B. --runs baseline=80,medium=60,stress=40)`);
+    if (!runs[s]) fail(`--runs braucht einen Wert für "${s}" (z. B. --runs baseline=90,medium=90,stress=90)`);
   }
   return runs;
 }

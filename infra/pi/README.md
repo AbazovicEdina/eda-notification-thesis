@@ -171,7 +171,7 @@ Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge de
 
 ```bash
 node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --sut sut.pi.json --out campaigns/pilot
-node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --sut sut.pi.json --out campaigns/block1
+node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=90,medium=90,stress=90 --sut sut.pi.json --out campaigns/block1
 node tools/orchestrate/schedule.js campaigns/block1/schedule.json
 ```
 

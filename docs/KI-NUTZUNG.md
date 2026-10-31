@@ -98,3 +98,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-29 | vollständiger Probelauf und Festplatte unter Last | 59 Messläufe gültig, Test der Festplatte bestanden |
 | 2026-10-29 | Prüfung der Rohdaten | Vorlauf vor jeder Kampagne, Neustart vor jedem Ansturm-Lauf, Verbindung nur mit Status 200 |
 | 2026-10-29 | Ansturm mit Neustart vor jedem Lauf | acht Varianten in allen Läufen fehlerfrei, beide Laravel-Varianten mit SSE am Speicherlimit (DECISIONS.md 5.14) |
+| 2026-10-31 | Pilot abgeschlossen, Bedingung der Autorin war eine nachvollziehbare Begründung | Auswertung mit `tools/orchestrate/pilot.js` nach dem vorab festgelegten Kriterium, 90 Läufe je Laststufe für Block 1 und 2 (DECISIONS.md 5.9) |

@@ -9,6 +9,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `schedule.js` | arbeitet einen Zeitplan unbeaufsichtigt ab, mit zufälliger Reihenfolge, täglicher Kontrollmessung, Fortsetzen nach Abbruch und optionaler Benachrichtigung |
 | `status.js` | Statusbericht für den Dauerbetrieb (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz), optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
+| `pilot.js` | Auswertung des Pilots nach dem vorab festgelegten Stabilitätskriterium, ergibt die Wiederholungszahl je Laststufe und schätzt die Dauer eines Blocks |
 | `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Hypothesen |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
@@ -23,7 +24,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 ```bash
 # Phase planen
 node tools/orchestrate/plan-campaigns.js pilot --runs baseline=100,medium=60,stress=40 --comparisons 1,4,7,10 --out campaigns/pilot
-node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=80,medium=60,stress=40 --out campaigns/block1
+node tools/orchestrate/plan-campaigns.js main --block 1 --runs baseline=90,medium=90,stress=90 --out campaigns/block1
 node tools/orchestrate/plan-campaigns.js scaling --steps 10,50,100,250,500,750,1000 --runs 3 --out campaigns/scaling
 node tools/orchestrate/plan-campaigns.js saturation --clients 50 --rates 10,50,100,200,500 --runs 6 --out campaigns/saturation
 
@@ -38,6 +39,9 @@ node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut
 
 # einzelne Kampagne
 node tools/orchestrate/run.js <kampagne.json>
+
+# Auswertung des Pilots, mit geschätzter Dauer eines Blocks für die gewählten Zahlen
+node tools/orchestrate/pilot.js results/<pilotkampagne-1> results/<pilotkampagne-2> ... --runs baseline=90,medium=90,stress=90
 
 # Gesamtauswertung der Hauptmessung
 node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
@@ -207,6 +211,8 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 `schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Hypothesen, Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen. `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
 
 **`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate, beim Ansturm rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe, sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
+
+**`pilot.js` schreibt `results/<zeitstempel>_pilot/pilot.json` und `pilot.md`.** Es wendet das Stabilitätskriterium aus DECISIONS.md 5.9 auf die Zwischenstände der Pilotkampagnen an. Ein Vergleich gilt ab einem Zwischenstand als stabil, wenn sich von dort bis zum Ende Vorzeichen und Effektklasse von Cliff's Delta nicht mehr ändern, das Konfidenzintervall mit jedem weiteren Zwischenstand um weniger als 10 % schmaler wird und mindestens ein späterer Zwischenstand das bestätigt. Je Laststufe nennt es den größten stabilen Wert über alle Vergleiche, mindestens 20, oder die Vergleiche, die im Pilot nicht stabil wurden. Mit `--runs` schätzt es aus der gemessenen Dauer eines Laufs die Dauer eines Blocks mit allen 13 Vergleichen.
 
 ## Statistik
 

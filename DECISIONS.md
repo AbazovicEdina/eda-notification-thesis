@@ -270,7 +270,7 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 
 **Validitätsrahmen der Gesamtmethodik.** Wohlin et al. (2024).
 
-### 5.9 Versuchsablauf, Phasen und Stichprobengröße — ENTSCHIEDEN (Wiederholungszahlen nach dem Pilot)
+### 5.9 Versuchsablauf, Phasen und Stichprobengröße — ENTSCHIEDEN (Wiederholungszahlen nach dem Pilot festgelegt am 2026-10-31)
 
 **Ablauf eines Laufs** (`tools/orchestrate/run.js`):
 
@@ -291,7 +291,7 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 - Übersteigt der Anteil ungültiger Läufe 5 % der gemessenen Läufe einer Konfiguration, bricht die Kampagne ab, da die Ergebnisse dann nicht belastbar sind. In Skalierungs- und Sättigungsreihen und beim Ansturm sind ausgefallene Läufe dagegen Messergebnisse und kein Abbruchgrund.
 - Pro Lauf entsteht ein vollständiges Messprotokoll (5.16).
 
-**Phasen der Messung** (beschlossen am 2026-10-16). Das Zeitfenster umfasst drei bis vier Wochen Dauerbetrieb. Davon entfallen bei den Beispiel-Wiederholungszahlen rund 12 bis 13 Tage auf die reine Messzeit (Belastungstest 1 Tag, Pilot rund 1,6 Tage, Block 1 und Block 2 je rund 4,7 Tage, Skalierung und Sättigung zusammen unter einem Tag). Der Rest ist Puffer für Einrichtung, Wiederholungen nach Abbrüchen und die Auswertung des Pilots.
+**Phasen der Messung** (beschlossen am 2026-10-16). Das Zeitfenster umfasst drei bis vier Wochen Dauerbetrieb. Davon entfallen mit den nach dem Pilot festgelegten Wiederholungszahlen rund 16 Tage auf die reine Messzeit (Belastungstest 1 Tag, Pilot 1,5 Tage, Block 1 und Block 2 je rund 6,5 Tage, Skalierung und Sättigung zusammen unter einem Tag, Stichprobengröße unten). Der Rest ist Puffer für Einrichtung, Wiederholungen nach Abbrüchen und Auswertungen.
 
 | Phase | Zweck | Auswertung |
 |---|---|---|
@@ -319,6 +319,26 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 1. **Pilot** auf dem Pi mit Zwischenauswertungen alle N Läufe. Ein Vergleich gilt als stabil, wenn sich Vorzeichen und Effektklasse von Cliff's Delta nicht mehr ändern und die Breite des Konfidenzintervalls je weiteren N Läufen um weniger als 10 % abnimmt.
 2. **Festlegung** der Wiederholungszahl je Laststufe für Block 1 und Block 2, mit mindestens 20 gültigen Paaren und höchstens so vielen, wie in das Zeitbudget passen. Stabilisiert sich ein Vergleich innerhalb dieser Grenze nicht, wird das als Ergebnis berichtet („Unterschied unterhalb der Auflösung dieses Aufbaus").
 3. **Hauptmessung** mit fester Wiederholungszahl. Zwischenauswertungen dienen dort nur der Kontrolle, nicht als Abbruchkriterium. Wiederholtes Testen auf anwachsenden Daten mit Abbruch bei Signifikanz erhöht die Fehlerrate erheblich (Armitage, McPherson & Rowe 1969). Pilotdaten gehen nicht in die konfirmatorische Auswertung ein.
+
+**Festlegung nach dem Pilot (2026-10-31).** Block 1 und Block 2 messen auf allen drei Laststufen 90 Läufe je Konfiguration nach 5 Warm-up-Läufen (`--runs baseline=90,medium=90,stress=90`).
+
+Der Pilot lief vom 2026-10-29 bis zum 2026-10-31 (36,7 h) mit den Vergleichen 1, 4, 7 und 10, die Sprache, Framework und Queue abdecken. Je Konfiguration waren es 100 Läufe bei 10 Clients, 60 bei 50 Clients und 40 bei 500 Clients, mit einem Zwischenstand alle 10 Läufe. Alle 1 640 Messläufe waren gültig. Der Pi erreichte höchstens 54,5 °C ohne Drosselung, der Lastgenerator war im Mittel höchstens zu 6,8 % ausgelastet, und die Kontrollmessung wich zwischen dem 2026-10-27 und dem 2026-10-30 um 2,5 % ab. Der Vorlauf wirkte. Zwischen dem ersten und dem letzten Viertel der Läufe änderte sich der Speicher der PHP-FPM-Varianten um höchstens rund 2 %, bei den übrigen Varianten um höchstens 5 MiB. Ein Lauf dauerte im Mittel 76 s einschließlich Pausen und Vorlauf.
+
+Das Kriterium aus Schritt 1 setzt `tools/orchestrate/pilot.js` um, das Ergebnis liegt in `results/2026-10-31T13-20-12-224Z_pilot/` (`pilot.md`, mit dem Verlauf jedes Vergleichs). Ein Vergleich gilt ab einem Zwischenstand als stabil, wenn sich von dort bis zum Ende des Pilots Vorzeichen und Effektklasse von Cliff's Delta nicht mehr ändern, die Breite des 95-%-Konfidenzintervalls der Median-Differenz mit jedem weiteren Zwischenstand um weniger als 10 % abnimmt und mindestens ein späterer Zwischenstand das bestätigt.
+
+| Laststufe | Läufe im Pilot | stabil ab, Vergleich 1, 4, 7 und 10 | Ergebnis |
+|---|---|---|---|
+| Baseline, 10 Clients | 100 | 70, 90, 90 und 80 Paaren | 90 Paare |
+| Medium, 50 Clients | 60 | 50, 30, nicht stabil, 50 Paaren | im Pilot nicht bestimmbar |
+| Stress, 500 Clients | 40 | 30, 30, nicht stabil, nicht stabil | im Pilot nicht bestimmbar |
+
+Begründung der Festlegung:
+
+- **Wo der Pilot lang genug war, ergibt das Kriterium 90.** Auf der Baseline wurden alle vier Vergleiche spätestens ab 90 Paaren stabil.
+- **Auf Medium und Stress war der Pilot zu kurz.** In den drei nicht stabilen Fällen standen Vorzeichen und Effektklasse bereits fest. Nur das Intervall wurde je 10 Läufe noch um 25 % (Vergleich 7, Medium) bzw. um 12 und 13 % (Vergleiche 7 und 10, Stress) schmaler. Das ist zu erwarten, denn die Breite eines Konfidenzintervalls nimmt ungefähr mit 1/√n ab. Je 10 zusätzliche Paare sinkt sie deshalb erst ab etwa 50 Paaren um weniger als 10 %, von 40 auf 50 Paare um 10,6 % und von 50 auf 60 Paare um 8,7 %. Mit 60 und 40 Läufen konnte der Pilot die Stabilität dort kaum zeigen. Auf der Baseline waren wegen der Streuung zwischen den Läufen 70 bis 90 Paare nötig.
+- **Deshalb 90 auf allen Stufen.** Weniger Läufe auf Medium und Stress wären durch das Kriterium nicht belegt, und der Wert der Baseline ist der einzige, den der Pilot vollständig stützt. Mehr als 90 brächte wenig. Mit 100 Paaren würde das Intervall nur um rund 5 % schmaler (√(90/100) ≈ 0,95). Gleiche Zahlen auf allen Stufen machen die Vergleiche außerdem untereinander gleich genau und den Bericht einfacher.
+- **Zeitbudget.** Ein Block umfasst 13 Vergleiche × 2 Konfigurationen × (3 × 90 + 3 × 5 Warm-up-Läufe) = 7 410 Läufe, bei 76 s je Lauf rund 6,5 Tage. Beide Blöcke brauchen rund 13 Tage und liegen mit Skalierung, Sättigung und Kontrollmessung im gedeckten Rahmen von drei bis vier Wochen (oben).
+- **Eigenschaft des Kriteriums.** Es bewertet die relative Änderung der Intervallbreite. Auch wo das Intervall im Verhältnis zum Unterschied schon sehr schmal ist, verlangt es deshalb weitere Läufe, etwa bei Vergleich 4 auf der Baseline mit 0,03 ms Breite bei 2,2 ms Unterschied. Das Kriterium wird trotzdem wie vorab festgelegt angewendet, und die Arbeit nennt diese Eigenschaft.
 
 **Verworfener Ausgangsrahmen.** Die Unterlagen zum Abstimmungstermin nannten 800–1 000 (Baseline), 300–500 (Medium) und 100–150 (Stress) Läufe pro Konfiguration. Bei rund 80 s pro Lauf (60 s Haltezeit, 10 s Einschwingzeit, Nebenzeit) und 13 Vergleichen entspräche das rund 29–40 Tagen ununterbrochener Messung allein für einen Block, ohne Replikation (bei der ursprünglichen Planung mit acht Vergleichen 18–25 Tage). Diese Zahlen waren für die Stabilisierung von p99-Werten innerhalb eines Laufs gedacht. Mit dem Lauf als Analyseeinheit genügen erfahrungsgemäß deutlich weniger Paare (Kalibera & Jones 2013). Der Rahmen ist daher verworfen.
 
@@ -857,7 +877,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
-| Pilot, Wiederholungszahlen, Ratenstufen | Verfahren festgelegt (5.9, 5.17). Belastungstest (2026-10-23), vollständiger Probelauf, Test der Festplatte unter Last und Ansturm (2026-10-29) sind abgeschlossen (5.14). Der Pilot läuft seit 2026-10-29 mit den Vergleichen 1, 4, 7 und 10 | auf dem Pi |
+| Ratenstufen und Clientzahl des Sättigungstests | nach dem Pilot festzulegen (5.17). Der Pilot ist abgeschlossen, die Wiederholungszahlen für Block 1 und 2 sind festgelegt (90 je Laststufe, 5.9) | vor dem Sättigungstest |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
 ## 7. Konventionen
@@ -884,6 +904,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-31 | **Pilot ausgewertet, 90 Läufe je Laststufe (5.9).** Alle 1 640 Messläufe gültig, Speicher mit Vorlauf stabil. Auf der Baseline ergibt das Kriterium 90 Paare, auf Medium und Stress war der Pilot zu kurz, um Stabilität zu zeigen. Einheitlich 90 für Block 1 und 2, rund 6,5 Tage je Block. Neues Werkzeug `tools/orchestrate/pilot.js`. Ergebnisse von Pilot und Ansturm mit Neustart ins Repository übernommen. |
 | 2026-10-29 | **Ansturm gemessen (5.14).** Mit Neustart vor jedem Lauf überstanden acht Zellen 500 gleichzeitige Verbindungen in allen Läufen. php-laravel-sse war in einem von drei Läufen gültig, php-laravel-sse-queue in keinem. Zählt als Phase 7, offenen Punkt entfernt. |
 | 2026-10-29 | **Vorlauf, Neustart beim Ansturm, Fehlerseiten (5.5, 5.9, 5.10, 5.16).** Vor jeder Kampagne ein nicht gewerteter Vorlauf mit 550 Clients, weil der Speicher statischer FPM-Pools sonst von Lauf zu Lauf wächst. Beim Ansturm startet die Zelle vor jedem Lauf neu, ohne Warm-up. Bei SSE zählt nur eine Antwort mit Status 200 als Verbindung, Fehlerseiten machen Läufe in Pilot, Haupt- und Kontrollmessung ungültig. Ein Absturz der Zelle steht als Grund vorn. |
 | 2026-10-29 | **Erster Ansturm auf dem Pi (5.14).** Acht Zellen überstanden 500 gleichzeitige Verbindungen fehlerfrei, beide Laravel/SSE-Zellen wurden per OOM beendet und blieben aus. Ergebnisse vom Lastgenerator per Archiv ins Repository übernommen (`results/`), offenen Punkt entfernt. Uhr des Pi nach Trennung vom Strom als Risiko aufgenommen. |
