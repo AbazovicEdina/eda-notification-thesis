@@ -1,6 +1,6 @@
-// Minimaler WebSocket-Endpunkt: ws-Library, kein Framework.
-// Eine Redis-Subscription pro Prozess (DECISIONS.md 5.4), verteilt
-// eingehende Scan-Events an alle verbundenen WS-Clients.
+// Minimal WebSocket endpoint with the ws library, without a framework.
+// One Redis subscription per process (DECISIONS.md 5.4), distributes
+// incoming scan events to all connected WS clients.
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { createClient } from 'redis';

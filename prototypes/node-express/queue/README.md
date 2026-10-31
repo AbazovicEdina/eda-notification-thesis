@@ -3,8 +3,8 @@
 Queue-Weg der Zelle node-express/SSE mit Queue (DECISIONS.md 5.19):
 
 - Die Ereignisquelle (`tools/event-simulator`, Modus `queue`) legt Scan-Events als Jobs in die BullMQ-Queue `scan-events`.
-- `worker.js` nimmt die Jobs entgegen und veröffentlicht jedes Event unverändert, ergänzt um `processed_ts`, auf dem Redis-Pub/Sub-Kanal `notifications`.
-- Der SSE-Endpunkt der Zelle ist derselbe Code wie `../sse.js` und abonniert `notifications` statt `scan-events` (Dienst `node-express-sse-queue` in `docker-compose.yml`).
+- `worker.js` nimmt die Jobs entgegen und veröffentlicht jedes Event unverändert, ergänzt um `processed_ts`, auf dem Redis-Pub/Sub-Kanal `notifications-bullmq` (`NOTIFICATION_CHANNEL`). Der Kanal gehört nur dieser Zelle, die Laravel-Queue-Zelle hat ihren eigenen (DECISIONS.md 5.19).
+- Der SSE-Endpunkt der Zelle ist derselbe Code wie `../sse.js` und abonniert `notifications-bullmq` statt `scan-events` (Dienst `node-express-sse-queue` in `docker-compose.yml`).
 
 Die Zelle node-express/SSE ohne Queue abonniert `scan-events` direkt. Der Vergleich beider Zellen (Vergleich 9) zeigt damit den Overhead der Queue. Der Vergleich node-minimal gegen node-express zeigt ausschließlich den Overhead von Express (DECISIONS.md 5.7).
 

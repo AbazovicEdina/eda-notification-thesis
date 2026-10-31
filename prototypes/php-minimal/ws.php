@@ -82,7 +82,7 @@ $loop = Loop::get();
     $redis->subscribe($channel);
     $redis->on('message', function (string $chan, string $message) use ($broadcaster) {
         $event = json_decode($message, true);
-        $event['sut_ts'] = (int) round(microtime(true) * 1000); // siehe DECISIONS.md 5.4
+        $event['sut_ts'] = (int) round(microtime(true) * 1000); // see DECISIONS.md 5.4
         $broadcaster->broadcast(json_encode($event));
     });
 });

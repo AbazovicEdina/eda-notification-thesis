@@ -34,7 +34,7 @@ app.get('/sse', (req, res) => {
     'Cache-Control': 'no-cache',
     Connection: 'keep-alive',
   });
-  // SSE-Kommentar sofort senden (siehe prototypes/node-minimal/sse.js).
+  // Send an SSE comment right away (see prototypes/node-minimal/sse.js).
   res.write(': connected\n\n');
   clients.add(res);
   req.on('close', () => clients.delete(res));

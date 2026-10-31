@@ -1,6 +1,6 @@
-// Minimaler SSE-Endpunkt: reines http-Modul, kein Framework.
-// Eine Redis-Subscription pro Prozess (DECISIONS.md 5.4), verteilt
-// eingehende Scan-Events an alle verbundenen SSE-Clients.
+// Minimal SSE endpoint with the http module, without a framework.
+// One Redis subscription per process (DECISIONS.md 5.4), distributes
+// incoming scan events to all connected SSE clients.
 import http from 'node:http';
 import { createClient } from 'redis';
 
@@ -14,7 +14,7 @@ const subscriber = createClient({ url: REDIS_URL });
 await subscriber.connect();
 await subscriber.subscribe(CHANNEL, (message) => {
   const event = JSON.parse(message);
-  event.sut_ts = Date.now(); // optionaler zweiter Zeitstempel, siehe DECISIONS.md 5.4
+  event.sut_ts = Date.now(); // optional second timestamp, see DECISIONS.md 5.4
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const res of clients) res.write(payload);
 });

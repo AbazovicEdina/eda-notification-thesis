@@ -26,7 +26,7 @@ $redis->connect(getenv('REDIS_HOST') ?: 'redis', (int) (getenv('REDIS_PORT') ?: 
 
 $redis->subscribe([$channel], function (Redis $redis, string $channel, string $message) {
     $event = json_decode($message, true);
-    $event['sut_ts'] = (int) round(microtime(true) * 1000); // optionaler zweiter Zeitstempel, siehe DECISIONS.md 5.4
+    $event['sut_ts'] = (int) round(microtime(true) * 1000); // optional second timestamp, see DECISIONS.md 5.4
     echo "data: " . json_encode($event) . "\n\n";
     if (connection_aborted()) {
         exit;

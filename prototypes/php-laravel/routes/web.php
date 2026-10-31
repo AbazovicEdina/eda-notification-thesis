@@ -20,7 +20,7 @@ Route::get('/sse', function () {
         flush();
         Redis::subscribe([config('app.event_channel')], function (string $message) {
             $payload = json_decode($message, true);
-            $payload['sut_ts'] = (int) round(microtime(true) * 1000); // siehe DECISIONS.md 5.4
+            $payload['sut_ts'] = (int) round(microtime(true) * 1000); // see DECISIONS.md 5.4
             echo 'data: '.json_encode($payload)."\n\n";
             if (connection_aborted()) {
                 exit;
@@ -34,7 +34,7 @@ Route::get('/sse', function () {
         'Content-Type' => 'text/event-stream',
         'Cache-Control' => 'no-cache',
         'Connection' => 'keep-alive',
-        'X-Accel-Buffering' => 'no', // Verteidigungslinie, siehe infra/nginx proxy_buffering
+        'X-Accel-Buffering' => 'no', // second safeguard next to fastcgi_buffering off in infra/nginx
     ]);
 });
 

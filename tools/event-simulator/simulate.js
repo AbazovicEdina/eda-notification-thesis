@@ -44,11 +44,17 @@ async function runPubsub() {
   await client.close();
 }
 
+// By default BullMQ keeps every completed job in Redis. Redis is measured
+// together with every cell, so its memory would grow over the whole schedule
+// and shift the values of all cells measured later (DECISIONS.md 5.20).
+// Completed jobs are therefore removed, as the Laravel queue does by default.
+const JOB_OPTIONS = { removeOnComplete: true, removeOnFail: 1000 };
+
 // In ES modules BullMQ 6 expects a ready ioredis connection.
 async function runQueue() {
   const connection = new Redis({ host: REDIS_HOST, port: REDIS_PORT });
   const queue = new Queue('scan-events', { connection });
-  await publishLoop((seq) => queue.add('scan', nextPayload(seq)));
+  await publishLoop((seq) => queue.add('scan', nextPayload(seq), JOB_OPTIONS));
   await queue.close();
   await connection.quit();
 }

@@ -414,7 +414,11 @@ async function productionMode(sides, container) {
   if (isPhp) {
     const r = await sides.sutDocker(['exec', container.id, 'php', '-r', 'echo php_ini_loaded_file() ?: "keine", "|", ini_get("display_errors") ?: "0";']);
     const [file, displayErrors] = r.stdout.trim().split('|');
-    phpIni = { file, display_errors: displayErrors };
+    // OPcache as PHP-FPM sees it. The CLI uses opcache.enable_cli instead,
+    // so the value is read from the FPM SAPI (php-fpm -i). Only recorded.
+    const o = await sides.sutDocker(['exec', container.id, 'sh', '-c', 'php-fpm -i 2>/dev/null | grep -m1 "^opcache.enable =>" || true']);
+    const opcache = o.stdout.match(/opcache\.enable => (\w+)/);
+    phpIni = { file, display_errors: displayErrors, opcache_enable_fpm: opcache ? opcache[1] : null };
     if (file === 'keine' || !['0', '', 'Off', 'off'].includes(displayErrors)) reasons.push(`php.ini=${file}, display_errors=${displayErrors}`);
   }
   return { production: reasons.length === 0, reasons, php_ini: phpIni };
@@ -851,6 +855,12 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   // clients (exactly one check per client in the k6 script).
   if (settings.requireAllConnected && record.measures.checks_failed > 0) {
     invalid(`http_status_errors:${record.measures.checks_failed}`);
+  }
+  // Every event reaches a client exactly once. Duplicates mean that a cell
+  // receives events that are not meant for it, as happened when both queue
+  // cells shared one notification channel (DECISIONS.md 5.19).
+  if (settings.requireAllConnected && record.measures.events_duplicate > 0) {
+    invalid(`duplicate_events:${record.measures.events_duplicate}`);
   }
 
   const hostState = record.resources?.host;

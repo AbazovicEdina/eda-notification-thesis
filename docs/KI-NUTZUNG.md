@@ -49,6 +49,7 @@ Beispiele, in denen die Autorin Ergebnisse der KI nicht ungeprüft übernommen h
 - **Umfang.** Sie fragte, ob der Aufbau für einen fairen Vergleich im Rahmen einer Bachelorarbeit zu umfangreich wird. Seitdem gilt, dass alles gemessen wird, die schriftliche Arbeit aber kompakt bleibt. Wie ausführlich jedes Thema behandelt wird, ist vorab festgelegt.
 - **Verständnis vor Zustimmung.** Bei Vorschlägen, die sie nicht unmittelbar nachvollziehen konnte, verlangte sie eine verständliche Erklärung, bevor sie zustimmte, etwa beim Vorlauf und beim Neustart vor jedem Ansturm-Lauf.
 - **Rohdaten.** Sie gab die vollständigen Ergebnisse vom Lastgenerator zur Prüfung weiter. Daraus ergaben sich drei Korrekturen am Messverfahren vor Beginn des Pilots (Verlauf unten).
+- **Statische Prüfung vor der Hauptmessung.** Vor Block 1 ließ sie den Messaufbau mit einer vollständigen Liste von Prüfpunkten zu Fairness, Messung und Statistik gegen DECISIONS.md prüfen, ohne Messung. Den Prüfauftrag hatte sie im Claude-Projekt der schriftlichen Arbeit formuliert. Dabei fielen ein kritischer und zwei mittlere Befunde auf (Verlauf unten).
 
 Fehler der KI, die dabei aufgefallen sind:
 
@@ -56,6 +57,10 @@ Fehler der KI, die dabei aufgefallen sind:
 - Das SSE-Messskript zählte Fehlerseiten als Verbindung. Kein bis dahin gültiger Lauf war davon betroffen (DECISIONS.md 5.9).
 - Ein Prüfbefehl korrigierte eine Datei, bevor er sie anzeigte, und erschwerte so die Fehlersuche im ersten Probelauf.
 - Einige Befehle enthielten Zeichen, die beim Kopieren verloren gingen. Seitdem sind Befehle ohne diese Zeichen formuliert.
+- Beide Queue-Worker veröffentlichten auf demselben Redis-Kanal. In Vergleich 11, in dem beide Queue-Varianten gleichzeitig laufen, hätte jede Variante die Events beider Wege erhalten. Gemessen war dieser Vergleich noch nicht (DECISIONS.md 5.19).
+- Die Ereignisquelle ließ BullMQ alle erledigten Jobs in Redis behalten, obwohl Redis mit jeder Variante mitgemessen wird (DECISIONS.md 5.20).
+- Nach der Übersetzung der Code-Kommentare meldete die KI, es sei nur noch eine deutsche Zeile übrig. Tatsächlich waren es noch zehn Stellen, weil ihr Suchfilter zu eng war. Aufgefallen ist das bei der statischen Prüfung.
+- Der Healthcheck von Redis startete alle 2 s ein Programm im gemessenen Redis-Container. Dessen CPU-Zeit zählte zu Redis und machte rund 85 % der festen Grundlast aus, die im Pilot auffiel. Die zuerst genannte Ursache, die Module von Redis 8, war eine ungeprüfte Vermutung der KI. Erst eine getrennte Messung des Redis-Prozesses und des ganzen Containers zeigte die tatsächliche Ursache (DECISIONS.md 5.18).
 
 ## Gelernt und selbst überprüft
 
@@ -99,3 +104,5 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-29 | Prüfung der Rohdaten | Vorlauf vor jeder Kampagne, Neustart vor jedem Ansturm-Lauf, Verbindung nur mit Status 200 |
 | 2026-10-29 | Ansturm mit Neustart vor jedem Lauf | acht Varianten in allen Läufen fehlerfrei, beide Laravel-Varianten mit SSE am Speicherlimit (DECISIONS.md 5.14) |
 | 2026-10-31 | Pilot abgeschlossen, Bedingung der Autorin war eine nachvollziehbare Begründung | Auswertung mit `tools/orchestrate/pilot.js` nach dem vorab festgelegten Kriterium, 90 Läufe je Laststufe für Block 1 und 2 (DECISIONS.md 5.9) |
+| 2026-10-31 | statische Prüfung vor Block 1 nach einem Prüfauftrag der Autorin | eigener Redis-Kanal je Queue-Variante, BullMQ löscht erledigte Jobs, doppelte Events machen Läufe ungültig, Grundlast von Redis bei H8 dokumentiert (DECISIONS.md 5.18 bis 5.20) |
+| 2026-10-31 | lokale Prüfung der Korrekturen, Ursache der Grundlast von Redis gesucht statt angenommen | Healthcheck als Ursache gemessen, prüft nur noch beim Start, Regel von H8 unverändert (DECISIONS.md 5.18) |

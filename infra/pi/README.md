@@ -167,6 +167,12 @@ node tools/orchestrate/status.js --schedule campaigns/smoke/schedule.json --sut 
 
 Vergleich 10 enthält die beiden Laravel-SSE-Zellen mit dem höchsten Speicherbedarf. Ihre Spitze in der Stress-Stufe muss deutlich unter dem Limit bleiben. Mit verteiltem Verbindungsaufbau lag sie im vollständigen Probelauf vom 2026-10-29 bei 1 066 und 1 097 MiB (DECISIONS.md 5.14). Die exakte Spitze laut Kernel steht in jedem Lauf-Protokoll unter `measures.mem_peak_kernel_bytes`. Der Wert des Topfes unter `/sys/fs/cgroup` gilt dagegen seit dessen Entstehung und umfasst frühere Läufe. Danach die erste Lauf-Datei prüfen. `resources.containers.*.cgroup` enthält den Slice-Namen, `context.sut_host.model` nennt das Pi-Modell, `loadgen.host.cpu` enthält Werte des Lastgenerators.
 
+**Grundlast von Redis** vor Block 1, während keine Kampagne läuft (DECISIONS.md 5.18). Das Skript misst die CPU-Zeit des Redis-Containers und trennt sie in den Prozess `redis-server` und die übrigen Prozesse im Container, etwa den Healthcheck. Das Ergebnis steht danach in `results/<zeitstempel>_redis-idle.json`:
+
+```bash
+ssh pi@192.168.50.10 'cd eda-notification-thesis && bash infra/pi/redis-idle.sh 60'
+```
+
 Dann die Kampagnen einer Phase erzeugen und den Zeitplan starten (Reihenfolge der Phasen in DECISIONS.md 5.9):
 
 ```bash

@@ -123,7 +123,7 @@ Die gemessene Zelle wählen `SUT_MODE`, `SUT_HOST` und `SUT_PORT` in der `.env`.
 - **php-laravel nutzt `SESSION_DRIVER=cookie` und `CACHE_STORE=file`** statt des Laravel-Standards `database`. Das vermeidet SQLite-Zugriffe im SSE-Pfad, die die FPM-Messung verzerren würden. Der übrige `web`-Middleware-Stack (Session, CSRF) bleibt aktiv, um Laravel im Auslieferungszustand abzubilden.
 - **php-laravel/WS besteht aus zwei Prozessen.** Der Listener abonniert Redis und sendet jedes Event an Reverb, Reverb verteilt es an die Clients. Beide Container zählen zum Ressourcenbudget der Zelle (DECISIONS.md 5.6.2).
 - **Alle SSE-Endpunkte senden beim Verbindungsaufbau einen SSE-Kommentar** (`: connected`). So ist der Zeitpunkt messbar, zu dem der Server die Verbindung angenommen hat. Clients ignorieren Kommentarzeilen.
-- **Die Queue-Zellen** verwenden denselben SSE-Code wie die Zellen ohne Queue, abonnieren aber den Kanal `notifications`, auf dem der jeweilige Worker veröffentlicht (DECISIONS.md 5.19). Der Laravel-Worker wartet mit `block_for` blockierend auf Jobs.
+- **Die Queue-Zellen** verwenden denselben SSE-Code wie die Zellen ohne Queue, abonnieren aber den Kanal ihrer Zelle, auf dem ihr Worker veröffentlicht, `notifications-bullmq` bzw. `notifications-laravel` (DECISIONS.md 5.19). Jede Queue-Zelle hat einen eigenen Kanal, damit sich die Events beider Wege in Vergleich 11 nicht vermischen. Der Laravel-Worker wartet mit `block_for` blockierend auf Jobs.
 
 ## Versionen
 

@@ -8,6 +8,10 @@ import { createClient } from 'redis';
 
 const host = process.env.REDIS_HOST || 'redis';
 const port = Number(process.env.REDIS_PORT || 6379);
+// Channel of this queue cell only (DECISIONS.md 5.19). The Laravel queue cell
+// publishes on its own channel, otherwise both SSE endpoints would receive the
+// events of both pipelines when both cells run in the same campaign.
+const NOTIFICATION_CHANNEL = process.env.NOTIFICATION_CHANNEL || 'notifications-bullmq';
 
 // BullMQ 6 no longer ships ioredis itself and expects a ready connection in
 // ES modules. BullMQ requires maxRetriesPerRequest: null for the blocking
@@ -21,7 +25,7 @@ const worker = new Worker(
   'scan-events',
   async (job) => {
     const notification = { ...job.data, processed_ts: Date.now() };
-    await publisher.publish('notifications', JSON.stringify(notification));
+    await publisher.publish(NOTIFICATION_CHANNEL, JSON.stringify(notification));
     return notification;
   },
   { connection }

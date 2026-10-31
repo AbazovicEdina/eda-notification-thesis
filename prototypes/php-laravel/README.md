@@ -4,7 +4,7 @@ Framework-Variante des PHP-Stacks (Gegenstück zu `prototypes/php-minimal`) mit 
 
 - **SSE** (`routes/web.php`, `/sse`). PHP-FPM, ein Worker pro offener Verbindung. Framework-Pendant zu `prototypes/php-minimal/sse.php`, bewusst mit Laravels Standard-Middleware-Stack (Session, Cookies) und ohne Handoptimierung. Der Front-Nginx spricht FastCGI direkt mit dem FPM-Pool.
 - **WS** über Reverb (`App\Events\ScanReceived` auf dem Kanal `scans`). Reverb ist ein eigener, langlaufender Prozess ohne FPM. Der Befehl `scan:listen` verbindet den Redis-Pub/Sub-Kanal `scan-events` mit Reverbs Broadcasting.
-- **SSE mit Queue.** `scan:produce` reiht Scan-Events als Jobs (`App\Jobs\ProcessScanEvent`) in die Queue `scan-events` ein. `queue:work` verarbeitet sie und veröffentlicht auf `notifications`. Ein eigener FPM-Pool mit derselben SSE-Route abonniert `notifications`.
+- **SSE mit Queue.** `scan:produce` reiht Scan-Events als Jobs (`App\Jobs\ProcessScanEvent`) in die Queue `scan-events` ein. `queue:work` verarbeitet sie und veröffentlicht auf `notifications-laravel` (`NOTIFICATION_CHANNEL`). Ein eigener FPM-Pool mit derselben SSE-Route abonniert diesen Kanal. Er gehört nur dieser Zelle, die BullMQ-Zelle hat ihren eigenen (DECISIONS.md 5.19).
 
 **Protokollunterschied zu den übrigen WebSocket-Zellen.** Reverb verwendet das Pusher-Channels-Protokoll, nicht rohes JSON wie die `ws`-Bibliothek. Clients erhalten zunächst `pusher:connection_established` und müssen den Kanal explizit abonnieren, bevor Broadcasts ankommen. Das ist eine Eigenschaft der Bibliothekswahl, kein Testartefakt, und bei der Interpretation der WebSocket-Messungen zu berücksichtigen. Für diese Zelle gibt es daher ein eigenes k6-Skript (`k6/scripts/ws-reverb.js`) statt `ws-skeleton.js`.
 
@@ -15,7 +15,7 @@ Alle Prozesse laufen aus einem Image (`Dockerfile`, `docker-compose.yml`):
 | `php-laravel-fpm` | PHP-FPM mit der SSE-Route | php-laravel/SSE |
 | `php-laravel-reverb` | WebSocket-Server | php-laravel/WS |
 | `php-laravel-listener` | Redis → Reverb (`scan:listen`) | php-laravel/WS |
-| `php-laravel-fpm-queue` | PHP-FPM mit der SSE-Route auf `notifications` | php-laravel/SSE mit Queue |
+| `php-laravel-fpm-queue` | PHP-FPM mit der SSE-Route auf `notifications-laravel` | php-laravel/SSE mit Queue |
 | `php-laravel-queue-worker` | `queue:work` mit `block_for` | php-laravel/SSE mit Queue |
 | `laravel-producer` | Ereignisquelle `scan:produce` (Lastseite) | — |
 

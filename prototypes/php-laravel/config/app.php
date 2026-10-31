@@ -69,15 +69,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Gemeinsamer Redis-Kanal für simulierte Scan-Events (DECISIONS.md 5.4)
+    | Redis channels of the measurement (DECISIONS.md 5.4, 5.19)
     |--------------------------------------------------------------------------
     |
-    | Gleicher Kanalname wie bei den Node-Prototypen und php-minimal, damit
-    | derselbe Event-Simulator alle Konfigurationen füttern kann.
+    | event_channel is the channel the SSE route subscribes to. It has the same
+    | name as for the Node prototypes and php-minimal, so that the same event
+    | simulator feeds all configurations. The queue cell subscribes to its
+    | notification_channel instead, on which its queue worker publishes. That
+    | channel belongs to this cell only, so that it never receives the events
+    | of the BullMQ cell.
     |
     */
 
     'event_channel' => env('EVENT_CHANNEL', 'scan-events'),
+
+    'notification_channel' => env('NOTIFICATION_CHANNEL', 'notifications-laravel'),
 
     /*
     |--------------------------------------------------------------------------

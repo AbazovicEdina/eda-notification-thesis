@@ -276,8 +276,8 @@ Getrennte Familien für Haupt- und Nebenmessgrößen sind üblich, sofern sie vo
 
 - Die Clients verbinden sich gleichmäßig verteilt über die ersten **5 s** der Einschwingzeit. Client n startet nach (n − 1) / Clients · 5 s (`connectSpreadSeconds`, festgelegt am 2026-10-27, Begründung in 5.10). Die ersten **10 s (Einschwingzeit)** werden nicht gewertet, weil die Messung die Zustellung im Normalbetrieb erfassen soll. Danach wird über die **Haltezeit von 60 s** gemessen. Den gleichzeitigen Verbindungsaufbau aller Clients untersucht eine eigene, beschreibende Phase (Ansturm, unten).
 - Der **Verbindungsaufbau** wird getrennt erfasst. Dauer bis zum Empfang der Antwort-Header (SSE) bzw. bis zum abgeschlossenen Handshake (WebSocket). Damit der Zeitpunkt bei SSE messbar ist, senden alle SSE-Endpunkte beim Verbindungsaufbau sofort einen SSE-Kommentar (`: connected`). Clients ignorieren Kommentarzeilen. Durch den verteilten Aufbau misst die Größe die Dauer einer einzelnen Verbindung, während laufend weitere Clients hinzukommen, nicht die Wartezeit in einem gleichzeitigen Ansturm. Als Verbindung zählt bei SSE nur eine Antwort mit Status 200. Eine Fehlerseite von Nginx statt des Datenstroms zählte bis 2026-10-29 mit, weil xk6-sse auch dafür eine geöffnete Verbindung meldet. Unter den 428 Läufen bis dahin war keiner gültig und hatte zugleich Fehlerseiten, kein bisheriges Ergebnis ist also verfälscht.
-- In Pilot-, Haupt- und Kontrollkampagnen ist ein Lauf ungültig, wenn sich bis zum Ende der Einschwingzeit nicht alle Clients verbunden haben oder ein Client eine Fehlerseite statt des Datenstroms oder einen gescheiterten Handshake erhielt (`http_status_errors`).
-- **Weitere Gründe für ungültige Läufe.** k6-Fehler, keine Events empfangen, Container abgestürzt oder per OOM beendet, fehlgeschlagene Ressourcenmessung, Drosselung des Pi, im Zwei-Rechner-Aufbau eine mittlere Auslastung des Lastgenerators über 80 %. Ein Absturz der Zelle steht im Protokoll als Grund vor allen anderen, weil er deren Ursache ist.
+- In Pilot-, Haupt- und Kontrollkampagnen ist ein Lauf ungültig, wenn sich bis zum Ende der Einschwingzeit nicht alle Clients verbunden haben, ein Client eine Fehlerseite statt des Datenstroms oder einen gescheiterten Handshake erhielt (`http_status_errors`), ein Event mehrfach ankam (`duplicate_events`, seit 2026-10-31, 5.19) oder im Zwei-Rechner-Aufbau der Lastgenerator im Mittel über 80 % ausgelastet war. In den beschreibenden Phasen gelten diese vier Regeln nicht. Dort sind ausgefallene Läufe Messergebnisse, und die Auslastung des Lastgenerators wird nur protokolliert. Im Pilot lag sie bei 500 Clients bei höchstens 6,8 %.
+- **Weitere Gründe für ungültige Läufe.** k6-Fehler, keine Events empfangen, Container abgestürzt oder per OOM beendet, fehlgeschlagene Ressourcenmessung, Drosselung des Pi. Ein Absturz der Zelle steht im Protokoll als Grund vor allen anderen, weil er deren Ursache ist.
 
 **Ablauf einer Kampagne:**
 
@@ -443,7 +443,7 @@ Wiederholung mit den Versionen aus 5.26 (2026-10-27, `results/2026-10-27_version
 
 Begründung:
 
-- **Kein Engpass durch das Lastwerkzeug.** Ein Pi hat vier Kerne, das Budget einer Zelle beträgt zwei. Auf den übrigen Kernen müssten k6 (bei 500 und mehr Clients rechenintensiv), Ereignisquellen, Redis und Nginx laufen. Bei der Stress-Stufe würde dann die Grenze des Werkzeugs gemessen statt die des Systems. Die Auslastung des Lastgenerators wird in jedem Lauf gemessen. Liegt sie im Mittel über 80 %, ist der Lauf ungültig.
+- **Kein Engpass durch das Lastwerkzeug.** Ein Pi hat vier Kerne, das Budget einer Zelle beträgt zwei. Auf den übrigen Kernen müssten k6 (bei 500 und mehr Clients rechenintensiv), Ereignisquellen, Redis und Nginx laufen. Bei der Stress-Stufe würde dann die Grenze des Werkzeugs gemessen statt die des Systems. Die Auslastung des Lastgenerators wird in jedem Lauf gemessen. Liegt sie in Pilot-, Haupt- oder Kontrollkampagnen im Mittel über 80 %, ist der Lauf ungültig (5.9).
 - **Eine Uhr für beide Zeitstempel.** Sendezeitstempel (Ereignisquelle) und Empfangszeitpunkt (k6) stammen beide vom Lastgenerator, eine Synchronisation zwischen Geräten ist nicht nötig. NTP erreicht typischerweise nur Genauigkeiten im Millisekundenbereich (RFC 5905), was bei Latenzen im einstelligen Millisekundenbereich nicht ausreichen würde. Die Netzwerkstrecke ist in jeder Latenz enthalten, für alle Zellen gleich und verzerrt den Vergleich nicht.
 - **Identische Hardware für alle Zellen.** Alle Kampagnen laufen nacheinander auf demselben Pi.
 
@@ -497,6 +497,21 @@ Bei php-laravel-sse beendete der OOM-Killer im ersten Lauf einzelne Prozesse, FP
 
 **Festplatte unter Last (2026-10-29).** 30 Minuten lang liefen alle vier Kerne unter Volllast, während zwei Prozesse ständig Dateien von je 512 MB auf der USB-Festplatte schrieben, lasen und löschten (`stress-ng --cpu 4 --hdd 2`). Alle sechs Prozesse liefen ohne Fehler durch. Der Drosselstatus blieb bei `0x0`, und das Kernel-Protokoll enthält seit seiner dauerhaften Speicherung (2026-10-27, 5.20) keine Meldung über Unterspannung, Ein-/Ausgabefehler oder eine getrennte oder zurückgesetzte USB-Verbindung. Die über USB versorgte Festplatte behält ihre Stromversorgung also auch bei gleichzeitiger CPU- und Schreiblast, und das ist mehr Last, als eine Messung auf dem Pi erzeugt. Der Neustart im Prüflauf mit 2 GiB je Zelle geht damit sehr wahrscheinlich auf den Arbeitsspeicher zurück. Zwei Zellen mit je 2 GiB können zusammen fast den gesamten Arbeitsspeicher des Pi belegen, und im Lauf davor antwortete bereits der Sampler nicht mehr (5.10).
 
+**Statische Prüfung vor Block 1 (2026-10-31).** Nach dem Pilot wurde der Code ohne Messläufe gegen die Vorgaben in diesem Dokument geprüft, nur lesend und mit den Unit-Tests. Den Prüfauftrag mit Punkten zu Fairness, Messung und Statistik hatte die Autorin im Claude-Projekt der schriftlichen Arbeit formuliert.
+
+| Befund | Schwere | Behandlung |
+|---|---|---|
+| beide Queue-Zellen veröffentlichten auf demselben Redis-Kanal, in Vergleich 11 hätte jede SSE-Variante die Events beider Wege erhalten | kritisch | eigener Kanal je Zelle (5.19). In den strengen Phasen machen doppelte Events einen Lauf ungültig (5.9) |
+| BullMQ behält erledigte Jobs standardmäßig in Redis, Laravel löscht sie | mittel | `removeOnComplete` in der Ereignisquelle (5.20). Die angesammelten Jobs werden vor Block 1 auf dem Pi gelöscht |
+| eine feste Grundlast von Redis bestimmt H8 | mittel | Ursache bei der lokalen Prüfung gemessen, es war der Healthcheck. Er prüft nur noch beim Start, die Regel von H8 bleibt (5.18) |
+| restliche deutsche Kommentare in den Prototypen | gering | übersetzt (Abschnitt 7) |
+| OPcache von PHP-FPM nicht protokolliert | gering | im Kontext jeder Kampagne erfasst (5.16) |
+| die 80-%-Regel für den Lastgenerator gilt im Code nur in den strengen Phasen | gering | so dokumentiert (5.9) |
+| Tests mit weniger als 20 Paaren | gering | keine Änderung. G4 wertet sie als unentschieden, und bei 90 Läufen kommen sie praktisch nicht vor |
+| die Hypothesen werden noch nicht automatisch bewertet | – | Skript vor der Auswertung von Block 1 (Abschnitt 6) |
+
+Zwei lokale Kurzkampagnen von Vergleich 11 bestätigen die Korrekturen (`results/2026-10-31_review-fixes-check/`). Jede Queue-Zelle erhielt in jedem Lauf genau die erwarteten Events, ohne Duplikate, alle Läufe waren gültig, und in Redis blieb kein BullMQ-Job zurück. Mit dem neuen Healthcheck sank die CPU-Zeit von Redis je Lauf lokal von rund 0,31 s auf rund 0,10 s.
+
 Bekannte Risiken auf dem Pi und ihre Behandlung:
 
 | Risiko | Behandlung |
@@ -516,7 +531,7 @@ Bekannte Risiken auf dem Pi und ihre Behandlung:
 | Speicherbedarf einer Zelle übersteigt das Budget | Probelauf mit der Stress-Stufe vor dem Pilot, verteilter Verbindungsaufbau, exakte Spitze laut Kernel je Lauf, Läufe mit Abbruch wegen Speichermangels sind ungültig (5.10) |
 | Absturz des Pi ohne erkennbare Ursache | Systemprotokoll dauerhaft gespeichert (5.20) |
 
-**Stand.** Der Zwei-Rechner-Aufbau ist auf dem Pi erprobt, und das Budget ist mit verteiltem Verbindungsaufbau bestätigt (2026-10-27, 5.10). Vor dem Pilot stehen noch die Punkte in Abschnitt 6 aus.
+**Stand.** Der Zwei-Rechner-Aufbau ist auf dem Pi erprobt, das Budget ist mit verteiltem Verbindungsaufbau bestätigt (2026-10-27, 5.10), und der Pilot ist abgeschlossen (2026-10-31, 5.9). Vor Block 1 stehen noch die Punkte in Abschnitt 6 aus.
 
 ### 5.15 Geplante Vergleiche — ENTSCHIEDEN
 
@@ -584,12 +599,14 @@ Inhalt eines Lauf-Protokolls:
   - Code-Stand (Git-Commit beider Seiten, Anzahl nicht committeter Änderungen),
   - k6- und Erweiterungsversion,
   - Host (Modell, Kernel, Kerne, RAM, Swap, cgroup-Controller, Governor),
-  - je Container wirksame Limits, Image und Betriebsmodus (`NODE_ENV`, `APP_ENV`, `APP_DEBUG`, geladene `php.ini`).
+  - je Container wirksame Limits, Image und Betriebsmodus (`NODE_ENV`, `APP_ENV`, `APP_DEBUG`, geladene `php.ini`, seit 2026-10-31 auch `opcache.enable`, wie PHP-FPM es sieht).
 - **Rohdaten.** Vollständige k6-Zusammenfassung.
 
 Von zusätzlichen Umgebungsvariablen (z. B. dem Reverb-App-Key) werden nur die Namen protokolliert, nie die Werte. Liegt eine Kampagnendatei außerhalb des Repositorys, wird nur ihr Dateiname protokolliert.
 
 **Ressourcenmessung.** `tools/resource-sampler` liest die cgroup-v2-Dateien direkt. Er ersetzt `docker stats`, das pro Abfrage ein bis drei Sekunden benötigt, selbst CPU auf dem gemessenen Rechner verbraucht und nicht an einzelne Läufe gekoppelt war. Das frühere Protokollwerkzeug für `docker stats` (`tools/monitor`) wurde am 2026-10-17 entfernt.
+
+Jeder Prozess in einem gemessenen Container zählt zu dessen CPU-Zeit, auch ein Prozess der Messumgebung. Der Orchestrator führt deshalb Befehle in gemessenen Containern nur vor dem Vorlauf aus (geladene `php.ini` und OPcache). Einen Healthcheck hat nur Redis, und er prüft seit 2026-10-31 nur noch während des Starts (5.18).
 
 Die Betreuerantwort zu Frage 8 betrifft dieses Messprotokoll und ersetzt den Werkzeugvergleich (5.3, 5.13) nicht (Auslegung vom 2026-10-18).
 
@@ -655,6 +672,21 @@ Allgemeine Regeln:
 
 Die Schwellen von H8 (25 % und 10 %) sind aus der Formulierung „wesentlicher" bzw. „geringer" Anteil abgeleitet. Die lokalen Funktionsprüfungen hatten zu diesem Zeitpunkt bereits Redis-Anteile gezeigt, auch bei WebSocket-Varianten über 25 %. Die Schwellen wurden nicht an diese Werte angepasst, und die Arbeit nennt das offen.
 
+**Grundlast von Redis (Befund vom 2026-10-31).** Der Pilot zeigt, warum H8 mit dem bisherigen Aufbau nicht bestätigt worden wäre. Redis brauchte in jedem Lauf rund 0,75 s CPU-Zeit, auch bei 10 Clients, wo die Zelle selbst kaum CPU braucht. Bei 500 Clients lag der Anteil von Redis an der gesamten CPU-Zeit bei den Node.js-Zellen bei 32 bis 33 %, bei php-laravel-ws bei 29 %, bei php-minimal-sse bei 37 % und bei php-laravel-sse und php-laravel-sse-queue bei 23 %. Den Ausschlag gab also eine feste Grundlast und nicht die Verteilung an viele Abonnenten, auf die H8 zielt. Aus demselben Grund maß die CPU-Familie bei 10 Clients überwiegend diese Grundlast.
+
+**Ursache der Grundlast.** Die Grundlast stammt zum größten Teil nicht von Redis, sondern vom Healthcheck des Redis-Containers. Docker startete alle 2 s `redis-cli ping` im Container, und die CPU-Zeit dieses Prozesses zählt zur cgroup von Redis, die die Messgröße erfasst (5.16). Lokal ohne Clients und ohne Ereignisquelle gemessen, jeweils über 30 s:
+
+| Zustand | CPU-Zeit der cgroup von Redis | davon Prozess `redis-server` |
+|---|---|---|
+| Healthcheck alle 2 s, beide Queue-Worker aktiv | 354 ms | nicht getrennt gemessen |
+| Healthcheck alle 2 s, Queue-Worker gestoppt | 334 bis 368 ms | 60 ms |
+| Healthcheck nur beim Start, Queue-Worker gestoppt | 66 ms | 60 ms |
+| Healthcheck nur beim Start, beide Queue-Worker aktiv | 70 ms | 70 ms |
+
+Rund 85 % der Grundlast gingen also auf den Healthcheck zurück. Die Abfragen der Queue-Worker fallen kaum ins Gewicht. Die zuvor vermutete Ursache, die Module, die Redis 8 standardmäßig lädt (5.26), trifft nicht zu. Seit 2026-10-31 prüft der Healthcheck nur noch während des Starts alle 2 s (`start_interval`), danach einmal pro Stunde. Redis war lokal weiterhin nach 2 s bereit, die abhängigen Container starten also so schnell wie bisher. Ob ein Container während eines Laufs ausfällt, erkennt der Orchestrator unabhängig vom Healthcheck (5.16).
+
+**Einordnung.** Die Änderung behebt einen Messfehler, sie passt nicht die Hypothese an das Ergebnis an. Die Messgröße bleibt die gesamte cgroup von Redis wie in 5.16 festgelegt, sie enthält lediglich keinen Prozess der Messumgebung mehr. Regel und Schwellen von H8 bleiben unverändert. Ob H8 mit dem korrigierten Aufbau bestätigt wird, ist offen. Die Pilotdaten enthalten den Anteil des Healthchecks noch, sie gehen aber ohnehin nicht in die Auswertung ein. Die Arbeit nennt den Befund trotzdem, weil er erst durch die Pilotdaten aufgefallen ist. Die beschreibende Zerlegung bleibt als Ergänzung zu H8, also die CPU-Zeit von Redis abzüglich ihrer verbleibenden Grundlast. Diese wird vor Block 1 auf dem Pi gemessen, einmal mit dem alten und einmal mit dem neuen Healthcheck, damit auch die Größe des Fehlers auf der Zielhardware belegt ist.
+
 **Transparenz.** Lokale Funktionsprüfungen vor der Festlegung zeigten bei H6 bereits diese Richtung (2,2 ms gegenüber 1,1 ms bei 10 Clients, n = 3, nicht auf der Zielhardware). H6 wurde aus der Architektur abgeleitet, nicht aus diesen Werten. Gleiches gilt für Hinweise zu H4, H5 und H8 aus den Funktionsprüfungen (`results/2026-10-16_verification-2/`). Die Arbeit nennt das offen.
 
 ### 5.19 Queue-Achse — ENTSCHIEDEN (beschlossen am 2026-10-16)
@@ -663,11 +695,12 @@ Das Exposé fragt, wie ein ereignisgesteuertes Benachrichtigungssystem „mit SS
 
 | Zelle | Ereignisquelle | Weg |
 |---|---|---|
-| node-express-sse-queue | Event-Simulator, Modus `queue` (BullMQ-Jobs) | BullMQ-Queue → BullMQ-Worker → Redis Pub/Sub `notifications` → Express-SSE |
-| php-laravel-sse-queue | `scan:produce` (Laravel-Jobs, nur Laravel kann sein Job-Format erzeugen) | Laravel-Queue → `queue:work` → Redis Pub/Sub `notifications` → Laravel-SSE (PHP-FPM) |
+| node-express-sse-queue | Event-Simulator, Modus `queue` (BullMQ-Jobs) | BullMQ-Queue → BullMQ-Worker → Redis Pub/Sub `notifications-bullmq` → Express-SSE |
+| php-laravel-sse-queue | `scan:produce` (Laravel-Jobs, nur Laravel kann sein Job-Format erzeugen) | Laravel-Queue → `queue:work` → Redis Pub/Sub `notifications-laravel` → Laravel-SSE (PHP-FPM) |
 
 - Der Worker gehört zur Zelle und zum gemeinsamen Ressourcenbudget (5.6.2).
-- Der SSE-Endpunkt ist derselbe Code wie in der Zelle ohne Queue. Er abonniert lediglich `notifications` statt `scan-events`.
+- Der SSE-Endpunkt ist derselbe Code wie in der Zelle ohne Queue. Er abonniert lediglich den Kanal seiner Zelle statt `scan-events`.
+- **Eigener Kanal je Queue-Zelle** (korrigiert am 2026-10-31). Bis dahin veröffentlichten beide Worker auf demselben Kanal `notifications`. In Vergleich 11 laufen beide Queue-Zellen in derselben Kampagne. Jeder Client hätte dann die Events beider Wege erhalten, also zwei Events pro Sekunde, und der Unterschied zwischen BullMQ und Laravel-Queue wäre herausgefallen. In den lokalen Prüfkampagnen mit allen zehn Zellen vom 2026-10-17 und 2026-10-27 kam deshalb jedes Event doppelt an. Gemessen wurde Vergleich 11 vor der Korrektur nie, Pilot und Probeläufe enthielten ihn nicht. Den Kanal liest jeder Worker aus `NOTIFICATION_CHANNEL`, `docker-compose.yml` setzt ihn je Zelle. Seitdem macht ein doppeltes Event einen Lauf in Pilot-, Haupt- und Kontrollkampagnen ungültig (5.9).
 - **Beschränkung auf SSE.** Die Queue sitzt vor der Verteilung an die Clients. Ihr Effekt sollte unabhängig von der Transportart sein. Diese Annahme wird in der Arbeit offen genannt.
 - Laravels Worker wartet mit `block_for` blockierend auf Jobs, statt bei leerer Queue 3 s zu schlafen (5.20). Ohne diese Einstellung würde bei 1 Event/s vor allem die Schlafpause gemessen.
 - Neue Vergleiche 9–11 (5.15). Die Testfamilien wuchsen damit auf 33 Tests, mit den Transportvergleichen 12 und 13 auf 39 (5.8, 5.15).
@@ -681,6 +714,7 @@ Jede Einstellung, die vom Auslieferungszustand der Komponenten abweicht, mit Beg
 | PHP-FPM | `pm = static`, `pm.max_children = 550` | `pm = dynamic`, 5 Worker | ein Worker pro SSE-Verbindung. Zielzahl 500 Clients (5.5) |
 | PHP-FPM | `ping.path = /healthz` | aus | Erreichbarkeitsprüfung durch den Front-Nginx (5.6.1) |
 | Laravel Queue | `block_for = 5` | `null` (Polling mit 3 s Schlafpause) | sonst misst die Queue-Achse die Schlafpause (5.19). Dokumentierte Laravel-Einstellung |
+| BullMQ | Jobs mit `removeOnComplete: true` und `removeOnFail: 1000` (`tools/event-simulator`, seit 2026-10-31) | erledigte Jobs bleiben dauerhaft in Redis | Redis wird mit jeder Zelle mitgemessen (5.6.2). Mit dem Standard wüchse sein Speicher über den ganzen Zeitplan, in Block 1 um rund 86 000 Jobs, im Sättigungstest um ein Vielfaches, und verschöbe die Speicherwerte aller später gemessenen Zellen. Laravel löscht erledigte Jobs ohnehin |
 | Nginx | `proxy_buffering off`, `fastcgi_buffering off` | an | Pufferung würde Events zurückhalten (5.6.1) |
 | Nginx | `proxy_read_timeout`/`fastcgi_read_timeout` 3600 s | 60 s | SSE-Verbindungen bleiben offen |
 | Nginx | `worker_connections 4096`, `worker_rlimit_nofile 8192` | 1024 bzw. Systemwert | 500 und mehr gleichzeitige Verbindungen |
@@ -877,6 +911,8 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Code-Kennzahlen | auf dem Commit der Messung erheben (5.22) | vor Block 1 |
 | Hardware | **Vom Betreuer geliehen und erhalten (2026-10-22).** Raspberry Pi 5 mit 4 GB, Linux-Laptop als Lastgenerator, Switch, LAN-Kabel. Einrichtung nach infra/pi/README.md, Ausstattung des Laptops dabei prüfen | Autorin |
+| Grundlast von Redis | auf dem Pi ohne Clients und ohne Ereignisquelle messen, einmal mit dem alten und einmal mit dem neuen Healthcheck, getrennt nach cgroup und Prozess `redis-server`. Grundlage der beschreibenden Zerlegung von H8 und Beleg für die Größe des Messfehlers (5.18) | vor Block 1 |
+| Bewertung der Hypothesen | Skript, das G1 bis G4 und die Regeln aus `plan.json` anwendet, mit dem Redis-Anteil pro Lauf über alle Kampagnen einer Variante für H8. Bisher listet `evaluate.js` die Regeln nur auf | vor der Auswertung von Block 1 |
 | Ratenstufen und Clientzahl des Sättigungstests | nach dem Pilot festzulegen (5.17). Der Pilot ist abgeschlossen, die Wiederholungszahlen für Block 1 und 2 sind festgelegt (90 je Laststufe, 5.9) | vor dem Sättigungstest |
 | Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
 
@@ -886,7 +922,8 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 - Konfiguration ausschließlich über `.env`. Geheimnisse (z. B. `prototypes/php-laravel/.env`) werden nie versioniert und nie in Images übernommen.
 - Ergebnisdateien werden nie überschrieben (Zeitstempel im Verzeichnisnamen).
 - Commit-Nachrichten auf Englisch im Format `<typ>: <zusammenfassung>` mit den Typen `feat`, `fix`, `infra`, `docs`, `test`. Ohne KI-Vermerk, die KI-Nutzung beschreibt `docs/KI-NUTZUNG.md`.
-- Kommentare im Code auf Englisch (seit 2026-10-29), passend zur englischen Arbeit, aus der Codeausschnitte zitiert werden. Die Dokumentation bleibt auf Deutsch, ebenso die Ausgaben der Werkzeuge. Die Images werden für die Übersetzung nicht neu gebaut, weil Kommentare das Verhalten nicht ändern. Pilot, Block 1 und Block 2 laufen so auf denselben Images.
+- Kommentare im Code auf Englisch (seit 2026-10-29), passend zur englischen Arbeit, aus der Codeausschnitte zitiert werden. Die Dokumentation bleibt auf Deutsch, ebenso die Ausgaben der Werkzeuge. Für die Übersetzung allein wurden die Images nicht neu gebaut, weil Kommentare das Verhalten nicht ändern.
+- **Images ab Block 1.** Die Korrektur des Kanals der Queue-Zellen (5.19) ändert Code in den Images von node-express und php-laravel. Diese Images werden deshalb vor Block 1 einmal neu gebaut, auf dem Pi und auf dem Lastgenerator, zusammen mit dem Image der Ereignisquelle (5.20). Pilot und Block 1 laufen damit auf verschiedenen Images, was unbedenklich ist, weil der Pilot nicht in die Auswertung eingeht. Block 1 und Block 2 laufen auf denselben Images. Bis zum Ende von Block 2 werden keine Images mehr gebaut. Der geänderte Healthcheck von Redis (5.18) steht nur in `docker-compose.yml` und ändert kein Image.
 
 ## 8. Änderungsverlauf
 
@@ -904,6 +941,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-31 | **Statische Prüfung vor Block 1 umgesetzt (5.14).** Eigener Redis-Kanal je Queue-Zelle (5.19), BullMQ löscht erledigte Jobs (5.20), doppelte Events machen Läufe in den strengen Phasen ungültig (5.9), OPcache von PHP-FPM im Kontext (5.16), restliche Kommentare übersetzt. Ursache der Grundlast von Redis ist der Healthcheck, er prüft nur noch beim Start, Regel von H8 unverändert (5.18). Lokale Prüfung in `results/2026-10-31_review-fixes-check/`. |
 | 2026-10-31 | **Pilot ausgewertet, 90 Läufe je Laststufe (5.9).** Alle 1 640 Messläufe gültig, Speicher mit Vorlauf stabil. Auf der Baseline ergibt das Kriterium 90 Paare, auf Medium und Stress war der Pilot zu kurz, um Stabilität zu zeigen. Einheitlich 90 für Block 1 und 2, rund 6,5 Tage je Block. Neues Werkzeug `tools/orchestrate/pilot.js`. Ergebnisse von Pilot und Ansturm mit Neustart ins Repository übernommen. |
 | 2026-10-29 | **Ansturm gemessen (5.14).** Mit Neustart vor jedem Lauf überstanden acht Zellen 500 gleichzeitige Verbindungen in allen Läufen. php-laravel-sse war in einem von drei Läufen gültig, php-laravel-sse-queue in keinem. Zählt als Phase 7, offenen Punkt entfernt. |
 | 2026-10-29 | **Vorlauf, Neustart beim Ansturm, Fehlerseiten (5.5, 5.9, 5.10, 5.16).** Vor jeder Kampagne ein nicht gewerteter Vorlauf mit 550 Clients, weil der Speicher statischer FPM-Pools sonst von Lauf zu Lauf wächst. Beim Ansturm startet die Zelle vor jedem Lauf neu, ohne Warm-up. Bei SSE zählt nur eine Antwort mit Status 200 als Verbindung, Fehlerseiten machen Läufe in Pilot, Haupt- und Kontrollmessung ungültig. Ein Absturz der Zelle steht als Grund vorn. |

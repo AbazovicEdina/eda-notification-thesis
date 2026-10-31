@@ -54,14 +54,19 @@ x-node-env: &node-env
 services:
   # Event backbone (DECISIONS.md 5.4). Redis pub/sub for delivery, BullMQ and
   # Laravel Queue for the queue axis (DECISIONS.md 5.19).
+  # The healthcheck runs every 2 s only while Redis starts (start_interval),
+  # afterwards once per hour. Each probe starts redis-cli inside this
+  # container, and its CPU time counts as CPU time of Redis (DECISIONS.md 5.18).
   redis:
     <<: *default-logging
     image: redis:8.10.2-alpine@sha256:9f8d2d789b9a1d1e3f283f979aa9cbf393373806472e1ccd460e2f9c869b833b
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 2s
+      interval: 1h
       timeout: 2s
       retries: 15
+      start_period: 60s
+      start_interval: 2s
 
   # Minimal SSE server of the xk6-sse feasibility check (not a prototype).
   sse-feasibility:
@@ -287,8 +292,11 @@ services:
 
   # --- Queue axis, PHP (DECISIONS.md 5.19) ---------------------------------
   # Cell php-laravel-sse-queue. A Laravel worker processes the jobs from
-  # scan-events and publishes on notifications. A separate FPM pool with the
-  # same SSE route subscribes to notifications instead of scan-events.
+  # scan-events and publishes on notifications-laravel. A separate FPM pool
+  # with the same SSE route subscribes to that channel instead of scan-events.
+  # The channel belongs to this cell only. The BullMQ cell has its own, so that
+  # neither SSE endpoint receives the events of the other pipeline when both
+  # cells run in the same campaign (comparison 11).
   php-laravel-fpm-queue:
     <<: [*high-nofile, *sut-resources, *default-logging]
     image: eda-thesis-php-laravel:latest
@@ -296,7 +304,7 @@ services:
     env_file: ./prototypes/php-laravel/.env
     environment:
       <<: *laravel-env
-      EVENT_CHANNEL: notifications
+      EVENT_CHANNEL: notifications-laravel
     depends_on:
       redis:
         condition: service_healthy
@@ -312,6 +320,7 @@ services:
     environment:
       <<: *laravel-env
       REDIS_QUEUE_BLOCK_FOR: 5
+      NOTIFICATION_CHANNEL: notifications-laravel
     depends_on:
       redis:
         condition: service_healthy
@@ -347,15 +356,16 @@ services:
 
   # --- Queue axis, Node.js (DECISIONS.md 5.19) -----------------------------
   # Cell node-express-sse-queue. A BullMQ worker processes the jobs from
-  # scan-events and publishes on notifications. A separate SSE process
-  # subscribes to notifications instead of scan-events.
+  # scan-events and publishes on notifications-bullmq. A separate SSE process
+  # subscribes to that channel instead of scan-events. The channel belongs to
+  # this cell only (see the PHP queue axis above).
   node-express-sse-queue:
     <<: [*high-nofile, *sut-resources, *default-logging]
     image: eda-thesis-node-express:latest
     command: ["node", "sse.js"]
     environment:
       <<: *node-env
-      EVENT_CHANNEL: notifications
+      EVENT_CHANNEL: notifications-bullmq
     depends_on:
       redis:
         condition: service_healthy
@@ -369,6 +379,7 @@ services:
       NODE_ENV: ${SUT_NODE_ENV:-production}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      NOTIFICATION_CHANNEL: notifications-bullmq
     depends_on:
       redis:
         condition: service_healthy
