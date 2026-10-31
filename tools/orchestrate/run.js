@@ -131,10 +131,11 @@ function createSides(sut = {}) {
     },
     async sutGit() {
       if (!remote) return gitState();
-      const r = await exec('ssh', sshArgs(`cd ${shQuote(sut.repoDir)} && git rev-parse HEAD && git status --porcelain`));
+      const r = await exec('ssh', sshArgs(`cd ${shQuote(sut.repoDir)} && git rev-parse HEAD && git status --porcelain --untracked-files=no && echo --- && git ls-files --others --exclude-standard | wc -l`));
       if (r.status !== 0) throw new CampaignError(`Git-Stand auf der SUT-Seite nicht lesbar: ${r.stderr.trim()}`);
-      const [head, ...dirty] = r.stdout.split(/\r?\n/).filter(Boolean);
-      return { commit: head.trim(), dirty_files: dirty.length };
+      const [head, ...rest] = r.stdout.split(/\r?\n/).filter(Boolean);
+      const sep = rest.indexOf('---');
+      return { commit: head.trim(), dirty_files: sep, untracked_files: Number(rest[sep + 1]) };
     },
     // Throttling status via vcgencmd on the host of the SUT side. The sampler in
     // the container reads it from sysfs, but the file is missing on the Pi 5.
@@ -151,10 +152,14 @@ function createSides(sut = {}) {
   };
 }
 
+// dirty_files counts changed versioned files only. Untracked files are mostly
+// results and campaign files and are counted separately.
 async function gitState() {
   const head = await exec('git', ['rev-parse', 'HEAD']);
-  const status = await exec('git', ['status', '--porcelain']);
-  return { commit: head.stdout.trim() || null, dirty_files: status.stdout.split(/\r?\n/).filter(Boolean).length };
+  const status = await exec('git', ['status', '--porcelain', '--untracked-files=no']);
+  const untracked = await exec('git', ['ls-files', '--others', '--exclude-standard']);
+  const count = (r) => r.stdout.split(/\r?\n/).filter(Boolean).length;
+  return { commit: head.stdout.trim() || null, dirty_files: count(status), untracked_files: count(untracked) };
 }
 
 // ---------------------------------------------------------------------------
@@ -1337,6 +1342,12 @@ async function main() {
     const sutGit = await sides.sutGit();
     if (sides.remote && loadGit.commit !== sutGit.commit) {
       throw new CampaignError(`Code-Stand verschieden: Lastgenerator ${loadGit.commit}, SUT-Seite ${sutGit.commit}`);
+    }
+    // In the two-machine setup the results must belong to the recorded commit,
+    // so a changed versioned file on either side stops strict phases.
+    if (sides.remote && settings.requireProduction && (loadGit.dirty_files || sutGit.dirty_files)) {
+      throw new CampaignError(`Geänderte versionierte Dateien (Lastgenerator ${loadGit.dirty_files}, SUT-Seite ${sutGit.dirty_files}), `
+        + 'Pilot-, Haupt- und Kontrollkampagnen verlangen den unveränderten Code-Stand des Commits (git status --short).');
     }
     console.log('Vorabprüfung: k6-Extension …');
     const k6 = await k6Version(sides);

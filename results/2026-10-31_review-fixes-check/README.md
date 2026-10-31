@@ -28,3 +28,7 @@ Der Hinweis auf aktiven Swap betrifft nur den lokalen Rechner, auf dem Pi ist Sw
 |---|---|---|
 | `…_check-switch-pilot-c11-baseline` | Vergleich 11, je Lauf läuft nur die Ereignisquelle der gemessenen Zelle | alle acht Läufe gültig, je Zelle genau 100 Events ohne Duplikate. Die CPU-Zeit von Redis unterscheidet sich jetzt zwischen den Zellen (BullMQ rund 0,08 s, Laravel 0,08 bis 0,10 s), vorher enthielt jeder Lauf beide Queues. Der Wechsel kostet lokal rund 7 s je Lauf außerhalb des Messfensters. Nginx wird getrennt gemessen (rund 0,03 s und 37 MiB je Lauf) und geht nicht in „Zelle + Redis" ein |
 | `…_check-switch-pilot-c12-baseline` | Vergleich 12 mit einer gemeinsamen Quelle | alle Läufe gültig, die Quelle startet nur einmal je Laststufe, das bisherige Verhalten bleibt unverändert |
+
+## Prüfung auf dem Pi
+
+Die Prüfkampagnen auf der Zielhardware liegen direkt in `results/` mit dem Präfix `check-` (Vergleich 11 auf allen drei Laststufen und eine Kontrollmessung, 2026-10-31). Auswertung in DECISIONS.md 5.14.

@@ -85,7 +85,7 @@ Jede erzeugte Kampagne umfasst genau einen Vergleich und eine Laststufe (bei `sc
 | ungültige Läufe im Zeitfenster (`--hours`, Standard 24) | Anteil über 5 % in Pilot-, Haupt- und Kontrollkampagnen. Jede Drosselung |
 | Temperatur des Testservers (aus den Lauf-Protokollen) | über 75 °C |
 | Auslastung des Lastgenerators (Zwei-Rechner-Aufbau) | im Mittel eines Laufs über 80 % |
-| Kontrollmessung | Median der Latenz weicht um mehr als 20 % vom ersten Wert ab |
+| Kontrollmessung | Median der Latenz weicht um mehr als 20 % vom ersten Wert ab. Verglichen werden nur Kontrollmessungen mit derselben Last wie die letzte, Probeläufe mit kürzerer Haltezeit zählen also nicht. `--control-since <ISO-Zeit>` legt den Bezug auf die erste Kontrollmessung ab diesem Zeitpunkt, ab Block 1 auf dessen Beginn |
 | Speicherplatz des Ergebnisverzeichnisses | weniger als 10 % frei |
 | Testserver direkt per ssh (`--sut`) | nicht erreichbar, aktuell gedrosselt, über 75 °C, Docker-Datenträger unter 10 % frei |
 
@@ -106,7 +106,7 @@ node --input-type=module -e "import { notify } from './tools/orchestrate/notify.
 Stündliche Prüfung per cron auf dem Lastgenerator (`crontab -e`):
 
 ```cron
-0 * * * * cd /pfad/zum/repo && node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json --notify >> "$HOME/eda-status.log" 2>&1
+0 * * * * cd /pfad/zum/repo && node tools/orchestrate/status.js --schedule campaigns/block1/schedule.json --sut sut.pi.json --control-since <beginn-von-block-1> --notify >> "$HOME/eda-status.log" 2>&1
 ```
 
 Das Protokoll liegt bewusst außerhalb von `results/`, damit es nicht versehentlich in das Repository gelangt.

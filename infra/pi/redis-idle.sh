@@ -43,5 +43,12 @@ cat > "$out" <<EOF
 }
 EOF
 
-echo "Grundlast von Redis über $seconds s: $total ms CPU-Zeit, davon redis-server $server ms, übrige Prozesse (z. B. Healthcheck) $other ms"
+# The process value has a resolution of 10 ms and is read a moment apart from
+# the cgroup counter, so a difference below 10 ms means "none".
+if [ "$other" -lt 10 ]; then
+  other_text="unter der Auflösung von 10 ms"
+else
+  other_text="$other ms"
+fi
+echo "Grundlast von Redis über $seconds s: $total ms CPU-Zeit, davon redis-server $server ms, übrige Prozesse (z. B. Healthcheck) $other_text"
 echo "Ergebnis: $out"

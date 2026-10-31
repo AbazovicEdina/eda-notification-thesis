@@ -62,6 +62,7 @@ Fehler der KI, die dabei aufgefallen sind:
 - Nach der Übersetzung der Code-Kommentare meldete die KI, es sei nur noch eine deutsche Zeile übrig. Tatsächlich waren es noch zehn Stellen, weil ihr Suchfilter zu eng war. Aufgefallen ist das bei der statischen Prüfung.
 - Der Healthcheck von Redis startete alle 2 s ein Programm im gemessenen Redis-Container. Dessen CPU-Zeit zählte zu Redis und machte rund 85 % der festen Grundlast aus, die im Pilot auffiel. Die zuerst genannte Ursache, die Module von Redis 8, war eine ungeprüfte Vermutung der KI. Erst eine getrennte Messung des Redis-Prozesses und des ganzen Containers zeigte die tatsächliche Ursache (DECISIONS.md 5.18).
 - Im ursprünglichen Entwurf galt die gegenseitige Störung der beiden Varianten eines Paares als symmetrisch. Für die später ergänzten Queue-Vergleiche mit zwei verschiedenen Ereignisquellen traf das nicht zu, Redis rechnete dort die Queue-Arbeit der anderen Variante der gemessenen zu. Aufgefallen ist das erst bei einer zweiten, auf Fairness ausgerichteten Prüfung (DECISIONS.md 5.6.3).
+- Das Statuswerkzeug verglich die Kontrollmessung auch mit Probeläufen anderer Haltezeit, und die Zahl der nicht committeten Änderungen enthielt die Ergebnisdateien. Beides fiel bei der Durchsicht vor dem Start von Block 1 auf (DECISIONS.md 5.9, 5.16).
 
 ## Gelernt und selbst überprüft
 
@@ -108,3 +109,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-31 | statische Prüfung vor Block 1 nach einem Prüfauftrag der Autorin | eigener Redis-Kanal je Queue-Variante, BullMQ löscht erledigte Jobs, doppelte Events machen Läufe ungültig, Grundlast von Redis bei H8 dokumentiert (DECISIONS.md 5.18 bis 5.20) |
 | 2026-10-31 | lokale Prüfung der Korrekturen, Ursache der Grundlast von Redis gesucht statt angenommen | Healthcheck als Ursache gemessen, prüft nur noch beim Start, Regel von H8 unverändert (DECISIONS.md 5.18) |
 | 2026-10-31 | Wunsch der Autorin, die Fairness-Regeln für die Arbeit nachvollziehbar zu begründen, dazu eine zweite Prüfung | je Lauf nur die Ereignisquelle der gemessenen Variante, Nginx beschreibend mitgemessen, zwei Textkorrekturen (DECISIONS.md 5.14) |
+| 2026-10-31 | gründliche Durchsicht vor dem Start von Block 1 auf Wunsch der Autorin | Prüfkampagne auf dem Pi ausgewertet, Kontrollmessung und Prüfung des Code-Stands im Orchestrator korrigiert (DECISIONS.md 5.14) |

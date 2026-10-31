@@ -5,7 +5,7 @@
 // measurement and free disk space.
 //
 // Usage:
-//   node tools/orchestrate/status.js [--schedule <schedule.json>] [--sut <sut.json>] [--hours 24] [--notify]
+//   node tools/orchestrate/status.js [--schedule <schedule.json>] [--sut <sut.json>] [--hours 24] [--control-since <ISO time>] [--notify]
 //
 //   --schedule  progress of this schedule (complete, open, aborted)
 //   --sut       file with the sut block of the two-machine setup (as for
@@ -13,6 +13,9 @@
 //               throttling status and disk space directly on the test server
 //   --hours     time window for runs, temperature and load (default 24)
 //   --results   different results directory (default results/)
+//   --control-since <ISO time>  reference of the control drift, the first
+//               control from this time on (default: the first one with the
+//               same load as the latest)
 //   --notify    send a notification on warnings (NOTIFY_URL, notify.js),
 //               e.g. from an hourly cron job
 //
@@ -195,23 +198,33 @@ if (loadgenMax != null) {
   if (loadgenMax > LIMITS.loadgenUtil) warn(`Lastgenerator bis ${pct(loadgenMax)} ausgelastet, k6 könnte zum Engpass werden`);
 }
 
-// 4. Control measurement (median of the mean latencies per control campaign)
+// 4. Control measurement (median of the mean latencies per control campaign).
+// Only controls with the same load as the most recent one are compared, so
+// that trial runs with a shorter hold time do not count. --control-since
+// sets the reference to the first control from that time on, e.g. the start
+// of block 1 after the last change to the setup (DECISIONS.md 5.9).
 out('\nKontrollmessung');
-const controls = campaigns
+const controlSince = opt('control-since', null);
+const loadKey = (s) => `${s?.vus}|${s?.hold_seconds}|${s?.settle_seconds}|${s?.event_rate_nominal_per_s}`;
+const allControls = campaigns
   .filter((c) => c.phase === 'control' && isComplete(c))
   .map((c) => {
     const scenario = Object.values(c.aggregate.scenarios ?? {})[0];
     const cfg = scenario && Object.values(scenario.configs ?? {})[0];
-    return { at: c.aggregate.finished_at, latency: cfg?.describe?.latency_mean_ms?.median ?? null };
+    return { at: c.aggregate.finished_at, load: loadKey(scenario), latency: cfg?.describe?.latency_mean_ms?.median ?? null };
   })
   .filter((c) => c.latency != null);
+const latestLoad = allControls.at(-1)?.load;
+const controls = allControls
+  .filter((c) => c.load === latestLoad)
+  .filter((c) => !controlSince || Date.parse(c.at) >= Date.parse(controlSince));
 if (!controls.length) {
   out('  noch keine vollständige Kontrollmessung');
 } else {
   for (const c of controls.slice(-7)) out(`  ${c.at.slice(0, 16).replace('T', ' ')}  ${c.latency.toFixed(3)} ms`);
   const first = controls[0].latency;
   const drift = (controls[controls.length - 1].latency - first) / first;
-  out(`  letzte gegenüber erster Kontrollmessung: ${drift >= 0 ? '+' : ''}${pct(drift)}`);
+  out(`  letzte gegenüber erster Kontrollmessung (${controls[0].at.slice(0, 16).replace('T', ' ')}, gleiche Last): ${drift >= 0 ? '+' : ''}${pct(drift)}`);
   if (Math.abs(drift) > LIMITS.controlDrift) warn(`Kontrollmessung weicht um ${pct(drift)} vom Ausgangswert ab, Drift des Aufbaus prüfen`);
 }
 
