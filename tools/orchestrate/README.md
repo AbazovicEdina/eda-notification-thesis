@@ -10,14 +10,15 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `status.js` | Statusbericht für den Dauerbetrieb (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz), optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `pilot.js` | Auswertung des Pilots nach dem vorab festgelegten Stabilitätskriterium, ergibt die Wiederholungszahl je Laststufe und schätzt die Dauer eines Blocks |
-| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Hypothesen |
+| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Bewertung der Hypothesen |
+| `assessment.js` | Auswertungslogik von `evaluate.js` als reine Funktionen, darunter die Entscheidungsregeln G1 bis G4 und die Regel jeder Hypothese |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
 | `cells.json` | die zehn Messzellen mit Container, Front-Nginx (Modus, Ziel), Ereignisquelle, k6-Skript und Messgröße |
 | `plan.json` | vorab festgelegter Auswerteplan mit Vergleichen, Laststufen, Testfamilien und Hypothesen |
 | `campaign*.example.json` | Vorlagen für Haupt-, Pi- und Sättigungskampagnen |
-| `test/` | Tests der Statistik und Paarbildung |
+| `test/` | Tests der Statistik, der Paarbildung, der Holm-Korrektur über alle geplanten Tests, der Replikation und der Entscheidungsregeln |
 
 ## Verwendung
 
@@ -43,8 +44,8 @@ node tools/orchestrate/run.js <kampagne.json>
 # Auswertung des Pilots, mit geschätzter Dauer eines Blocks für die gewählten Zahlen
 node tools/orchestrate/pilot.js results/<pilotkampagne-1> results/<pilotkampagne-2> ... --runs baseline=90,medium=90,stress=90
 
-# Gesamtauswertung der Hauptmessung
-node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
+# Gesamtauswertung der Hauptmessung, mit Skalierung und Sättigung für H4 und H11
+node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ... --series results/<zeitstempel>_series
 
 # Skalierung und Sättigung über alle Zellen
 node tools/orchestrate/series.js results/<kampagne-1> results/<kampagne-2> ...
@@ -210,7 +211,7 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 - die Median-Differenz mit 95-%-Konfidenzintervall,
 - Startwert und Zahl der Resamples des Bootstraps.
 
-`schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Hypothesen, Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen. `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
+`schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Bewertung der Hypothesen, Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Die Bewertung zerlegt jede Hypothese in Fälle (erfüllt, Gegenteil, unklar) und fasst sie nach G4 zusammen (DECISIONS.md 5.18). Für H8 liest `evaluate.js` die einzelnen Läufe der Kampagnen, für H4 und H11 die `series.json` aus `--series`. Ohne diese Angabe bleiben H4 und H11 unentschieden. Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen. `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
 
 **`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate, beim Ansturm rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe, sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
 

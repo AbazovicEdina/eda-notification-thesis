@@ -110,3 +110,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-31 | lokale Prüfung der Korrekturen, Ursache der Grundlast von Redis gesucht statt angenommen | Healthcheck als Ursache gemessen, prüft nur noch beim Start, Regel von H8 unverändert (DECISIONS.md 5.18) |
 | 2026-10-31 | Wunsch der Autorin, die Fairness-Regeln für die Arbeit nachvollziehbar zu begründen, dazu eine zweite Prüfung | je Lauf nur die Ereignisquelle der gemessenen Variante, Nginx beschreibend mitgemessen, zwei Textkorrekturen (DECISIONS.md 5.14) |
 | 2026-10-31 | gründliche Durchsicht vor dem Start von Block 1 auf Wunsch der Autorin | Prüfkampagne auf dem Pi ausgewertet, Kontrollmessung und Prüfung des Code-Stands im Orchestrator korrigiert (DECISIONS.md 5.14) |
+| 2026-10-31 | Skript für die Entscheidungsregeln, während Block 1 läuft | Regeln aus `plan.json` als Code mit Tests, Festlegung des „Gegenteils" je Art von Fall vor jeder Auswertung (DECISIONS.md 5.18) |

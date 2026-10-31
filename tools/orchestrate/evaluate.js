@@ -9,13 +9,17 @@
 // so leaving tests out cannot make the correction milder. Block 2
 // (replication) is compared descriptively with block 1.
 //
-// Usage: node tools/orchestrate/evaluate.js <campaign-directory>... [--include-aborted]
+// The hypotheses H1 to H11 are assessed with the rules fixed in plan.json
+// (assessment.js). H8 needs the single runs of the campaigns, H4 and H11 the
+// scaling series and the saturation test from series.js (--series).
+//
+// Usage: node tools/orchestrate/evaluate.js <campaign-directory>... [--series <series-directory>] [--include-aborted]
 // Output: results/<timestamp>_evaluation/evaluation.json and evaluation.md
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { holmCorrection } from './stats.js';
+import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses } from './assessment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -23,29 +27,16 @@ const RESULTS_DIR = path.join(REPO_ROOT, 'results');
 
 const args = process.argv.slice(2);
 const includeAborted = args.includes('--include-aborted');
-const dirs = args.filter((a) => !a.startsWith('--'));
-if (dirs.length === 0) {
-  console.error('Aufruf: node tools/orchestrate/evaluate.js <kampagnen-verzeichnis>... [--include-aborted]');
+const seriesIndex = args.indexOf('--series');
+const seriesDir = seriesIndex === -1 ? null : args[seriesIndex + 1];
+const dirs = args.filter((a, i) => !a.startsWith('--') && (seriesIndex === -1 || i !== seriesIndex + 1));
+if (dirs.length === 0 || (seriesIndex !== -1 && !seriesDir)) {
+  console.error('Aufruf: node tools/orchestrate/evaluate.js <kampagnen-verzeichnis>... [--series <series-verzeichnis>] [--include-aborted]');
   process.exit(1);
 }
 
 const plan = JSON.parse(readFileSync(path.join(__dirname, 'plan.json'), 'utf-8'));
 const notes = [];
-
-// Bring the result of a campaign comparison into the planned direction (a = plan.a).
-function oriented(result, flipped) {
-  if (!flipped || !result.wilcoxon) return result;
-  const [lo, hi] = result.median_diff_ci95;
-  return {
-    ...result,
-    wilcoxon: { ...result.wilcoxon, w_plus: result.wilcoxon.w_minus, w_minus: result.wilcoxon.w_plus },
-    cliffs_delta: -result.cliffs_delta,
-    rank_biserial: -result.rank_biserial,
-    median_diff: result.median_diff == null ? null : -result.median_diff,
-    median_diff_ci95: [hi == null ? null : -hi, lo == null ? null : -lo],
-    pairs: { ...result.pairs, a: result.pairs.b, b: result.pairs.a },
-  };
-}
 
 // Load campaigns
 const campaigns = [];
@@ -64,102 +55,49 @@ for (const dir of dirs) {
     notes.push(`${agg.campaign_dir}: abgebrochen (${agg.abort_reason}) — übersprungen (--include-aborted zum Einbeziehen)`);
     continue;
   }
-  campaigns.push(agg);
+  campaigns.push({ ...agg, dir: path.resolve(dir) });
 }
 
 // Assign measured comparisons to the planned ones, separately per block
 // (1 = confirmatory, 2 = replication, DECISIONS.md 5.9).
-const found = new Map(); // key: `${planId}|${scenario}|${block}` -> { campaign, entry, flipped }
-const duplicates = [];
-for (const agg of campaigns) {
-  const block = agg.block ?? 1;
-  for (const [scenarioName, scenario] of Object.entries(agg.scenarios)) {
-    if (scenario.incomplete) continue;
-    for (const entry of scenario.comparisons) {
-      const p = plan.comparisons.find((c) =>
-        (c.a === entry.cell_a && c.b === entry.cell_b) || (c.a === entry.cell_b && c.b === entry.cell_a));
-      if (!p) {
-        notes.push(`${agg.campaign_dir}: Vergleich ${entry.cell_a} vs. ${entry.cell_b} ist nicht geplant — nicht in der Holm-Familie`);
-        continue;
-      }
-      const key = `${p.id}|${scenarioName}|${block}`;
-      if (found.has(key)) duplicates.push(`Vergleich ${p.id}, ${scenarioName}, Block ${block}: ${found.get(key).campaign.campaign_dir} und ${agg.campaign_dir}`);
-      found.set(key, { campaign: agg, entry, flipped: p.a !== entry.cell_a });
-    }
-  }
-}
-if (duplicates.length) {
+const match = matchCampaigns(plan, campaigns);
+const { found } = match;
+notes.push(...match.notes);
+if (match.duplicates.length) {
   console.error('Mehrfach gemessene Vergleiche — eindeutig festlegen, welche Kampagne zählt:');
-  for (const d of duplicates) console.error(`  ${d}`);
+  for (const d of match.duplicates) console.error(`  ${d}`);
   process.exit(1);
 }
 
-function testsFor(measure, block) {
-  const tests = [];
-  for (const cmp of plan.comparisons) {
-    for (const scenarioName of plan.scenarios) {
-      const hit = found.get(`${cmp.id}|${scenarioName}|${block}`);
-      const raw = hit?.entry.measures?.[measure];
-      const result = raw?.wilcoxon ? oriented(raw, hit.flipped) : null;
-      tests.push({
-        comparison_id: cmp.id,
-        question: cmp.question,
-        a: cmp.a,
-        b: cmp.b,
-        scenario: scenarioName,
-        campaign: hit?.campaign.campaign_dir ?? null,
-        status: result ? (result.conclusive ? 'gemessen' : 'nicht aussagekräftig') : 'fehlt',
-        pValue: result ? result.wilcoxon.p : 1,
-        result,
-      });
-    }
+// Holm correction per family over all planned tests of block 1, and the
+// descriptive replication by block 2 (assessment.js).
+const families = correctFamilies(plan, found);
+const replication = replicationSummary(plan, found);
+
+// Share of Redis in the CPU time per single run for H8. Valid, measured runs of
+// block 1 at the stress level, across all campaigns of a cell.
+const h8Runs = [];
+for (const agg of campaigns.filter((c) => (c.block ?? 1) === plan.confirmatoryBlock)) {
+  const runsDir = path.join(agg.dir, 'runs');
+  if (!existsSync(runsDir)) continue;
+  for (const f of readdirSync(runsDir).filter((x) => x.endsWith('.json') && !x.startsWith('.'))) {
+    const r = JSON.parse(readFileSync(path.join(runsDir, f), 'utf-8'));
+    if (r.run?.scenario !== 'stress' || r.run.warmup || !r.run.valid) continue;
+    h8Runs.push({ cell: r.run.cell, cpu_seconds_redis: r.measures?.cpu_seconds_redis, cpu_seconds_total: r.measures?.cpu_seconds_total });
   }
-  return tests;
 }
+const redis = redisShares(h8Runs);
 
-// Build and correct the families (confirmatory block)
-const families = plan.families.map((family) => {
-  const corrected = holmCorrection(testsFor(family.measure, plan.confirmatoryBlock), plan.alpha);
-  return { ...family, block: plan.confirmatoryBlock, alpha: plan.alpha, m: corrected.length, tests: corrected };
-});
-
-// Replication (block 2). Do direction and effect class agree with block 1,
-// and do the confidence intervals overlap? Descriptive, without a
-// significance statement of its own. A result counts as replicated if the
-// direction is the same and the intervals overlap (plan.json, decisionRules).
-// The effect class is reported but is not a condition.
-const sign = (v) => (v == null || v === 0 ? 0 : Math.sign(v));
-const replication = plan.families.map((family) => {
-  const b1 = testsFor(family.measure, plan.confirmatoryBlock);
-  const b2 = testsFor(family.measure, plan.replicationBlock);
-  const rows = b1.map((t1, i) => {
-    const r1 = t1.result;
-    const r2 = b2[i].result;
-    if (!r1 || !r2) return { comparison_id: t1.comparison_id, scenario: t1.scenario, status: !r1 ? 'Block 1 fehlt' : 'Block 2 fehlt' };
-    const [lo1, hi1] = r1.median_diff_ci95;
-    const [lo2, hi2] = r2.median_diff_ci95;
-    return {
-      comparison_id: t1.comparison_id,
-      scenario: t1.scenario,
-      status: 'verglichen',
-      delta_block1: r1.cliffs_delta,
-      delta_block2: r2.cliffs_delta,
-      same_direction: sign(r1.median_diff) === sign(r2.median_diff),
-      same_magnitude: r1.cliffs_magnitude === r2.cliffs_magnitude,
-      ci_overlap: lo1 != null && lo2 != null && lo1 <= hi2 && lo2 <= hi1,
-    };
-  }).map((r) => (r.status === 'verglichen' ? { ...r, replicated: r.same_direction && r.ci_overlap } : r));
-  const compared = rows.filter((r) => r.status === 'verglichen');
-  return {
-    measure: family.measure,
-    compared: compared.length,
-    same_direction: compared.filter((r) => r.same_direction).length,
-    same_magnitude: compared.filter((r) => r.same_magnitude).length,
-    ci_overlap: compared.filter((r) => r.ci_overlap).length,
-    replicated: compared.filter((r) => r.replicated).length,
-    rows,
-  };
-});
+// Scaling series and saturation test for H4 and H11.
+let series = null;
+if (seriesDir) {
+  const file = path.join(path.resolve(seriesDir), 'series.json');
+  if (existsSync(file)) series = JSON.parse(readFileSync(file, 'utf-8'));
+  else notes.push(`${seriesDir}: keine series.json, H4 und H11 bleiben unentschieden`);
+} else {
+  notes.push('ohne --series, H4 und H11 bleiben unentschieden');
+}
+const assessment = assessHypotheses({ plan, families, found, redis, series });
 
 // Descriptive overview per cell and load level. A cell that appears in two
 // campaigns is listed twice (separately per campaign), because the values
@@ -185,6 +123,9 @@ const evaluation = {
   families,
   replication,
   hypotheses: plan.hypotheses,
+  assessment,
+  redis_share_stress: redis,
+  series: seriesDir ? path.basename(path.resolve(seriesDir)) : null,
   descriptives,
 };
 writeFileSync(path.join(outDir, 'evaluation.json'), JSON.stringify(evaluation, null, 2));
@@ -236,7 +177,19 @@ for (const h of plan.hypotheses) {
   lines.push(`| ${h.id} | ${h.text} | ${h.comparisons.length ? h.comparisons.join(', ') : '–'} | ${h.measure} | ${h.scenario} | ${h.rule ?? '–'} |`);
 }
 lines.push('', 'Allgemeine Entscheidungsregeln:', '', ...(plan.decisionRules?.general ?? []).map((g) => `- ${g}`), '');
-lines.push('Die Bewertung jeder Hypothese (bestätigt, nicht bestätigt, unentschieden) erfolgt in der Arbeit nach diesen Regeln anhand der Tabellen oben, der Skalierungs- und der Sättigungsreihe (series.md).', '');
+lines.push('## Bewertung der Hypothesen (G1 bis G4)', '');
+lines.push('Jede Hypothese ist in Fälle zerlegt. Ein Fall ist erfüllt, zeigt das Gegenteil oder ist unklar (fehlt, weniger als 20 verwertbare Paare, nicht signifikant oder Gleichstand). Nach G4 ist eine Hypothese bestätigt, wenn alle Fälle erfüllt sind, nicht bestätigt, wenn mindestens ein Fall das Gegenteil zeigt, und sonst unentschieden. Was je Art von Fall als Gegenteil gilt, legt DECISIONS.md 5.18 fest.', '');
+lines.push('| Nr. | Ergebnis | erfüllt | Gegenteil | unklar |');
+lines.push('|---|---|---|---|---|');
+for (const a of assessment) {
+  lines.push(`| ${a.id} | ${a.verdict} | ${a.counts.erfüllt} | ${a.counts.gegenteil} | ${a.counts.unklar} |`);
+}
+lines.push('');
+for (const a of assessment) {
+  lines.push(`### ${a.id}: ${a.verdict}`, '', a.text, '', '| Fall | Ergebnis | Werte |', '|---|---|---|');
+  for (const c of a.cases) lines.push(`| ${c.label} | ${c.outcome} | ${c.detail} |`);
+  lines.push('');
+}
 lines.push('### Wortlaut für die Arbeit (englisch)', '');
 lines.push('General decision rules:', '', ...(plan.decisionRules?.general_en ?? []).map((g) => `- ${g}`), '');
 if (plan.decisionRules?.replication_en) lines.push(`Replication: ${plan.decisionRules.replication_en}`, '');
@@ -259,5 +212,8 @@ for (const family of families) {
 }
 for (const r of replication) {
   console.log(`  Replikation ${r.measure}: ${r.compared} verglichen, ${r.replicated} repliziert (${r.same_direction} gleiche Richtung, ${r.ci_overlap} KI überlappen, ${r.same_magnitude} gleiche Effektklasse)`);
+}
+for (const a of assessment) {
+  console.log(`  ${a.id}: ${a.verdict} (${a.counts.erfüllt} erfüllt, ${a.counts.gegenteil} Gegenteil, ${a.counts.unklar} unklar)`);
 }
 for (const n of notes) console.log(`  Hinweis: ${n}`);
