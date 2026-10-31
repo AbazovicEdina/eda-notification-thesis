@@ -153,6 +153,7 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
 | `warmupRuns` | 5 (bei `storm` 0) | Läufe pro Konfiguration, die nicht ausgewertet werden. Bei `storm` Pflicht 0, weil die Zelle vor jedem Lauf neu startet |
 | `primeClients`, `primeHoldSeconds` | 550, 5 | **Vorlauf** vor dem ersten Warm-up, je Konfiguration ein nicht gewerteter k6-Lauf mit so vielen Clients, verteilt über die halbe Einschwingzeit. 550 entspricht `pm.max_children` der FPM-Pools, danach hat jeder Worker einmal gearbeitet (DECISIONS.md 5.9). 0 schaltet ihn ab. Bei `storm` entfällt er |
 | `restartSettleMs` | 5000 | nur `storm`, Wartezeit nach dem Neustart der Zelle, bevor sich die Clients verbinden |
+| `producerSettleMs` | 3000 | Wartezeit nach dem Start einer Ereignisquelle. Bei verschiedenen Ereignisquellen in einer Kampagne fällt sie vor jedem Lauf an |
 | `settleSeconds` | 10 | Einschwingzeit je Lauf. Events davor werden nicht gewertet |
 | `connectSpreadSeconds` | 0 (`plan-campaigns.js` setzt 5) | Verbindungsaufbau gleichmäßig über so viele Sekunden verteilt, Client n startet nach (n − 1) / Clients mal diesem Wert. 0 heißt, alle verbinden sich gleichzeitig, in der Phase `storm` Pflicht. Muss kleiner als `settleSeconds` sein. Der Wert steht in jedem Lauf-Protokoll (`load.connect_spread_seconds`) |
 | `pauseMinMs`, `pauseMaxMs` | 100, 500 | zufällige Pause zwischen den Läufen |
@@ -177,13 +178,14 @@ Zusätzliche Umgebungsvariablen einer Zelle können aus einer Datei gelesen werd
    - **Host prüfen.** cgroup v2 mit memory-Controller ist Pflicht. Governor, Swap und Drosselung sind lokal Hinweise, auf dem Pi (`sut.pi`) Abbruchgründe.
    - Betriebsmodus jedes Containers prüfen (`NODE_ENV`, `APP_ENV`, `APP_DEBUG`, geladene `php.ini`).
 2. **Je Laststufe:**
-   - Die Ereignisquellen starten, die die Zellen brauchen (Event-Simulator, BullMQ-Quelle, Laravel-Quelle), mit der Rate der Stufe.
+   - Die Ereignisquelle der ersten Konfiguration starten (Event-Simulator, BullMQ-Quelle oder Laravel-Quelle), mit der Rate der Stufe.
    - **Vorlauf**, einmal je Kampagne vor dem ersten Warm-up und nicht bei `storm`. Je Konfiguration verbinden sich 550 Clients verteilt, danach hat jeder FPM-Worker einmal gearbeitet. Fällt dabei ein Container aus, bricht die Kampagne ab. Protokolliert als `cell_primed`.
    - Läufe alternierend A, B, A, B ausführen. Je Lauf:
+     - nur bei verschiedenen Ereignisquellen (Queue-Vergleiche 9 bis 11), die Quelle der anderen Konfiguration stoppen, die eigene starten und `producerSettleMs` warten. Sonst liefe in Redis während des Laufs die Queue-Arbeit der anderen Konfiguration mit (DECISIONS.md 5.6.3),
      - nur `storm`, die Container der Zelle neu erzeugen, warten, bis sie erreichbar ist, und weitere 5 s warten (`cell_restarted`),
      - Front-Nginx auf die Zelle umschalten (Modus `http` oder `fastcgi`) und ihre Erreichbarkeit prüfen,
      - k6-Erweiterung prüfen,
-     - Ressourcenmessung von Zelle und Redis sowie die Auslastungsmessung des Lastgenerators starten, k6 ausführen, Messungen beenden,
+     - Ressourcenmessung von Zelle und Redis, getrennt davon von Nginx (nur beschreibend, `cpu_seconds_nginx`), und die Auslastungsmessung des Lastgenerators starten, k6 ausführen, Messungen beenden,
      - Container-Status prüfen (Absturz, OOM),
      - Lauf-Protokoll schreiben.
 3. **Gültigkeit.** Ein Lauf ist ungültig bei k6-Fehler, fehlender k6-Zusammenfassung, ohne empfangene Events, bei abgestürztem oder per OOM beendetem Container, fehlgeschlagener Ressourcenmessung, Drosselung des Pi, in strengen Phasen zusätzlich bei nicht vollständig verbundenen Clients, bei Clients mit falschem Status (Fehlerseite statt SSE-Datenstrom, gescheiterter WebSocket-Handshake, `http_status_errors`), bei mehrfach angekommenen Events (`duplicate_events`) und (Zwei-Rechner-Aufbau) bei einer mittleren Auslastung des Lastgenerators über 80 %. Ein Absturz der Zelle steht als Grund vor allen anderen, weil er deren Ursache ist (`sut_container_failed`). Als verbunden zählt bei SSE nur eine Antwort mit Status 200. Überschreitet der Anteil ungültiger Läufe `maxFailureRate`, bricht die Kampagne ab.

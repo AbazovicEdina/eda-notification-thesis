@@ -60,7 +60,7 @@ const DESCRIBED_MEASURES = [
   'latency_mean_ms', 'latency_median_ms', 'latency_p95_ms', 'latency_p99_ms', 'latency_max_ms',
   'connect_mean_ms', 'connect_p95_ms', 'connected_ratio', 'served_ratio',
   'delivery_ratio', 'events_lost', 'delivered_events_per_s', 'source_rate_eps',
-  'cpu_seconds', 'cpu_seconds_redis', 'cpu_seconds_total', 'cpu_cores_avg',
+  'cpu_seconds', 'cpu_seconds_redis', 'cpu_seconds_total', 'cpu_seconds_nginx', 'cpu_cores_avg',
   'working_set_peak_bytes', 'working_set_peak_bytes_redis', 'working_set_peak_bytes_total', 'working_set_avg_bytes', 'mem_peak_kernel_bytes',
   'data_received_bytes_per_s', 'connection_errors', 'loadgen_cpu_util_avg', 'loadgen_cpu_util_max',
 ];
@@ -535,6 +535,7 @@ async function primeCells(ctx, configs) {
   const holdSeconds = settings.primeHoldSeconds;
   for (const config of configs) {
     if (ctx.interrupted) throw new CampaignError('Abbruch auf Anforderung (Strg-C)');
+    await useProducerOf(ctx, config);
     process.stdout.write(`Vorlauf ${config.name} mit ${vus} Clients … `);
     await switchFront(sides, config);
     const ids = await containerIds(sides, config.services);
@@ -561,25 +562,45 @@ async function primeCells(ctx, configs) {
   }
 }
 
-// Starts all event sources that the cells of the campaign need, at the rate
-// of the load level (DECISIONS.md 5.17, 5.19).
-async function startProducers(sides, settings, configs, rate, log) {
+// Event sources of a load level, at the rate of that level (DECISIONS.md
+// 5.17, 5.19). If the configurations of a campaign use different sources
+// (queue comparisons 9 to 11), only the source of the configuration being
+// measured runs. Redis is measured with every run and would otherwise also do
+// the queue work of the other configuration (DECISIONS.md 5.6.3).
+async function prepareProducers(ctx, configs, rate) {
   const services = [...new Set(configs.map((c) => PRODUCER_SERVICES[c.producer]))];
-  const env = { SIMULATOR_RATE: String(rate) };
-  if (settings.sut.redisHost) env.SIMULATOR_REDIS_HOST = settings.sut.redisHost;
-  const args = ['--profile', 'tools', 'up', '-d', '--force-recreate'];
-  if (sides.remote) args.push('--no-deps');
-  args.push(...services);
-  const r = await sides.loadCompose(args, env);
-  if (r.status !== 0) throw new CampaignError(`Ereignisquellen ließen sich nicht starten:\n${r.stderr.trim()}`);
-  log('producers_started', { services, rate_per_second: rate });
-  await sleep(settings.producerSettleMs);
-  return services;
+  ctx.producers = { services, rate, active: null, created: new Set() };
+  await useProducerOf(ctx, configs[0]);
 }
 
-async function stopProducers(sides, log) {
-  await sides.loadCompose(['--profile', 'tools', 'stop', ...Object.values(PRODUCER_SERVICES)]);
-  log('producers_stopped');
+// Runs the event source of a configuration and stops the other sources of the
+// campaign. Does nothing if that source is already running.
+async function useProducerOf(ctx, config) {
+  const { sides, settings, log } = ctx;
+  const p = ctx.producers;
+  const service = PRODUCER_SERVICES[config.producer];
+  if (p.active === service) return;
+  const others = p.services.filter((s) => s !== service);
+  if (others.length) await stopProducers(sides, log, others);
+  const env = { SIMULATOR_RATE: String(p.rate) };
+  if (settings.sut.redisHost) env.SIMULATOR_REDIS_HOST = settings.sut.redisHost;
+  // A fresh container at the first start in a load level, so that the rate of
+  // this level applies. Afterwards the stopped container is started again.
+  const args = ['--profile', 'tools', 'up', '-d'];
+  if (!p.created.has(service)) args.push('--force-recreate');
+  if (sides.remote) args.push('--no-deps');
+  args.push(service);
+  const r = await sides.loadCompose(args, env);
+  if (r.status !== 0) throw new CampaignError(`Ereignisquelle ${service} ließ sich nicht starten:\n${r.stderr.trim()}`);
+  p.created.add(service);
+  p.active = service;
+  log('producers_started', { services: [service], rate_per_second: p.rate });
+  await sleep(settings.producerSettleMs);
+}
+
+async function stopProducers(sides, log, services = Object.values(PRODUCER_SERVICES)) {
+  await sides.loadCompose(['--profile', 'tools', 'stop', ...services]);
+  log('producers_stopped', { services });
 }
 
 // ---------------------------------------------------------------------------
@@ -644,7 +665,7 @@ function startSampler(spawnCompose, groups, { intervalMs, hostCpu = false }) {
 // A single run
 // ---------------------------------------------------------------------------
 
-function extractMeasures(summary, config, scenario, resources, loadgen) {
+function extractMeasures(summary, config, scenario, resources, loadgen, nginxResources = null) {
   const m = summary?.metrics ?? {};
   const p = config.metricPrefix;
   const lat = m[config.metric] ?? {};
@@ -657,6 +678,7 @@ function extractMeasures(summary, config, scenario, resources, loadgen) {
   const cell = resources?.cells?.[config.cell] ?? {};
   const redis = resources?.cells?.redis ?? {};
   const total = resources?.total ?? {};
+  const nginx = nginxResources?.cells?.nginx ?? {};
   return {
     latency_mean_ms: lat.avg ?? null,
     latency_min_ms: lat.min ?? null,
@@ -702,6 +724,9 @@ function extractMeasures(summary, config, scenario, resources, loadgen) {
     working_set_peak_bytes_redis: redis.working_set_peak_bytes ?? null,
     cpu_seconds_total: total.cpu_seconds ?? null,
     working_set_peak_bytes_total: total.working_set_peak_bytes ?? null,
+    // Descriptive only, not part of the totals (DECISIONS.md 5.6.1).
+    cpu_seconds_nginx: nginx.cpu_seconds ?? null,
+    working_set_peak_bytes_nginx: nginx.working_set_peak_bytes ?? null,
     loadgen_cpu_util_avg: loadgen?.host?.cpu?.util_avg ?? null,
     loadgen_cpu_util_max: loadgen?.host?.cpu?.util_max_interval ?? null,
   };
@@ -743,6 +768,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
     measures: null,
     resources: null,
     loadgen: null,
+    nginx: null,
     containers: null,
     context: ctx.context,
     k6_summary: null,
@@ -786,6 +812,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       invalid(`resource_sampler:${err.message}`);
     }
   }
+  let nginxSampler = null;
   if (sampler) {
     // Load of the load generator. Locally the same host also measures the
     // system itself, so the value is only logged.
@@ -796,6 +823,21 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       loadSampler.kill();
       loadSampler = null;
       log('loadgen_sampler_unavailable', { run: runId, reason: err.message });
+    }
+    // The front Nginx is outside the budget of the cell and not part of any
+    // test family. Its own sampler keeps it out of the total of cell and
+    // Redis. It only shows whether Nginx works differently in the fastcgi and
+    // the http mode (DECISIONS.md 5.6.1).
+    const nginxId = (await containerIds(sides, ['nginx'])).nginx;
+    if (nginxId) {
+      nginxSampler = startSampler((a) => sides.sutSpawnCompose(a), { nginx: [nginxId] }, { intervalMs: 1000 });
+      try {
+        await nginxSampler.ready();
+      } catch (err) {
+        nginxSampler.kill();
+        nginxSampler = null;
+        log('nginx_sampler_unavailable', { run: runId, reason: err.message });
+      }
     }
   }
 
@@ -831,6 +873,14 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
       log('loadgen_sampler_failed', { run: runId, reason: err.message });
     }
   }
+  if (nginxSampler) {
+    try {
+      record.nginx = await nginxSampler.stop();
+    } catch (err) {
+      nginxSampler.kill();
+      log('nginx_sampler_failed', { run: runId, reason: err.message });
+    }
+  }
 
   // A crash of the cell causes all other findings of the run (no events,
   // error pages) and is therefore listed as the reason first.
@@ -845,7 +895,7 @@ async function runOnce(ctx, { config, scenario, runIndex, isWarmup }) {
   } else {
     invalid('no_k6_summary');
   }
-  record.measures = extractMeasures(record.k6_summary, config, scenario, record.resources, record.loadgen);
+  record.measures = extractMeasures(record.k6_summary, config, scenario, record.resources, record.loadgen, record.nginx);
   if (!record.measures.events_unique) invalid('no_events_received');
   if (record.measures.latency_mean_ms == null) invalid('no_latency_metric');
   if (settings.requireAllConnected && record.measures.clients_connected_in_time < scenario.vus) {
@@ -1122,7 +1172,7 @@ async function runScenario(ctx, scenario, configs, comparisons, interim) {
   console.log(`\n=== Laststufe "${scenario.name}": ${scenario.vus} Clients, ${settings.settleSeconds} s + ${scenario.holdSeconds} s, `
     + `${scenario.eventRatePerSecond} Events/s, ${scenario.runsPerConfig} Läufe je Konfiguration${spread}${restart} ===`);
   log('scenario_started', { scenario });
-  await startProducers(sides, settings, configs, scenario.eventRatePerSecond, log);
+  await prepareProducers(ctx, configs, scenario.eventRatePerSecond);
   // Once per campaign before the first warm-up. The cells then keep running
   // until the end of the campaign.
   if (settings.primeClients > 0 && !ctx.primed) {
@@ -1139,6 +1189,7 @@ async function runScenario(ctx, scenario, configs, comparisons, interim) {
     for (const config of configs) {
       if (ctx.interrupted) throw new CampaignError('Abbruch auf Anforderung (Strg-C)');
       const isWarmup = runIndex <= settings.warmupRuns;
+      await useProducerOf(ctx, config);
       process.stdout.write(`[${scenario.name}] ${config.name} Lauf ${runIndex}/${scenario.runsPerConfig}${isWarmup ? ' (Warm-up)' : ''} … `);
       const result = await runOnce(ctx, { config, scenario, runIndex, isWarmup });
       results[config.name].push(result);
@@ -1247,7 +1298,7 @@ async function main() {
   const log = (event, data = {}) => appendFileSync(logFile, `${JSON.stringify({ t: new Date().toISOString(), event, ...data })}\n`);
 
   const sides = createSides(settings.sut);
-  const ctx = { sides, settings, campaignDir, campaignDirName, log, context: null, interrupted: false, partialResults: null, primed: false };
+  const ctx = { sides, settings, campaignDir, campaignDirName, log, context: null, interrupted: false, partialResults: null, primed: false, producers: null };
   process.on('SIGINT', () => {
     if (ctx.interrupted) process.exit(130);
     ctx.interrupted = true;

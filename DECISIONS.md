@@ -181,6 +181,8 @@ Ein früherer Aufbau leitete PHP-FPM über eine zweite Nginx-„Brücke" hinter 
 
 **Pflicht-Direktiven in beiden Modi.** Keine Pufferung (`proxy_buffering off` bzw. `fastcgi_buffering off`), kein gzip, gleicher Lese-Timeout weit über dem Event-Intervall. Im HTTP-Modus Upgrade-Header für WebSockets (Pfade `/ws` und `/app/` für Reverb). `worker_connections` und Dateideskriptor-Limits mindestens doppelt so hoch wie die Zielzahl der Clients. Die Erreichbarkeit prüft der Orchestrator vor jedem Lauf über `/healthz` (bei PHP-FPM der eingebaute `ping.path` des Pools).
 
+**Nginx außerhalb des Budgets.** Der Front-Nginx gehört wie Redis zu keiner Zelle und hat kein Limit. Anders als Redis übernimmt er für keine Zelle einen Teil ihrer Arbeit, jede Zelle hat genau einen Nginx in derselben Rolle. Im Modus `fastcgi` leistet er aber etwas andere Arbeit als im Modus `http`. Seit 2026-10-31 misst ein eigener Sampler seine CPU-Zeit und Speicherspitze in jedem Lauf (`cpu_seconds_nginx`, `working_set_peak_bytes_nginx`). Die Werte sind beschreibend und gehen nicht in „Zelle + Redis" und in keine Testfamilie ein. Sie zeigen, ob sich der Aufwand von Nginx zwischen den Modi unterscheidet.
+
 Der Weg eines Events nach Redis unterscheidet sich je Zelle durch die Architektur der Stacks:
 
 | Zelle | Weg nach Redis |
@@ -209,7 +211,9 @@ Umsetzung:
 
 Während einer Kampagne laufen ausschließlich die Container der gemessenen Zellen sowie Redis, Front-Nginx, `resource-sampler` und die benötigten Ereignisquellen. Nicht gemessene Zellen sind nicht untätig. Sie halten Redis-Subscriptions, verarbeiten jedes Event mit und belegen Speicher (statische FPM-Pools). Der Orchestrator stoppt deshalb vor Kampagnenbeginn alle übrigen Dienste und startet die benötigten.
 
-Das alternierende Design (5.9) benötigt beide Zellen eines Vergleichs gleichzeitig. Gemessen wird daher **paarweise**, mit einer Kampagne pro geplantem Vergleich und Laststufe (5.15). Die gegenseitige Störung innerhalb eines Paares ist symmetrisch. Da jede Zelle in mehreren Vergleichen vorkommt, wird sie in mehreren Kampagnen gemessen.
+Das alternierende Design (5.9) benötigt beide Zellen eines Vergleichs gleichzeitig. Gemessen wird daher **paarweise**, mit einer Kampagne pro geplantem Vergleich und Laststufe (5.15). Da jede Zelle in mehreren Vergleichen vorkommt, wird sie in mehreren Kampagnen gemessen.
+
+**Während eines Laufs läuft nur die Ereignisquelle der gemessenen Zelle** (festgelegt am 2026-10-31). Nutzen beide Zellen dieselbe Quelle, erhält die ruhende Zelle über ihr Abonnement höchstens ein Event je Sekunde und verteilt es an keinen Client. Diese Störung ist vernachlässigbar. In den Queue-Vergleichen 9 bis 11 haben die Zellen dagegen verschiedene Quellen. Liefen beide Quellen durchgehend, würde Redis während eines Laufs auch die Queue-Arbeit der anderen Zelle erledigen, und diese CPU-Zeit zählte zur gemessenen Zelle („Zelle + Redis", 5.6.2). In Vergleich 9 und 10 wäre das nur der Zelle ohne Queue angelastet worden, die Queue-Zellen hätten dadurch günstiger gewirkt. In Vergleich 11 hätte jeder Lauf die Queue-Arbeit von BullMQ und Laravel enthalten, und der Unterschied der beiden Queues auf Seiten von Redis hätte sich aufgehoben. Der Orchestrator stoppt deshalb in diesen Vergleichen vor jedem Lauf die Quelle der anderen Zelle und startet die eigene (`tools/orchestrate/run.js`, `useProducerOf`). Das kostet je Lauf einige Sekunden außerhalb des Messfensters. Aufgefallen ist das bei der zweiten statischen Prüfung vor Block 1 (5.14), im Pilot war von den Queue-Vergleichen nur Vergleich 10 dabei.
 
 ### 5.7 Messumfang, Minimal- und Framework-Variante — ENTSCHIEDEN
 
@@ -512,6 +516,17 @@ Bei php-laravel-sse beendete der OOM-Killer im ersten Lauf einzelne Prozesse, FP
 
 Zwei lokale Kurzkampagnen von Vergleich 11 bestätigen die Korrekturen (`results/2026-10-31_review-fixes-check/`). Jede Queue-Zelle erhielt in jedem Lauf genau die erwarteten Events, ohne Duplikate, alle Läufe waren gültig, und in Redis blieb kein BullMQ-Job zurück. Mit dem neuen Healthcheck sank die CPU-Zeit von Redis je Lauf lokal von rund 0,31 s auf rund 0,10 s.
 
+**Zweite Prüfung mit Schwerpunkt Fairness (2026-10-31).** Derselbe Prüfauftrag lief am selben Tag ein zweites Mal, diesmal mit Blick darauf, ob eine Zelle durch den Aufbau begünstigt wird. Dabei fielen vier weitere Befunde auf:
+
+| Befund | Schwere | Behandlung |
+|---|---|---|
+| in den Queue-Vergleichen 9 bis 11 liefen beide Ereignisquellen in jedem Lauf, Redis rechnete die Queue-Arbeit der anderen Zelle der gemessenen zu | mittel | je Lauf nur die Quelle der gemessenen Zelle (5.6.3) |
+| der Front-Nginx liegt außerhalb von Budget und Messung, in den beiden Modi leistet er unterschiedliche Arbeit | gering | eigener Sampler, nur beschreibend (5.6.1, 5.16) |
+| die Beschreibung des Verbindungsaufbaus bei Reverb stimmte nicht mit dem Code überein, Vergleich 8 fehlte | gering | Text richtiggestellt (5.15) |
+| veraltete Wiederholungszahlen in 5.15 | gering | als Stand vom 2026-10-16 gekennzeichnet |
+
+Bestätigt hat die Prüfung das Budget je Zelle mit den Slices, genau einen Nginx je Zelle mit gleichen Einstellungen, den Produktionsbetrieb mit gleicher OPcache-Einrichtung in beiden PHP-Images, ein Abonnement je Prozess außer bei PHP-FPM/SSE, gleiche Ereignisse und Zeitstempel vom Lastgenerator, das Messfenster, die Gültigkeitsregeln, den alternierenden Ablauf und die Statistik einschließlich Holm über 39 Tests.
+
 Bekannte Risiken auf dem Pi und ihre Behandlung:
 
 | Risiko | Behandlung |
@@ -562,9 +577,9 @@ Jeder Vergleich wird in eigenen Kampagnen über die drei Laststufen gemessen (5.
 
 Bei PHP ist der Transport nicht vom Laufzeitmodell zu trennen. SSE läuft in der üblichen Betriebsweise über PHP-FPM (ein Worker je Verbindung, 5.5), ein WebSocket-Server ist dagegen ein langlaufender Prozess mit Ereignisschleife (Ratchet). Vergleich 13 misst daher die praktische Entscheidung, vor der ein PHP-Team steht, und nicht das Protokoll allein (H10). Bei Node.js nutzen beide Transporte dieselbe Ereignisschleife. Vergleich 12 kommt einem reinen Protokollvergleich am nächsten (H9).
 
-**Einschränkung.** SSE wird mit der Erweiterung xk6-sse, WebSocket mit dem WebSocket-Modul von k6 gemessen. Beide laufen im selben k6-Prozess auf dem Lastgenerator, und beide Zeitstempel stammen von dort. Unterschiede in der clientseitigen Verarbeitung der beiden Module können dennoch in die Latenz eingehen. Die Arbeit nennt das als Bedrohung der Konstruktvalidität. Dasselbe gilt für Vergleich 4, denn php-laravel/WS wird mit `ws-reverb.js` gemessen, das zusätzlich den Verbindungsaufbau und das Abonnement des Pusher-Protokolls durchläuft, node-express/WS mit `ws-skeleton.js`. Der Unterschied betrifft vor allem den Verbindungsaufbau. Die Event-Latenz misst beide Male die Zeit vom Senden bis zum Empfang des Events.
+**Einschränkung.** SSE wird mit der Erweiterung xk6-sse, WebSocket mit dem WebSocket-Modul von k6 gemessen. Beide laufen im selben k6-Prozess auf dem Lastgenerator, und beide Zeitstempel stammen von dort. Unterschiede in der clientseitigen Verarbeitung der beiden Module können dennoch in die Latenz eingehen. Die Arbeit nennt das als Bedrohung der Konstruktvalidität. Dasselbe gilt für die Vergleiche 4 und 8, denn php-laravel/WS wird mit `ws-reverb.js` gemessen, node-express/WS und php-minimal/WS mit `ws-skeleton.js`. Ein Reverb-Client muss nach dem Handshake noch auf `pusher:connection_established` warten und den Kanal abonnieren, erst dann erhält er Events. Als Verbindungsaufbau zählt bei allen WebSocket-Zellen gleich der abgeschlossene Handshake (5.9). Das Abonnement ist darin nicht enthalten, die Messgröße unterschätzt also bei Reverb die Zeit, bis ein Client Events empfangen kann (Klarstellung vom 2026-10-31). Die Event-Latenz misst beide Male die Zeit vom Senden bis zum Empfang des Events.
 
-**Aufwand.** Zwei Vergleiche mehr je Block, also sechs Kampagnen. Bei den Beispiel-Wiederholungszahlen (80, 60 und 40 Läufe zuzüglich Warm-up) sind das rund 17 Stunden je Block. Die Holm-Korrektur wird geringfügig strenger (kleinste Schwelle α/39 statt α/33).
+**Aufwand (Stand 2026-10-16).** Zwei Vergleiche mehr je Block, also sechs Kampagnen. Bei den damaligen Beispiel-Wiederholungszahlen (80, 60 und 40 Läufe zuzüglich Warm-up) waren das rund 17 Stunden je Block. Die nach dem Pilot festgelegten Zahlen und die Dauer eines Blocks stehen in 5.9. Die Holm-Korrektur wird geringfügig strenger (kleinste Schwelle α/39 statt α/33).
 
 ### 5.16 Messprotokoll und Telemetrie — ENTSCHIEDEN, umgesetzt
 
@@ -575,7 +590,7 @@ Ablage pro Kampagne unter `results/<zeitstempel>_<name>/`:
 | Datei | Inhalt |
 |---|---|
 | `campaign.json` | verwendete Kampagnendefinition |
-| `campaign.log.jsonl` | fortlaufendes Ereignisprotokoll mit Start, gestoppten und gestarteten Diensten, Kontext, Vorlauf je Konfiguration (`cell_primed`), Neustarts beim Ansturm (`cell_restarted`), jedem Lauf mit Kurzergebnis, Zwischenauswertungen und Abbruch |
+| `campaign.log.jsonl` | fortlaufendes Ereignisprotokoll mit Start, gestoppten und gestarteten Diensten und Ereignisquellen (`producers_started`, `producers_stopped`), Kontext, Vorlauf je Konfiguration (`cell_primed`), Neustarts beim Ansturm (`cell_restarted`), jedem Lauf mit Kurzergebnis, Zwischenauswertungen und Abbruch |
 | `runs/<laststufe>_<konfiguration>_runNNNN.json` | vollständiges Protokoll eines Laufs |
 | `aggregate.json` | Kampagnenauswertung mit deskriptiven Kennzahlen, Vergleichen mit unkorrigierten p-Werten, Zwischenständen und ggf. Skalierung oder Sättigung |
 
@@ -592,6 +607,7 @@ Inhalt eines Lauf-Protokolls:
 - **Ressourcen** von Zelle, Redis und beiden zusammen sowie je Container:
   - CPU-Zeit als Differenz des cgroup-Zählers `usage_usec` zwischen Beginn und Ende des Laufs (exakt) sowie mittlere CPU-Auslastung in Kernen,
   - Speicher (`memory.current` und Working Set = `memory.current` − `inactive_file`, wie bei `docker stats`) als Mittel und Spitze, alle 250 ms abgetastet. Die Spitze von Zelle und Redis zusammen wird aus der Summe je Abtastung gebildet. Dazu die exakte Spitze laut Kernel seit Start jedes Containers (`memory.peak`), zu Beginn und am Ende des Laufs. Ist sie im Lauf gestiegen, ist der Endwert die exakte Spitze dieses Laufs. Beim Ansturm startet jeder Container vor dem Lauf neu, dort ist der Endwert immer die Spitze des Laufs. Beendet der OOM-Killer einen Container, fehlt der Endwert, weil der Kernel die Zähler mit dem Container entfernt.
+- **Front-Nginx** (seit 2026-10-31, beschreibend, 5.6.1). CPU-Zeit und Speicher mit einem eigenen Sampler, getrennt von „Zelle + Redis".
 - **Lastgenerator.** CPU-Auslastung des Hosts (Mittel und höchster Wert je Sekunde).
 - **Host des Testservers.** Temperatur zu Beginn, am Ende und als Maximum. Drosselstatus der Firmware zu Beginn und am Ende (auf dem Pi 5 per `vcgencmd`, 5.14).
 - **Container.** Status, OOM-Kennzeichen, Image.
@@ -683,7 +699,7 @@ Die Schwellen von H8 (25 % und 10 %) sind aus der Formulierung „wesentlicher" 
 | Healthcheck nur beim Start, Queue-Worker gestoppt | 66 ms | 60 ms |
 | Healthcheck nur beim Start, beide Queue-Worker aktiv | 70 ms | 70 ms |
 
-Rund 85 % der Grundlast gingen also auf den Healthcheck zurück. Die Abfragen der Queue-Worker fallen kaum ins Gewicht. Die zuvor vermutete Ursache, die Module, die Redis 8 standardmäßig lädt (5.26), trifft nicht zu. Seit 2026-10-31 prüft der Healthcheck nur noch während des Starts alle 2 s (`start_interval`), danach einmal pro Stunde. Redis war lokal weiterhin nach 2 s bereit, die abhängigen Container starten also so schnell wie bisher. Ob ein Container während eines Laufs ausfällt, erkennt der Orchestrator unabhängig vom Healthcheck (5.16).
+Rund 85 % der Grundlast gingen also auf den Healthcheck zurück. Die Abfragen der Queue-Worker fallen kaum ins Gewicht. Auf dem Pi bestätigt das die Messung mit `infra/pi/redis-idle.sh` vor der Umstellung (2026-10-31, über 60 s). Die cgroup von Redis verbrauchte 629 ms, der Prozess `redis-server` davon 50 ms, die übrigen 579 ms (92 %) entfielen auf den Healthcheck. Hochgerechnet auf die Dauer eines Laufs entspricht das den rund 0,75 s je Lauf aus dem Pilot. Die zuvor vermutete Ursache, die Module, die Redis 8 standardmäßig lädt (5.26), trifft nicht zu. Seit 2026-10-31 prüft der Healthcheck nur noch während des Starts alle 2 s (`start_interval`), danach einmal pro Stunde. Redis war lokal weiterhin nach 2 s bereit, die abhängigen Container starten also so schnell wie bisher. Ob ein Container während eines Laufs ausfällt, erkennt der Orchestrator unabhängig vom Healthcheck (5.16).
 
 **Einordnung.** Die Änderung behebt einen Messfehler, sie passt nicht die Hypothese an das Ergebnis an. Die Messgröße bleibt die gesamte cgroup von Redis wie in 5.16 festgelegt, sie enthält lediglich keinen Prozess der Messumgebung mehr. Regel und Schwellen von H8 bleiben unverändert. Ob H8 mit dem korrigierten Aufbau bestätigt wird, ist offen. Die Pilotdaten enthalten den Anteil des Healthchecks noch, sie gehen aber ohnehin nicht in die Auswertung ein. Die Arbeit nennt den Befund trotzdem, weil er erst durch die Pilotdaten aufgefallen ist. Die beschreibende Zerlegung bleibt als Ergänzung zu H8, also die CPU-Zeit von Redis abzüglich ihrer verbleibenden Grundlast. Diese wird vor Block 1 auf dem Pi gemessen, einmal mit dem alten und einmal mit dem neuen Healthcheck, damit auch die Größe des Fehlers auf der Zielhardware belegt ist.
 
@@ -941,6 +957,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-10-17 | Alle Basis-Images auf Multi-Arch-Digests gepinnt (README.md, Versionen) und mit einer Prüfkampagne über alle zehn Zellen bestätigt. Alle Literaturangaben über Crossref bzw. Open Library bestätigt, Prüfvermerke aufgelöst. Fehlersichtbarkeit der Laravel-Queue unter Laravel 13 bestätigt (5.13). |
 | 2026-10-17 | **Prüfung durch den Schreib-Chat umgesetzt.** Entscheidungsregeln der Hypothesen (5.18), Verbindungsaufbau als vierte Testfamilie (5.8), Regel für die Replikation (5.8), Kriterien und Last von Skalierung, Sättigung und Kontrollmessung (5.9), H6 und H8 im Kern, H2 übergreifend (5.24), englischer Wortlaut der Hypothesen in `plan.json`, unterschiedliche k6-Skripte in Vergleich 4 als Grenze (5.15). |
 | 2026-10-17 | Abbildungswerkzeug `tools/figures` (5.25). Auslegung des Budgets geklärt, Vergleichseinheit ist die Zelle (5.6.2). Mehrwert für Entwickler als Maßstab der Abweichungen vom Exposé (5.23). |
+| 2026-10-31 | **Zweite Prüfung mit Schwerpunkt Fairness (5.14).** In den Queue-Vergleichen läuft je Lauf nur die Ereignisquelle der gemessenen Zelle (5.6.3). Nginx wird beschreibend mitgemessen (5.6.1, 5.16). Verbindungsaufbau bei Reverb klargestellt (5.15). Grundlast von Redis auf dem Pi gemessen, 92 % kamen vom Healthcheck (5.18). |
 | 2026-10-31 | **Statische Prüfung vor Block 1 umgesetzt (5.14).** Eigener Redis-Kanal je Queue-Zelle (5.19), BullMQ löscht erledigte Jobs (5.20), doppelte Events machen Läufe in den strengen Phasen ungültig (5.9), OPcache von PHP-FPM im Kontext (5.16), restliche Kommentare übersetzt. Ursache der Grundlast von Redis ist der Healthcheck, er prüft nur noch beim Start, Regel von H8 unverändert (5.18). Lokale Prüfung in `results/2026-10-31_review-fixes-check/`. |
 | 2026-10-31 | **Pilot ausgewertet, 90 Läufe je Laststufe (5.9).** Alle 1 640 Messläufe gültig, Speicher mit Vorlauf stabil. Auf der Baseline ergibt das Kriterium 90 Paare, auf Medium und Stress war der Pilot zu kurz, um Stabilität zu zeigen. Einheitlich 90 für Block 1 und 2, rund 6,5 Tage je Block. Neues Werkzeug `tools/orchestrate/pilot.js`. Ergebnisse von Pilot und Ansturm mit Neustart ins Repository übernommen. |
 | 2026-10-29 | **Ansturm gemessen (5.14).** Mit Neustart vor jedem Lauf überstanden acht Zellen 500 gleichzeitige Verbindungen in allen Läufen. php-laravel-sse war in einem von drei Läufen gültig, php-laravel-sse-queue in keinem. Zählt als Phase 7, offenen Punkt entfernt. |

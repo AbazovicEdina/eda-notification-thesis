@@ -21,3 +21,10 @@ Gemessen ohne Clients und ohne Ereignisquelle, jeweils über 30 s, getrennt nach
 Rund 85 % der Grundlast stammten vom Healthcheck, der alle 2 s `redis-cli ping` im Container startete. Für die Messung auf dem Pi gibt es `infra/pi/redis-idle.sh`.
 
 Der Hinweis auf aktiven Swap betrifft nur den lokalen Rechner, auf dem Pi ist Swap abgeschaltet und wird vor jeder Kampagne geprüft.
+
+## Ereignisquelle je Lauf und Nginx (zweite Prüfung, DECISIONS.md 5.6.1, 5.6.3)
+
+| Verzeichnis | Prüfgegenstand | Ergebnis |
+|---|---|---|
+| `…_check-switch-pilot-c11-baseline` | Vergleich 11, je Lauf läuft nur die Ereignisquelle der gemessenen Zelle | alle acht Läufe gültig, je Zelle genau 100 Events ohne Duplikate. Die CPU-Zeit von Redis unterscheidet sich jetzt zwischen den Zellen (BullMQ rund 0,08 s, Laravel 0,08 bis 0,10 s), vorher enthielt jeder Lauf beide Queues. Der Wechsel kostet lokal rund 7 s je Lauf außerhalb des Messfensters. Nginx wird getrennt gemessen (rund 0,03 s und 37 MiB je Lauf) und geht nicht in „Zelle + Redis" ein |
+| `…_check-switch-pilot-c12-baseline` | Vergleich 12 mit einer gemeinsamen Quelle | alle Läufe gültig, die Quelle startet nur einmal je Laststufe, das bisherige Verhalten bleibt unverändert |
