@@ -1,0 +1,26 @@
+{
+  "name": "restart-storm-node-express-sse-queue",
+  "warmupRuns": 0,
+  "settleSeconds": 10,
+  "connectSpreadSeconds": 0,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
+  },
+  "phase": "storm",
+  "configs": [
+    "node-express-sse-queue"
+  ],
+  "scenarios": [
+    {
+      "name": "storm-0500",
+      "vus": 500,
+      "holdSeconds": 20,
+      "runsPerConfig": 3,
+      "eventRatePerSecond": 1
+    }
+  ]
+}
