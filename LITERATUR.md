@@ -1,31 +1,60 @@
-# Literatur
+# Literature
 
-Quellen zu den verwandten Arbeiten und zu den Entscheidungen in `DECISIONS.md`, geordnet nach Themenblock. Pro Quelle sind die vollständige Angabe, der Verwendungszweck und ein BibTeX-Eintrag angegeben. Die Angaben wurden per Websuche gegengeprüft (Stand 2026-08-25, Ergänzungen 2026-10-16, 2026-10-17 und 2026-10-18). Die BibTeX-Einträge folgen den Empfehlungen der HagenbergThesis-Vorlage für biblatex (`date`, `journaltitle`, `urldate`, `langid`, Online-Quellen als `@online`, keine ISBN) und lassen sich unverändert in die `.bib`-Datei der Arbeit übernehmen. Am 2026-10-17 wurden alle Fundstellen mit DOI über Crossref, Bücher ohne DOI über Open Library bzw. den Verlag bestätigt. Offene Prüfvermerke gibt es nicht mehr. Online-Quellen tragen ihr Abrufdatum. Inhaltliche Zusammenfassungen beruhen auf Abstracts und Katalogeinträgen. Zitiert wird in der Arbeit nur, was selbst gelesen wurde.
+Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18 and 2026-11-03). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
 
-**Aufnahme neuer Quellen.** Eine Quelle wird erst eingetragen, wenn Existenz und Metadaten (Autoren, Titel, Jahr, Erscheinungsort, Band, Seiten, DOI) über Crossref, arXiv, Open Library, rfc-editor.org oder die Verlagsseite bestätigt sind. Der Eintrag nennt die Aussage, die die Quelle in der Arbeit stützt. Ob die Quelle diese Aussage tatsächlich enthält, wird vor dem Zitieren im Original geprüft. Nicht bestätigte Angaben werden nicht übernommen.
+**Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
+
+## To check by hand (as of 2026-11-03)
+
+The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND.**
+
+**Important, the thesis relies on these:**
+
+- [ ] **Research gap.** The search in IEEE Xplore, ACM Digital Library and Google Scholar is still open. Read and place Van de Vyvere et al. (2020) and Appelqvist & Örnmyr (2017). Both are close to the gap.
+- [ ] **Romano et al. (2006).** Check the four thresholds of Cliff's delta in the original. The full text was not available during this review. The earlier claim that the thresholds became established through Arcuri & Briand (2014) was wrong and has been removed.
+- [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
+- [ ] **Kalibera & Jones (2013).** DECISIONS.md rests two statements on it (non-normal measurement data in 5.8, "far fewer pairs suffice" in 5.9). The full text could not be retrieved during this review.
+- [ ] **Felter et al. (2015).** The source compares KVM and Docker, not PHP and Node.js. That the overhead affects both alike is a conclusion of this thesis and must be worded that way in the text.
+- [ ] **RFC 5905.** The statement on the accuracy of NTP was too coarse and has been corrected (also in DECISIONS.md 5.14). Check the wording for the text.
+- [ ] **Cabane & Farias (2024).** Only the title is known so far, and there is no open access. Read it through the university library or do not cite it. Its placement in the research gap depends on this.
+
+**Read before citing:**
+
+- [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
+- [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
+- [ ] **Georges et al. (2007).** Passage on non-normal measurement data and on warm-up.
+- [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
+- [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
+
+**Before submission:**
+
+- [ ] **Online sources.** Access them once more and update `urldate`. Documentation changes, and the addresses of Laravel and Mercure have already moved since the first access.
+- [ ] **Proposals.** Resolve the section "Proposals, not read yet" after reading. Whatever is not cited does not appear in the bibliography anyway.
+
+**Already confirmed on 2026-11-03.** Crossref metadata of all entries with a DOI, status of all RFCs (none is obsoleted), abstract of Murley et al. (2021), abstract of von Behren et al. (2003), the limit of six connections at MDN, the support periods at php.net, `block_for` in the Laravel documentation and Section 9.2 of the WHATWG standard.
 
 ---
 
-## Verwandte Arbeiten
+## Related work
 
-### Einordnung und Forschungslücke (Entwurf)
+### Classification and research gap (draft)
 
-Die verwandten Arbeiten lassen sich vier Linien zuordnen:
+The related work falls into four lines:
 
-1. **Nebenläufigkeitsmodelle von Servern.** Prozess- bzw. Thread-pro-Verbindung gegenüber ereignisgesteuerter Verarbeitung (Lauer & Needham 1979, Welsh et al. 2001, von Behren et al. 2003, Pariag et al. 2007). Diese Arbeiten liefern die theoretische Grundlage für den Vergleich von PHP-FPM (Worker pro Verbindung) und Node.js (Event Loop). Sie untersuchen Webserver mit kurzen Anfragen, nicht langlebige Push-Verbindungen.
-2. **PHP gegenüber Node.js.** Bestehende Vergleiche (z. B. Lei, Ma & Tan 2014) messen klassische Anfrage-Antwort-Lasten. Node.js wird dort als ereignisgesteuerte Plattform für ein- und ausgabelastige Anwendungen beschrieben (Tilkov & Vinoski 2010).
-3. **Ereignisgesteuerte Architektur.** Begriffe und Muster (Fowler 2017, Hohpe & Woolf 2003), Auswirkungen auf Modularität (Farias & Lazzari 2023) und Performance (Cabane & Farias 2024), Herausforderungen bei Überwachung und Fehlersuche (Laigner et al. 2026), Performance-Modelle (Woodside 2021). Diese Arbeiten betrachten die Kommunikation zwischen Diensten, nicht die Zustellung an viele dauerhaft verbundene Clients.
-4. **Echtzeit im Web.** WebSockets sind verbreitet, Polling ist aber weiterhin häufiger (Murley et al. 2021). Eine begutachtete Studie, die SSE und WebSocket unter kontrollierten Bedingungen gegenüberstellt, wurde in der Websuche (2026-10-16) nicht gefunden. Die verfügbaren Vergleiche sind Blog- und Herstellerbeiträge.
+1. **Concurrency models of servers.** One process or thread per connection versus event-driven processing (Lauer & Needham 1979, Welsh et al. 2001, von Behren et al. 2003, Pariag et al. 2007). These works provide the theoretical basis for comparing PHP-FPM (one worker per connection) and Node.js (event loop). They study web servers with short requests, not long-lived push connections.
+2. **PHP versus Node.js.** Existing comparisons (for example Lei, Ma & Tan 2014) measure classic request-response loads. There, Node.js is described as an event-driven platform for I/O-heavy applications (Tilkov & Vinoski 2010).
+3. **Event-driven architecture.** Terms and patterns (Fowler 2017, Hohpe & Woolf 2003), effects on modularity (Farias & Lazzari 2023) and performance (Cabane & Farias 2024), challenges in monitoring and debugging (Laigner et al. 2026), performance models (Woodside 2021). These works consider communication between services, not delivery to many permanently connected clients.
+4. **Real time on the web.** WebSockets are widespread, but polling is still more common (Murley et al. 2021). The searches on 2026-10-16 and 2026-11-03 (web search, OpenAlex) found no peer-reviewed study that compares SSE and WebSocket under controlled conditions. Closest are a peer-reviewed paper on HTTP polling versus SSE (Van de Vyvere et al. 2020), a measurement of WebSocket versus polling (Pimentel & Nickerson 2012) and a student thesis that compares SSE and WebSocket directly (Appelqvist & Örnmyr 2017). Beyond these there are blog posts and vendor articles.
 
-**Lücke (vorläufig, durch Recherche in IEEE Xplore, ACM Digital Library und Google Scholar zu bestätigen).** Ein kontrollierter Vergleich von PHP und Node.js bei der Zustellung von Server-Push-Nachrichten über langlebige Verbindungen (SSE und WebSocket), bei dem das Nebenläufigkeitsmodell am stärksten ins Gewicht fällt, getrennt nach Sprache, Framework und Queue, mit vorab festgelegtem Auswerteplan, liegt in dieser Form nicht vor.
+**CHECK BY HAND.** **Gap (preliminary, to be confirmed by a search in IEEE Xplore, ACM Digital Library and Google Scholar).** A controlled comparison of PHP and Node.js for delivering server-push messages over long-lived connections (SSE and WebSocket), where the concurrency model matters most, separated by language, framework and queue, with an analysis plan fixed in advance, does not exist in this form.
 
-### Lauer & Needham (1979) — Dualität von Nachrichten- und Prozedurmodell
+### Lauer & Needham (1979), duality of the message and procedure models
 
-Hugh C. Lauer, Roger M. Needham. „On the Duality of Operating System Structures." *ACM SIGOPS Operating Systems Review*, 13(2), 3–19, 1979 (Erstvorstellung 1978). DOI 10.1145/850657.850658 (über Crossref bestätigt am 2026-10-17).
+Hugh C. Lauer, Roger M. Needham. "On the Duality of Operating System Structures." *ACM SIGOPS Operating Systems Review*, 13(2), 3–19, 1979 (first presented in 1978). DOI 10.1145/850657.850658 (confirmed through Crossref on 2026-10-17).
 
-**Inhalt laut Zusammenfassungen.** Betriebssysteme lassen sich in nachrichtenorientierte (wenige Prozesse, expliziter Nachrichtenaustausch) und prozedurorientierte Systeme einteilen. Beide Modelle sind zueinander dual, keines ist grundsätzlich überlegen.
+**Content (per summaries).** Operating systems can be divided into message-oriented systems (few processes, explicit message exchange) and procedure-oriented systems. The two models are duals of each other, and neither is fundamentally superior.
 
-**Bezug.** Theoretischer Ausgangspunkt der Debatte „Threads gegen Events", in die sich der Vergleich PHP-FPM gegen Node.js einordnet.
+**Relevance.** Theoretical starting point of the "threads versus events" debate, in which the comparison of PHP-FPM and Node.js is placed.
 
 ```bibtex
 @article{lauer1979duality,
@@ -41,13 +70,13 @@ Hugh C. Lauer, Roger M. Needham. „On the Duality of Operating System Structure
 }
 ```
 
-### Welsh, Culler & Brewer (2001) — SEDA
+### Welsh, Culler & Brewer (2001), SEDA
 
-Matt Welsh, David Culler, Eric Brewer. „SEDA: An Architecture for Well-Conditioned, Scalable Internet Services." In *Proceedings of the 18th ACM Symposium on Operating Systems Principles (SOSP)*, 230–243, 2001. DOI 10.1145/502034.502057.
+Matt Welsh, David Culler, Eric Brewer. "SEDA: An Architecture for Well-Conditioned, Scalable Internet Services." In *Proceedings of the 18th ACM Symposium on Operating Systems Principles (SOSP)*, 230–243, 2001. DOI 10.1145/502034.502057.
 
-**Inhalt.** Architektur für Internetdienste unter hoher Nebenläufigkeit, die Anfragen in ereignisgesteuerte Stufen mit Warteschlangen zerlegt.
+**Content.** Architecture for internet services under high concurrency that splits requests into event-driven stages with queues.
 
-**Bezug.** Ereignis- und Warteschlangen-Modell als Grundlage für ereignisgesteuerte Server und für die Queue-Achse der Arbeit.
+**Relevance.** Event and queue model as a basis for event-driven servers and for the queue axis of the thesis.
 
 ```bibtex
 @inproceedings{welsh2001seda,
@@ -61,13 +90,13 @@ Matt Welsh, David Culler, Eric Brewer. „SEDA: An Architecture for Well-Conditi
 }
 ```
 
-### von Behren, Condit & Brewer (2003) — Gegenposition zu ereignisgesteuerten Servern
+### von Behren, Condit & Brewer (2003), counterposition to event-driven servers
 
-Rob von Behren, Jeremy Condit, Eric Brewer. „Why Events Are A Bad Idea (for High-Concurrency Servers)." In *Proceedings of HotOS IX*, USENIX, 2003.
+Rob von Behren, Jeremy Condit, Eric Brewer. "Why Events Are A Bad Idea (for High-Concurrency Servers)." In *Proceedings of HotOS IX*, USENIX, 2003.
 
-**Inhalt laut Abstract.** Threads können bei hoher Nebenläufigkeit mit Events gleichziehen und führen zu einfacherem Code. Schwächen von Threads liegen in einzelnen Implementierungen, nicht im Modell.
+**Content (per abstract).** Under high concurrency, threads can match events and lead to simpler code. The weaknesses of threads lie in individual implementations, not in the model.
 
-**Bezug.** Gegenposition, die in der Diskussion verhindert, das Ergebnis vorschnell als „Events sind grundsätzlich besser" zu verallgemeinern.
+**Relevance.** Counterposition that keeps the discussion from hastily generalizing the result to "events are fundamentally better".
 
 ```bibtex
 @inproceedings{vonbehren2003events,
@@ -80,13 +109,15 @@ Rob von Behren, Jeremy Condit, Eric Brewer. „Why Events Are A Bad Idea (for Hi
 }
 ```
 
-### Pariag et al. (2007) — Vergleich von Webserver-Architekturen
+### Pariag et al. (2007), comparison of web server architectures
 
-David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. „Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI 10.1145/1272996.1273021 (über Crossref bestätigt am 2026-10-17).
+David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. "Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI 10.1145/1272996.1273021 (confirmed through Crossref on 2026-10-17).
 
-**Inhalt laut Zusammenfassung.** Vergleich eines ereignisgesteuerten, eines Thread-pro-Verbindung- und eines Pipeline-Servers. Die ereignisgesteuerte und die Pipeline-Variante erzielten rund 18 % höheren Durchsatz als die Thread-Variante.
+**Content (per summary).** Compares an event-driven server, a thread-per-connection server and a pipeline server. The event-driven and pipeline variants achieved about 18% higher throughput than the thread variant.
 
-**Bezug.** Empirischer Vergleich der Nebenläufigkeitsmodelle unter kontrollierten Bedingungen, allerdings für kurze HTTP-Anfragen statt langlebiger Push-Verbindungen.
+**Relevance.** Empirical comparison of the concurrency models under controlled conditions, but for short HTTP requests instead of long-lived push connections.
+
+**CHECK BY HAND.** The figure of about 18% is not in the abstract. Check it in the original before citing.
 
 ```bibtex
 @inproceedings{pariag2007comparing,
@@ -100,13 +131,13 @@ David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cherito
 }
 ```
 
-### Tilkov & Vinoski (2010) — Node.js
+### Tilkov & Vinoski (2010), Node.js
 
-Stefan Tilkov, Steve Vinoski. „Node.js: Using JavaScript to Build High-Performance Network Programs." *IEEE Internet Computing*, 14(6), 80–83, 2010. DOI 10.1109/MIC.2010.145 (über Crossref bestätigt am 2026-10-17).
+Stefan Tilkov, Steve Vinoski. "Node.js: Using JavaScript to Build High-Performance Network Programs." *IEEE Internet Computing*, 14(6), 80–83, 2010. DOI 10.1109/MIC.2010.145 (confirmed through Crossref on 2026-10-17).
 
-**Inhalt laut Abstract.** Node.js als Plattform für nebenläufige Netzwerkprogramme mit asynchroner Ein- und Ausgabe und ereignisgesteuertem Modell statt Multithreading.
+**Content (per abstract).** Node.js as a platform for concurrent network programs with asynchronous I/O and an event-driven model instead of multithreading.
 
-**Bezug.** Einordnung von Node.js als Vertreter des ereignisgesteuerten Modells.
+**Relevance.** Places Node.js as a representative of the event-driven model.
 
 ```bibtex
 @article{tilkov2010nodejs,
@@ -122,13 +153,15 @@ Stefan Tilkov, Steve Vinoski. „Node.js: Using JavaScript to Build High-Perform
 }
 ```
 
-### Lei, Ma & Tan (2014) — PHP, Python und Node.js im Vergleich
+### Lei, Ma & Tan (2014), PHP, Python and Node.js compared
 
-Kai Lei, Yining Ma, Zhi Tan. „Performance Comparison and Evaluation of Web Development Technologies in PHP, Python, and Node.js." In *Proceedings of the 2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)*, 661–668, 2014. DOI 10.1109/CSE.2014.142 (aus Kopien der Erstseite, vor Abgabe in IEEE Xplore prüfen).
+Kai Lei, Yining Ma, Zhi Tan. "Performance Comparison and Evaluation of Web Development Technologies in PHP, Python, and Node.js." In *Proceedings of the 2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)*, 661–668, 2014. DOI 10.1109/CSE.2014.142 (confirmed through Crossref on 2026-11-03).
 
-**Inhalt laut Schlussfolgerung.** Node.js sei leichtgewichtig und effizient und eigne sich für ein- und ausgabelastige Anwendungen. PHP eher für kleine und mittlere Anwendungen.
+**Content (per conclusion).** Node.js is said to be lightweight and efficient and suited to I/O-heavy applications, PHP rather to small and medium applications.
 
-**Bezug und Abgrenzung.** Direktester Vorläufer des Sprachvergleichs. Misst jedoch Anfrage-Antwort-Lasten, nicht Server-Push über langlebige Verbindungen, und trennt nicht nach Framework.
+**Relevance and distinction.** The most direct predecessor of the language comparison. However, it measures request-response loads, not server push over long-lived connections, and does not separate by framework.
+
+**CHECK BY HAND.** Read the conclusion in the original.
 
 ```bibtex
 @inproceedings{lei2014performance,
@@ -142,13 +175,13 @@ Kai Lei, Yining Ma, Zhi Tan. „Performance Comparison and Evaluation of Web Dev
 }
 ```
 
-### Murley et al. (2021) — Verbreitung von WebSockets
+### Murley et al. (2021), adoption of WebSockets
 
-Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. „WebSocket Adoption and the Landscape of the Real-Time Web." In *Proceedings of the Web Conference 2021 (WWW '21)*, 1192–1203, 2021. DOI 10.1145/3442381.3450063.
+Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. "WebSocket Adoption and the Landscape of the Real-Time Web." In *Proceedings of the Web Conference 2021 (WWW '21)*, 1192–1203, 2021. DOI 10.1145/3442381.3450063.
 
-**Inhalt laut Abstract.** Auswertung der eine Million meistbesuchten Websites. Polling ist deutlich häufiger als WebSockets, deren Verbreitung zuletzt stagniert. Empfohlene Sicherheitspraktiken werden oft nicht eingehalten.
+**Content (per abstract).** Analysis of the one million most visited websites. Polling is far more common than WebSockets, whose adoption has recently stagnated. Recommended security practices are often not followed.
 
-**Bezug.** Einordnung der Relevanz von Echtzeitkommunikation im Web. Belegt, dass Push-Techniken in der Praxis nicht selbstverständlich sind.
+**Relevance.** Places the relevance of real-time communication on the web. Shows that push techniques cannot be taken for granted in practice.
 
 ```bibtex
 @inproceedings{murley2021websocket,
@@ -162,13 +195,13 @@ Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. „WebSocket A
 }
 ```
 
-### Hohpe & Woolf (2003) — Enterprise Integration Patterns
+### Hohpe & Woolf (2003), Enterprise Integration Patterns
 
 Gregor Hohpe, Bobby Woolf. *Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions*. Addison-Wesley, 2003. ISBN 978-0-321-20068-6.
 
-**Inhalt.** Katalog von Mustern für nachrichtenbasierte Integration, darunter Nachrichtenkanäle wie Publish-Subscribe.
+**Content.** Catalog of patterns for message-based integration, including message channels such as publish-subscribe.
 
-**Bezug.** Begriffe und Grundlagen für Redis Pub/Sub und die Queues im Grundlagenkapitel.
+**Relevance.** Terms and foundations for Redis Pub/Sub and the queues in the fundamentals chapter.
 
 ```bibtex
 @book{hohpe2003eip,
@@ -182,17 +215,17 @@ Gregor Hohpe, Bobby Woolf. *Enterprise Integration Patterns: Designing, Building
 
 ---
 
-## Ereignisgesteuerte Architektur (Quellen aus dem Exposé)
+## Event-driven architecture (sources from the proposal)
 
-Das Exposé nennt zehn Quellen. Drei davon stehen bereits an anderer Stelle (Hohpe & Woolf 2003, Laravel Queues, WHATWG Server-Sent Events). Die übrigen wurden am 2026-10-17 einzeln geprüft, die Fundstelle über Crossref, arXiv bzw. Verlagsseite, der Inhalt über das Abstract. Übernommen werden nur Quellen, die eine konkrete Aussage der Arbeit stützen. Zwei Angaben des Exposés sind dabei korrigiert (Laigner et al., Farias & Lazzari), eine Quelle wird nicht übernommen (Tzialla et al., siehe unten).
+The proposal names ten sources. Three of them already appear elsewhere (Hohpe & Woolf 2003, Laravel Queues, WHATWG Server-Sent Events). The others were checked individually on 2026-10-17, the record through Crossref, arXiv or the publisher's page, the content through the abstract. Only sources that support a concrete statement of the thesis are adopted. Two details of the proposal are corrected here (Laigner et al., Farias & Lazzari), and one source is not adopted (Tzialla et al., see below).
 
-### Fielding (2000) — REST und ereignisbasierte Integration
+### Fielding (2000), REST and event-based integration
 
-Roy Thomas Fielding. *Architectural Styles and the Design of Network-based Software Architectures*. Dissertation, University of California, Irvine, 2000.
+Roy Thomas Fielding. *Architectural Styles and the Design of Network-based Software Architectures*. Doctoral dissertation, University of California, Irvine, 2000.
 
-**Inhalt.** Ableitung des Architekturstils REST aus netzwerkbasierten Architekturstilen. Abschnitt 3.6.1 beschreibt den Stil „Event-based Integration" mit seinen Vor- und Nachteilen.
+**Content.** Derives the architectural style REST from network-based architectural styles. Section 3.6.1 describes the style "Event-based Integration" with its advantages and disadvantages.
 
-**Verwendung.** Definition des Anfrage-Antwort-Modells des Webs (REST, vom Client ausgelöste Interaktion) als Gegenstück zu Push-Verfahren im Grundlagenkapitel. Einordnung ereignisbasierter Integration (Abschnitt 3.6.1). Die Aussage des Exposés, Anfrage-Antwort-Architekturen stießen bei häufigen Aktualisierungen an Grenzen, ist in dieser Form nicht direkt aus Fielding belegbar. Zitiert wird die Definition, nicht eine Bewertung.
+**Use.** Definition of the request-response model of the web (REST, client-initiated interaction) as the counterpart to push techniques in the fundamentals chapter. Classification of event-based integration (Section 3.6.1). The statement in the proposal that request-response architectures reach limits with frequent updates cannot be supported directly from Fielding in this form. The definition is cited, not an assessment.
 
 ```bibtex
 @thesis{fielding2000rest,
@@ -207,13 +240,13 @@ Roy Thomas Fielding. *Architectural Styles and the Design of Network-based Softw
 }
 ```
 
-### Fowler (2017) — Bedeutungen von „event-driven"
+### Fowler (2017), meanings of "event-driven"
 
-Martin Fowler. „What do you mean by ‚Event-Driven'?" Blogbeitrag, 2017. https://martinfowler.com/articles/201701-event-driven.html
+Martin Fowler. "What do you mean by 'Event-Driven'?" Blog post, 2017. https://martinfowler.com/articles/201701-event-driven.html
 
-**Inhalt.** Unterscheidung von vier Mustern, die unter „event-driven" zusammengefasst werden. Event Notification, Event-Carried State Transfer, Event Sourcing und CQRS.
+**Content.** Distinguishes four patterns that are grouped under "event-driven". Event Notification, Event-Carried State Transfer, Event Sourcing and CQRS.
 
-**Verwendung.** Begriffsklärung im Grundlagenkapitel. Das untersuchte System entspricht dem Muster Event Notification mit Nutzdaten im Event (jeder Scan wird an alle Clients verteilt). Hinweis. Kein begutachteter Beitrag. Geeignet für Begriffe, nicht als Beleg für empirische Aussagen.
+**Use.** Clarification of terms in the fundamentals chapter. The system under study corresponds to the pattern Event Notification with the payload in the event (every scan is distributed to all clients). Note. Not a peer-reviewed contribution. Suitable for terms, not as evidence for empirical statements.
 
 ```bibtex
 @online{fowler2017eventdriven,
@@ -226,17 +259,17 @@ Martin Fowler. „What do you mean by ‚Event-Driven'?" Blogbeitrag, 2017. http
 }
 ```
 
-Datum des Beitrags (7. Februar 2017) auf der Seite geprüft am 2026-10-17.
+Date of the post (February 7, 2017) checked on the page on 2026-10-17.
 
-### Laigner, Almeida, Assunção & Zhou (2026) — Herausforderungen ereignisbasierter Kommunikation
+### Laigner, Almeida, Assunção & Zhou (2026), challenges of event-based communication
 
-Rodrigo Laigner, Ana Carolina Almeida, Wesley K. G. Assunção, Yongluan Zhou. „An Empirical Study on Challenges of Event Management in Microservice Architectures." *ACM Transactions on Software Engineering and Methodology*, 35(8), 1–62, 2026. DOI 10.1145/3776581. Vorabfassung arXiv:2408.00440 (2024).
+Rodrigo Laigner, Ana Carolina Almeida, Wesley K. G. Assunção, Yongluan Zhou. "An Empirical Study on Challenges of Event Management in Microservice Architectures." *ACM Transactions on Software Engineering and Methodology*, 35(8), 1–62, 2026. DOI 10.1145/3776581. Preprint arXiv:2408.00440 (2024).
 
-**Korrektur gegenüber dem Exposé.** Das Exposé nennt SIGMOD 2024. Die Arbeit ist als arXiv-Vorabfassung 2024 erschienen und 2026 in ACM TOSEM veröffentlicht. Zitiert wird die veröffentlichte Fassung.
+**Correction to the proposal.** The proposal names SIGMOD 2024. The paper appeared as an arXiv preprint in 2024 and was published in ACM TOSEM in 2026. The published version is cited.
 
-**Inhalt laut Abstract.** Empirische Untersuchung der Praktiken und Herausforderungen beim Entwerfen, Umsetzen, Testen, Überwachen und Fehlersuchen ereignisbasierter Kommunikation zwischen Microservices.
+**Content (per abstract).** Empirical study of the practices and challenges in designing, implementing, testing, monitoring and debugging event-based communication between microservices.
 
-**Verwendung.** Motivation (Ereignisse entkoppeln, bringen aber Schwierigkeiten bei Fehlersuche und Überwachung) und Einordnung von RQ3 sowie des Debugging- und Monitoring-Vergleichs (DECISIONS.md 5.13, 5.22).
+**Use.** Motivation (events decouple, but bring difficulties in debugging and monitoring) and placement of RQ3 and of the debugging and monitoring comparison (DECISIONS.md 5.13, 5.22).
 
 ```bibtex
 @article{laigner2026event,
@@ -252,15 +285,15 @@ Rodrigo Laigner, Ana Carolina Almeida, Wesley K. G. Assunção, Yongluan Zhou. �
 }
 ```
 
-### Farias & Lazzari (2023) — ereignisgesteuerte Architektur und Modularität
+### Farias & Lazzari (2023), event-driven architecture and modularity
 
-Kleinner Farias, Luan Lazzari. „Event-driven Architecture and REST Architectural Style: An Exploratory Study on Modularity." *Journal of Applied Research and Technology*, 21(3), 338–351, 2023. DOI 10.22201/icat.24486736e.2023.21.3.1764. Vorabfassung L. Lazzari, K. Farias, arXiv:2110.14699 (2021).
+Kleinner Farias, Luan Lazzari. "Event-driven Architecture and REST Architectural Style: An Exploratory Study on Modularity." *Journal of Applied Research and Technology*, 21(3), 338–351, 2023. DOI 10.22201/icat.24486736e.2023.21.3.1764. Preprint L. Lazzari, K. Farias, arXiv:2110.14699 (2021).
 
-**Korrektur gegenüber dem Exposé.** Das Exposé zitiert die arXiv-Vorabfassung. Die begutachtete Fassung ist 2023 in einer Zeitschrift erschienen, mit geändertem Titel und Farias als Erstautor. Nach den Regeln der Vorlage wird die veröffentlichte Fassung zitiert.
+**Correction to the proposal.** The proposal cites the arXiv preprint. The peer-reviewed version appeared in a journal in 2023, with a changed title and with Farias as first author. Following the rules of the template, the published version is cited.
 
-**Inhalt laut Abstract.** Exploratorische Studie, die eine ereignisgesteuerte und eine REST-basierte Umsetzung derselben Anwendung hinsichtlich Trennung der Belange, Kopplung, Kohäsion, Komplexität und Größe vergleicht.
+**Content (per abstract).** Exploratory study that compares an event-driven and a REST-based implementation of the same application in terms of separation of concerns, coupling, cohesion, complexity and size.
 
-**Verwendung.** Einordnung von RQ3 (Komplexität und Wartbarkeit) und der Code-Kennzahlen (DECISIONS.md 5.22). Verwandte Arbeit, die Wartbarkeit ebenfalls über Code-Kennzahlen erfasst.
+**Use.** Placement of RQ3 (complexity and maintainability) and of the code metrics (DECISIONS.md 5.22). Related work that also captures maintainability through code metrics.
 
 ```bibtex
 @article{farias2023modularity,
@@ -276,13 +309,13 @@ Kleinner Farias, Luan Lazzari. „Event-driven Architecture and REST Architectur
 }
 ```
 
-### Woodside (2021) — Performance-Modelle ereignisgesteuerter Architekturen
+### Woodside (2021), performance models of event-driven architectures
 
-Murray Woodside. „Performance Models of Event-Driven Architectures." In *Companion of the ACM/SPEC International Conference on Performance Engineering (ICPE '21)*, 145–149, 2021. DOI 10.1145/3447545.3451203.
+Murray Woodside. "Performance Models of Event-Driven Architectures." In *Companion of the ACM/SPEC International Conference on Performance Engineering (ICPE '21)*, 145–149, 2021. DOI 10.1145/3447545.3451203.
 
-**Inhalt laut Abstract.** Ereignisgesteuerte Architekturen verbessern die Skalierbarkeit durch zustandslose Server und asynchrone Interaktion. Der Beitrag zeigt, wie sich ereignisgesteuerte und blockierende, synchrone Komponenten gemeinsam in einem Layered-Queueing-Modell abbilden lassen.
+**Content (per abstract).** Event-driven architectures improve scalability through stateless servers and asynchronous interaction. The contribution shows how event-driven and blocking, synchronous components can be represented together in a layered queueing model.
 
-**Verwendung.** Grundlagen (Skalierbarkeit durch asynchrone Interaktion) und verwandte Arbeiten (modellbasierte gegenüber messbasierter Performance-Bewertung). Passt zur PHP-Seite der Arbeit, in der ein synchrones Ausführungsmodell (PHP-FPM) Ereignisse ausliefert. Hinweis. Kurzer Beitrag im Companion-Band, kein Hauptkonferenzbeitrag.
+**Use.** Fundamentals (scalability through asynchronous interaction) and related work (model-based versus measurement-based performance evaluation). Fits the PHP side of the thesis, where a synchronous execution model (PHP-FPM) delivers events. Note. Short contribution in the companion volume, not a main conference paper.
 
 ```bibtex
 @inproceedings{woodside2021eda,
@@ -297,13 +330,15 @@ Murray Woodside. „Performance Models of Event-Driven Architectures." In *Compa
 }
 ```
 
-### Cabane & Farias (2024) — ereignisgesteuerte Architektur und Performance (Ergänzung, nicht im Exposé)
+### Cabane & Farias (2024), event-driven architecture and performance (addition, not in the proposal)
 
-Hebert Cabane, Kleinner Farias. „On the impact of event-driven architecture on performance: An exploratory study." *Future Generation Computer Systems*, 153, 52–69, 2024. DOI 10.1016/j.future.2023.10.021.
+Hebert Cabane, Kleinner Farias. "On the impact of event-driven architecture on performance: An exploratory study." *Future Generation Computer Systems*, 153, 52–69, 2024. DOI 10.1016/j.future.2023.10.021.
 
-Bei der Prüfung von Farias & Lazzari gefunden. Fundstelle über Crossref bestätigt. Das Abstract war über die offenen Schnittstellen nicht abrufbar. Der Inhalt ist daher nur aus dem Titel bekannt und vor jeder Verwendung zu lesen.
+Found while checking Farias & Lazzari. Record confirmed through Crossref. The abstract could not be retrieved through the open interfaces. The content is therefore known only from the title and must be read before any use.
 
-**Verwendung (vorgesehen).** Verwandte Arbeiten, empirische Untersuchung der Performance ereignisgesteuerter Architekturen. Abgrenzung zur eigenen Messung (Zustellung an viele dauerhafte Client-Verbindungen statt Kommunikation zwischen Diensten, falls sich das beim Lesen bestätigt).
+**CHECK BY HAND.** Searched again on 2026-11-03, still no abstract and no open access. Read it through the university library or do not cite it.
+
+**Use (planned).** Related work, empirical study of the performance of event-driven architectures. Distinction from the measurement in this thesis (delivery to many long-lived client connections instead of communication between services, if reading confirms this).
 
 ```bibtex
 @article{cabane2024performance,
@@ -318,19 +353,19 @@ Bei der Prüfung von Farias & Lazzari gefunden. Fundstelle über Crossref bestä
 }
 ```
 
-### Geprüft und nicht übernommen, Tzialla et al. (2024)
+### Checked and not adopted, Tzialla et al. (2024)
 
-Ioanna Tzialla, Jeffery Wang, Jingyi Zhu, Aurojit Panda. „Efficient Auditing of Event-driven Web Applications." In *Proceedings of the 19th European Conference on Computer Systems (EuroSys '24)*, 2024. DOI 10.1145/3627703.3650089.
+Ioanna Tzialla, Jeffery Wang, Jingyi Zhu, Aurojit Panda. "Efficient Auditing of Event-driven Web Applications." In *Proceedings of the 19th European Conference on Computer Systems (EuroSys '24)*, 2024. DOI 10.1145/3627703.3650089.
 
-Das Exposé zitiert die Arbeit für Herausforderungen beim Überwachen und Auditieren ereignisgesteuerter Systeme. „Auditing" bedeutet dort jedoch die Prüfung, ob ein Server eine Webanwendung unverfälscht ausgeführt hat (Record-Replay für Node.js-Anwendungen auf nicht vertrauenswürdigen Servern). Das ist eine Frage der Integrität, nicht der Beobachtbarkeit im Betrieb, und berührt keine Aussage dieser Arbeit. Für Herausforderungen bei Überwachung und Fehlersuche ist Laigner et al. (2026) die passende Quelle.
+The proposal cites the paper for challenges in monitoring and auditing event-driven systems. There, however, "auditing" means checking whether a server executed a web application faithfully (record-replay for Node.js applications on untrusted servers). That is a question of integrity, not of observability in operation, and touches no statement of this thesis. For challenges in monitoring and debugging, Laigner et al. (2026) is the suitable source.
 
-## Empirische Softwaretechnik — Validitätsrahmen
+## Empirical software engineering, validity framework
 
-### Wohlin et al. (2024) — Experimentaldesign und Validität
+### Wohlin et al. (2024), experiment design and validity
 
-Claes Wohlin, Per Runeson, Martin Höst, Magnus C. Ohlsson, Björn Regnell, Anders Wesslén. *Experimentation in Software Engineering*, 2. Auflage. Springer, 2024. ISBN 978-3-662-69305-6. (Erstauflage 2000/2012, die Kapitelstruktur zu den Validitätsarten ist stabil.)
+Claes Wohlin, Per Runeson, Martin Höst, Magnus C. Ohlsson, Björn Regnell, Anders Wesslén. *Experimentation in Software Engineering*, 2nd edition. Springer, 2024. ISBN 978-3-662-69305-6. (First edition 2000/2012, the chapter structure on the types of validity is stable.)
 
-**Verwendung.** Rahmen aus Konstrukt-, interner, externer und statistischer Schlussfolgerungsvalidität (DECISIONS.md 5.8).
+**Use.** Framework of construct validity, internal validity, external validity and statistical conclusion validity (DECISIONS.md 5.8).
 
 ```bibtex
 @book{wohlin2024experimentation,
@@ -345,11 +380,13 @@ Claes Wohlin, Per Runeson, Martin Höst, Magnus C. Ohlsson, Björn Regnell, Ande
 }
 ```
 
-### Arcuri & Briand (2014) — Statistische Tests in der SE-Forschung
+### Arcuri & Briand (2014), statistical tests in software engineering research
 
-Andrea Arcuri, Lionel Briand. „A Hitchhiker's Guide to Statistical Tests for Assessing Randomized Algorithms in Software Engineering." *Software Testing, Verification and Reliability*, 24(3), 219–250, 2014. DOI 10.1002/stvr.1486.
+Andrea Arcuri, Lionel Briand. "A Hitchhiker's Guide to Statistical Tests for Assessing Randomized Algorithms in Software Engineering." *Software Testing, Verification and Reliability*, 24(3), 219–250, 2014. DOI 10.1002/stvr.1486.
 
-**Verwendung.** Signifikanztests stets zusammen mit einer Effektstärke berichten. Statistische Signifikanz allein belegt keine praktische Relevanz (DECISIONS.md 5.8).
+**Use.** Always report significance tests together with an effect size. With enough runs, almost any difference becomes significant, even one without practical value. The paper also names the paired Wilcoxon test for paired data (DECISIONS.md 5.8). Checked in the full text on 2026-11-03.
+
+**CHECK BY HAND.** The paper recommends the effect measure A12 by Vargha & Delaney. Cliff's delta and Romano et al. do not appear in it. It therefore does not support the choice of effect measure and thresholds. Its main recommendation for unpaired data is the U test.
 
 ```bibtex
 @article{arcuri2014hitchhiker,
@@ -366,13 +403,13 @@ Andrea Arcuri, Lionel Briand. „A Hitchhiker's Guide to Statistical Tests for A
 }
 ```
 
-## Signifikanztest
+## Significance test
 
-### Wilcoxon (1945) — Vorzeichen-Rang-Test
+### Wilcoxon (1945), signed-rank test
 
-Frank Wilcoxon. „Individual Comparisons by Ranking Methods." *Biometrics Bulletin*, 1(6), 80–83, 1945.
+Frank Wilcoxon. "Individual Comparisons by Ranking Methods." *Biometrics Bulletin*, 1(6), 80–83, 1945.
 
-**Verwendung.** Gepaarter Signifikanztest (DECISIONS.md 5.8) auf den Laufpaaren des alternierenden Designs. Verteilungsfrei, ohne Normalverteilungsannahme. Implementierung. `tools/orchestrate/stats.js` (`wilcoxonSignedRank`), exakte Nullverteilung bis 50 Paare ohne Bindungen, sonst Normalapproximation mit Stetigkeits- und Bindungskorrektur. Nicht zu verwechseln mit dem ungepaarten Rangsummentest aus derselben Arbeit.
+**Use.** Paired significance test (DECISIONS.md 5.8) on the run pairs of the alternating design. Distribution-free, without an assumption of normality. Implementation. `tools/orchestrate/stats.js` (`wilcoxonSignedRank`), exact null distribution up to 50 pairs without ties, otherwise normal approximation with continuity and tie correction. Not to be confused with the unpaired rank-sum test from the same paper.
 
 ```bibtex
 @article{wilcoxon1945individual,
@@ -388,11 +425,11 @@ Frank Wilcoxon. „Individual Comparisons by Ranking Methods." *Biometrics Bulle
 }
 ```
 
-### Mann & Whitney (1947) — ungepaarter U-Test (ersetzt)
+### Mann & Whitney (1947), unpaired U test (replaced)
 
-Henry B. Mann, Donald R. Whitney. „On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other." *The Annals of Mathematical Statistics*, 18(1), 50–60, 1947. DOI 10.1214/aoms/1177730491.
+Henry B. Mann, Donald R. Whitney. "On a Test of Whether one of Two Random Variables is Stochastically Larger than the Other." *The Annals of Mathematical Statistics*, 18(1), 50–60, 1947. DOI 10.1214/aoms/1177730491.
 
-**Status.** Bis 2026-10-16 vorgesehenes Verfahren, ersetzt durch den gepaarten Wilcoxon-Test, der die Paarstruktur des alternierenden Designs nutzt. Dokumentiert, damit die Revision der Entscheidung nachvollziehbar bleibt.
+**Status.** Planned method until 2026-10-16, replaced by the paired Wilcoxon test, which uses the pair structure of the alternating design. Documented so that the revision of the decision remains traceable.
 
 ```bibtex
 @article{mann1947test,
@@ -409,11 +446,11 @@ Henry B. Mann, Donald R. Whitney. „On a Test of Whether one of Two Random Vari
 }
 ```
 
-### Armitage, McPherson & Rowe (1969) — wiederholtes Testen auf anwachsenden Daten
+### Armitage, McPherson & Rowe (1969), repeated testing on accumulating data
 
-P. Armitage, C. K. McPherson, B. C. Rowe. „Repeated Significance Tests on Accumulating Data." *Journal of the Royal Statistical Society, Series A (General)*, 132(2), 235–244, 1969. DOI 10.2307/2343787 (über Crossref bestätigt am 2026-10-17).
+P. Armitage, C. K. McPherson, B. C. Rowe. "Repeated Significance Tests on Accumulating Data." *Journal of the Royal Statistical Society, Series A (General)*, 132(2), 235–244, 1969. DOI 10.2307/2343787 (confirmed through Crossref on 2026-10-17).
 
-**Verwendung.** Begründung, warum Zwischenauswertungen in den Hauptkampagnen kein Abbruchkriterium sind und die Wiederholungszahl vorab aus einem Pilot festgelegt wird (DECISIONS.md 5.9). Wird auf anwachsenden Daten wiederholt getestet und bei Signifikanz abgebrochen, steigt die Fehlerrate erster Art deutlich über das nominelle Niveau.
+**Use.** Reason why interim analyses are not a stopping criterion in the main campaigns and why the number of repetitions is fixed in advance from a pilot (DECISIONS.md 5.9). Testing repeatedly on accumulating data and stopping at significance raises the type I error rate well above the nominal level.
 
 ```bibtex
 @article{armitage1969repeated,
@@ -429,11 +466,11 @@ P. Armitage, C. K. McPherson, B. C. Rowe. „Repeated Significance Tests on Accu
 }
 ```
 
-### Kerr (1998) — Hypothesen vor den Ergebnissen festlegen
+### Kerr (1998), fixing hypotheses before the results
 
-Norbert L. Kerr. „HARKing: Hypothesizing After the Results are Known." *Personality and Social Psychology Review*, 2(3), 196–217, 1998. DOI 10.1207/s15327957pspr0203_4.
+Norbert L. Kerr. "HARKing: Hypothesizing After the Results are Known." *Personality and Social Psychology Review*, 2(3), 196–217, 1998. DOI 10.1207/s15327957pspr0203_4.
 
-**Verwendung.** Begründung, die Hypothesen H1–H11 vor der Datenerhebung festzulegen (DECISIONS.md 5.18). HARKing bezeichnet das Darstellen einer nachträglich aus den Ergebnissen abgeleiteten Hypothese, als sei sie vorab formuliert gewesen.
+**Use.** Reason for fixing the hypotheses H1–H11 before data collection (DECISIONS.md 5.18). HARKing means presenting a hypothesis derived afterwards from the results as if it had been formulated in advance.
 
 ```bibtex
 @article{kerr1998harking,
@@ -449,13 +486,13 @@ Norbert L. Kerr. „HARKing: Hypothesizing After the Results are Known." *Person
 }
 ```
 
-## Effektstärke
+## Effect size
 
-### Cliff (1993) — Cliff's Delta
+### Cliff (1993), Cliff's delta
 
-Norman Cliff. „Dominance Statistics: Ordinal Analyses to Answer Ordinal Questions." *Psychological Bulletin*, 114(3), 494–509, 1993.
+Norman Cliff. "Dominance Statistics: Ordinal Analyses to Answer Ordinal Questions." *Psychological Bulletin*, 114(3), 494–509, 1993.
 
-**Verwendung.** Eingeordnetes Effektmaß (DECISIONS.md 5.8). Ordinal, ohne Intervallskalen-Annahme wie bei Cohen's d, und damit für Latenzdaten geeigneter als parametrische Effektmaße.
+**Use.** Classified effect measure (DECISIONS.md 5.8). Ordinal, without the interval scale assumption of Cohen's d, and therefore better suited to latency data than parametric effect measures.
 
 ```bibtex
 @article{cliff1993dominance,
@@ -472,11 +509,13 @@ Norman Cliff. „Dominance Statistics: Ordinal Analyses to Answer Ordinal Questi
 }
 ```
 
-### Romano, Kromrey, Coraggio & Skowronek (2006) — Schwellenwerte für Cliff's Delta
+### Romano, Kromrey, Coraggio & Skowronek (2006), thresholds for Cliff's delta
 
-Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. „Appropriate Statistics for Ordinal Level Data: Should We Really Be Using t-test and Cohen's d for Evaluating Group Differences on the NSSE and Other Surveys?" Vortrag, Annual Meeting of the Florida Association of Institutional Research, 2006.
+Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. "Appropriate Statistics for Ordinal Level Data: Should We Really Be Using t-test and Cohen's d for Evaluating Group Differences on the NSSE and Other Surveys?" Talk, Annual Meeting of the Florida Association of Institutional Research, 2006.
 
-**Verwendung.** Vorab festgelegte Schwellenwerte (|δ| < 0,147 vernachlässigbar, < 0,33 klein, < 0,474 mittel, sonst groß, DECISIONS.md 5.8). Hinweis. Tagungsbeitrag ohne Peer-Review in einer Zeitschrift. Die Schwellen haben sich u. a. über Arcuri & Briand (2014) in der empirischen Softwaretechnik etabliert. Das kann in der Arbeit transparent erwähnt werden.
+**Use.** Thresholds fixed in advance (|δ| < 0.147 negligible, < 0.33 small, < 0.474 medium, otherwise large, DECISIONS.md 5.8). Note. Conference contribution without journal peer review. The thesis can mention this openly.
+
+**CHECK BY HAND.** Check the four thresholds in the original, the full text was not available during the review on 2026-11-03. The earlier claim that the thresholds became established through Arcuri & Briand (2014) is not correct and has been removed.
 
 ```bibtex
 @inproceedings{romano2006appropriate,
@@ -492,11 +531,11 @@ Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. „Appropria
 }
 ```
 
-### Kerby (2014) — rangbiseriale Korrelation für gepaarte Daten
+### Kerby (2014), rank-biserial correlation for paired data
 
-Dave S. Kerby. „The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation." *Comprehensive Psychology*, 3, 2014. DOI 10.2466/11.IT.3.1 (über Crossref bestätigt am 2026-10-17).
+Dave S. Kerby. "The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation." *Comprehensive Psychology*, 3, 2014. DOI 10.2466/11.IT.3.1 (confirmed through Crossref on 2026-10-17).
 
-**Verwendung.** Zusätzlich zu Cliff's Delta ausgegebenes Effektmaß r = (W⁺ − W⁻) / (W⁺ + W⁻), das direkt zum Wilcoxon-Vorzeichen-Rang-Test passt. Anteil der Rangsumme, der für eine Richtung spricht, minus Anteil, der dagegen spricht (DECISIONS.md 5.8).
+**Use.** Effect measure reported in addition to Cliff's delta, r = (W⁺ − W⁻) / (W⁺ + W⁻), which fits the Wilcoxon signed-rank test directly. Share of the rank sum that favors one direction minus the share that speaks against it (DECISIONS.md 5.8).
 
 ```bibtex
 @article{kerby2014simple,
@@ -511,11 +550,11 @@ Dave S. Kerby. „The Simple Difference Formula: An Approach to Teaching Nonpara
 }
 ```
 
-### Vargha & Delaney (2000) — verwandtes Maß, zur Abgrenzung
+### Vargha & Delaney (2000), related measure, for delimitation
 
-András Vargha, Harold D. Delaney. „A Critique and Improvement of the CL Common Language Effect Size Statistics of McGraw and Wong." *Journal of Educational and Behavioral Statistics*, 25(2), 101–132, 2000. DOI 10.3102/10769986025002101.
+András Vargha, Harold D. Delaney. "A Critique and Improvement of the CL Common Language Effect Size Statistics of McGraw and Wong." *Journal of Educational and Behavioral Statistics*, 25(2), 101–132, 2000. DOI 10.3102/10769986025002101.
 
-**Verwendung.** Abgrenzung, nicht Quelle der verwendeten Schwellen. Das Maß A₁₂ ist mathematisch äquivalent zu Cliff's Delta (δ = 2·A₁₂ − 1), Vargha & Delaney verwenden jedoch eigene, leicht abweichende Schwellen.
+**Use.** Delimitation, not the source of the thresholds used. The measure A₁₂ is mathematically equivalent to Cliff's delta (δ = 2·A₁₂ − 1), but Vargha & Delaney use their own, slightly different thresholds.
 
 ```bibtex
 @article{vargha2000critique,
@@ -532,13 +571,13 @@ András Vargha, Harold D. Delaney. „A Critique and Improvement of the CL Commo
 }
 ```
 
-## Mehrfachvergleiche
+## Multiple comparisons
 
-### Holm (1979) — Holm-Bonferroni-Korrektur
+### Holm (1979), Holm-Bonferroni correction
 
-Sture Holm. „A Simple Sequentially Rejective Multiple Test Procedure." *Scandinavian Journal of Statistics*, 6(2), 65–70, 1979.
+Sture Holm. "A Simple Sequentially Rejective Multiple Test Procedure." *Scandinavian Journal of Statistics*, 6(2), 65–70, 1979.
 
-**Verwendung.** Korrektur je Testfamilie über 39 geplante Tests (13 Vergleiche × 3 Laststufen, DECISIONS.md 5.8, 5.15). Kontrolliert die familienweise Fehlerrate bei beliebiger Abhängigkeit der Tests und ist trennschärfer als die Bonferroni-Korrektur. Implementierung. `holmCorrection` in `tools/orchestrate/stats.js`.
+**Use.** Correction per test family over 39 planned tests (13 comparisons × 3 load levels, DECISIONS.md 5.8, 5.15). Controls the familywise error rate under any dependence between the tests and has more power than the Bonferroni correction. Implementation. `holmCorrection` in `tools/orchestrate/stats.js`.
 
 ```bibtex
 @article{holm1979simple,
@@ -553,13 +592,13 @@ Sture Holm. „A Simple Sequentially Rejective Multiple Test Procedure." *Scandi
 }
 ```
 
-## Konfidenzintervalle
+## Confidence intervals
 
-### Efron & Tibshirani (1993) — Bootstrap
+### Efron & Tibshirani (1993), bootstrap
 
 Bradley Efron, Robert J. Tibshirani. *An Introduction to the Bootstrap*. Chapman & Hall, 1993. ISBN 978-0-412-04231-7.
 
-**Verwendung.** 95-%-Konfidenzintervall für den Median der gepaarten Differenzen (nichtparametrischer Bootstrap, Perzentil-Methode, 10 000 Resamples mit festem Startwert, DECISIONS.md 5.8).
+**Use.** 95% confidence interval for the median of the paired differences (nonparametric bootstrap, percentile method, 10,000 resamples with a fixed seed, DECISIONS.md 5.8). Crossref lists the DOI with the year 1994 (Chapman and Hall/CRC), the first edition of 1993 is cited.
 
 ```bibtex
 @book{efron1993bootstrap,
@@ -567,17 +606,20 @@ Bradley Efron, Robert J. Tibshirani. *An Introduction to the Bootstrap*. Chapman
   title     = {An Introduction to the Bootstrap},
   publisher = {Chapman \& Hall},
   date      = {1993},
+  doi       = {10.1201/9780429246593},
   langid    = {english}
 }
 ```
 
-## Messauflösung
+## Measurement resolution
 
-### Widrow & Kollár (2008) — Quantisierungsrauschen
+### Widrow & Kollár (2008), quantization noise
 
-Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital Computation, Signal Processing, Control, and Communications*. Cambridge University Press, 2008. ISBN 978-0-521-88671-0. DOI 10.1017/CBO9780511754661 (über Crossref bestätigt am 2026-10-17).
+Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital Computation, Signal Processing, Control, and Communications*. Cambridge University Press, 2008. ISBN 978-0-521-88671-0. DOI 10.1017/CBO9780511754661 (confirmed through Crossref on 2026-10-17).
 
-**Verwendung.** Begründung des Mittelwerts pro Lauf als Testgröße (DECISIONS.md 5.8). Werden Zeitstempel auf ganze Millisekunden gerundet und sind die Ereignisse nicht an das Millisekundenraster gekoppelt, ist der Rundungsfehler näherungsweise gleichverteilt und im Mittel null. Der Mittelwert vieler gerundeter Werte ist dann fein aufgelöst und unverzerrt, der Median dagegen bleibt an das Raster gebunden.
+**Use.** Reason for using the mean per run as the test statistic (DECISIONS.md 5.8). If timestamps are rounded to whole milliseconds and the events are not coupled to the millisecond grid, the rounding error is approximately uniform and zero on average. The mean of many rounded values is then finely resolved and unbiased, while the median stays tied to the grid.
+
+**CHECK BY HAND.** Check the conditions for the uniform rounding error and a suitable chapter reference.
 
 ```bibtex
 @book{widrow2008quantization,
@@ -591,13 +633,13 @@ Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital 
 }
 ```
 
-## Pseudoreplikation und Analyseeinheit
+## Pseudoreplication and unit of analysis
 
-### Hurlbert (1984) — Pseudoreplikation
+### Hurlbert (1984), pseudoreplication
 
-Stuart H. Hurlbert. „Pseudoreplication and the Design of Ecological Field Experiments." *Ecological Monographs*, 54(2), 187–211, 1984.
+Stuart H. Hurlbert. "Pseudoreplication and the Design of Ecological Field Experiments." *Ecological Monographs*, 54(2), 187–211, 1984.
 
-**Verwendung.** Begründung, den k6-Lauf statt des Einzelereignisses als Analyseeinheit zu verwenden (DECISIONS.md 5.8). Die Grundaussage, dass abhängige Beobachtungen (hier Events desselben Laufs mit gemeinsamem Prozesszustand und gemeinsamer Host-Auslastung) nicht als unabhängige Stichprobe in einen Test eingehen dürfen, ist disziplinübergreifend anerkannt. Die Übertragung aus der Ökologie auf Softwaremessungen sollte in der Arbeit kurz eingeordnet werden.
+**Use.** Reason for using the k6 run instead of the single event as the unit of analysis (DECISIONS.md 5.8). The basic statement, that dependent observations (here events of the same run with shared process state and shared host load) must not enter a test as an independent sample, is accepted across disciplines. The transfer from ecology to software measurements should be briefly explained in the thesis.
 
 ```bibtex
 @article{hurlbert1984pseudoreplication,
@@ -614,13 +656,15 @@ Stuart H. Hurlbert. „Pseudoreplication and the Design of Ecological Field Expe
 }
 ```
 
-## Methodik von Performance-Messungen
+## Methodology of performance measurements
 
-### Georges, Buytaert & Eeckhout (2007) — wiederholte Messungen, Warm-up
+### Georges, Buytaert & Eeckhout (2007), repeated measurements, warm-up
 
-Andy Georges, Dries Buytaert, Lieven Eeckhout. „Statistically Rigorous Java Performance Evaluation." In *Proceedings of OOPSLA 2007*, 57–76, 2007.
+Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Performance Evaluation." In *Proceedings of OOPSLA 2007*, 57–76, 2007.
 
-**Verwendung.** Wiederholte Läufe, Ausschluss von Warm-up-Läufen und nicht normalverteilte Messdaten (DECISIONS.md 5.8, 5.9). Die Arbeit bezieht sich auf JVM-Benchmarks. Das Grundproblem (Nichtdeterminismus durch JIT, Garbage Collection, Scheduling) ist auf OPcache, den JIT von V8, Verbindungsaufbau und Dateisystem-Cache übertragbar.
+**Use.** Repeated runs, exclusion of warm-up runs and non-normal measurement data (DECISIONS.md 5.8, 5.9). The paper refers to JVM benchmarks. The underlying problem (nondeterminism from JIT, garbage collection, scheduling) carries over to OPcache, the V8 JIT, connection setup and the file system cache.
+
+**CHECK BY HAND.** Check the passage on non-normal measurement data and on warm-up. The transfer to PHP and Node.js is a conclusion of this thesis.
 
 ```bibtex
 @inproceedings{georges2007statistically,
@@ -636,11 +680,13 @@ Andy Georges, Dries Buytaert, Lieven Eeckhout. „Statistically Rigorous Java Pe
 }
 ```
 
-### Kalibera & Jones (2013) — Zahl der Wiederholungen
+### Kalibera & Jones (2013), number of repetitions
 
-Tomas Kalibera, Richard Jones. „Rigorous Benchmarking in Reasonable Time." In *Proceedings of the 2013 International Symposium on Memory Management (ISMM)*, 63–74, 2013. DOI 10.1145/2464157.2464160.
+Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *Proceedings of the 2013 International Symposium on Memory Management (ISMM)*, 63–74, 2013. DOI 10.1145/2464157.2464160.
 
-**Verwendung.** Festlegung der Wiederholungszahl aus Pilotdaten statt pauschal (DECISIONS.md 5.9). Der tatsächliche Nichtdeterminismus eines Benchmarks ist oft geringer als angenommen. Wiederholungen sind dort einzusetzen, wo die Unsicherheit tatsächlich liegt.
+**Use.** Fixing the number of repetitions from pilot data instead of across the board (DECISIONS.md 5.9). The actual nondeterminism of a benchmark is often lower than assumed. Repetitions belong where the uncertainty actually lies.
+
+**CHECK BY HAND.** DECISIONS.md rests two statements on it (non-normal measurement data in 5.8, "far fewer pairs suffice" in 5.9). The full text could not be retrieved on 2026-11-03, and the abstract confirms neither. Check them in the original and adjust the two sentences if needed.
 
 ```bibtex
 @inproceedings{kalibera2013rigorous,
@@ -655,13 +701,15 @@ Tomas Kalibera, Richard Jones. „Rigorous Benchmarking in Reasonable Time." In 
 }
 ```
 
-## Latenz aus Nutzersicht
+## Latency from the user perspective
 
-### Dean & Barroso (2013) — Tail-Latenz
+### Dean & Barroso (2013), tail latency
 
-Jeffrey Dean, Luiz André Barroso. „The Tail at Scale." *Communications of the ACM*, 56(2), 74–80, 2013. DOI 10.1145/2408776.2408794.
+Jeffrey Dean, Luiz André Barroso. "The Tail at Scale." *Communications of the ACM*, 56(2), 74–80, 2013. DOI 10.1145/2408776.2408794.
 
-**Verwendung.** Begründung, p95, p99 und Maximum zusätzlich zum Mittelwert pro Lauf zu berichten (DECISIONS.md 5.8). Tail-Latenzen sind bei vielen gleichzeitigen Verbindungen für Nutzer oft wichtiger als der Durchschnitt.
+**Use.** Reason for reporting p95, p99 and the maximum in addition to the mean per run (DECISIONS.md 5.8). In large services, tail latencies shape the user experience more than the average shows.
+
+**CHECK BY HAND.** The paper deals with large distributed services. The transfer to many server-push connections is a conclusion of this thesis.
 
 ```bibtex
 @article{dean2013tail,
@@ -677,11 +725,11 @@ Jeffrey Dean, Luiz André Barroso. „The Tail at Scale." *Communications of the
 }
 ```
 
-### Nielsen (1993) — Grenzen der Antwortzeit
+### Nielsen (1993), response time limits
 
-Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Kapitel 5 (Antwortzeiten). ISBN 0-12-518405-0 (Verlag, Ort und ISBN über Open Library bestätigt am 2026-10-17). Die drei Grenzen (0,1 s, 1 s, 10 s) sind vom Autor auch online zusammengefasst (nngroup.com/articles/response-times-3-important-limits).
+Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Chapter 5 (response times). ISBN 0-12-518405-0 (publisher, place and ISBN confirmed through Open Library on 2026-10-17). The author also summarizes the three limits (0.1 s, 1 s, 10 s) online (nngroup.com/articles/response-times-3-important-limits).
 
-**Verwendung.** Latenzgrenze von 1 000 ms im Sättigungskriterium (DECISIONS.md 5.17). Bis etwa eine Sekunde unterbricht eine Verzögerung den Gedankenfluss von Nutzern nicht.
+**Use.** Latency limit of 1,000 ms in the saturation criterion (DECISIONS.md 5.17). Up to about one second, a delay does not interrupt the flow of thought of users.
 
 ```bibtex
 @book{nielsen1993usability,
@@ -694,13 +742,17 @@ Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Kapitel 5 
 }
 ```
 
-## Containervirtualisierung — externe Validität
+## Container virtualization, external validity
 
-### Felter, Ferreira, Rajamony & Rubio (2015) — Overhead von Docker
+### Felter, Ferreira, Rajamony & Rubio (2015), overhead of Docker
 
-Wes Felter, Alexandre Ferreira, Ram Rajamony, Juan Rubio. „An Updated Performance Comparison of Virtual Machines and Linux Containers." In *Proceedings of ISPASS 2015*, 171–172, 2015.
+Wes Felter, Alexandre Ferreira, Ram Rajamony, Juan Rubio. "An Updated Performance Comparison of Virtual Machines and Linux Containers." In *Proceedings of ISPASS 2015*, 171–172, 2015.
 
-**Verwendung.** Docker führt einen messbaren, für PHP und Node.js aber symmetrischen Overhead ein und verzerrt den Vergleich daher nicht. Für die externe Validität. Die Ergebnisse gelten für PHP und Node.js unter Docker, nicht ohne Weiteres für Bare-Metal-Betrieb.
+**Content (per abstract).** Compares KVM and Docker. Containers perform equal to or better than virtual machines in almost all cases, and both need tuning for I/O-heavy applications.
+
+**Use.** For external validity. The results hold for PHP and Node.js under Docker, not automatically for bare-metal operation.
+
+**CHECK BY HAND.** That the overhead of Docker affects PHP and Node.js alike is not in the source. It is a conclusion of this thesis (same setup and same front proxy for all variants) and must be worded that way in the text. The ISPASS paper has only two pages.
 
 ```bibtex
 @inproceedings{felter2015updated,
@@ -717,13 +769,13 @@ Wes Felter, Alexandre Ferreira, Ram Rajamony, Juan Rubio. „An Updated Performa
 }
 ```
 
-## Protokoll-Spezifikationen
+## Protocol specifications
 
-### RFC 6455 — WebSocket-Protokoll
+### RFC 6455, the WebSocket protocol
 
-I. Fette, A. Melnikov. „The WebSocket Protocol." RFC 6455, IETF, Dezember 2011. DOI 10.17487/RFC6455.
+I. Fette, A. Melnikov. "The WebSocket Protocol." RFC 6455, IETF, December 2011. DOI 10.17487/RFC6455.
 
-**Verwendung.** Formale Definition von WebSocket. Abgrenzung zum Pusher-Channels-Protokoll, das Laravel Reverb zusätzlich verwendet (`prototypes/php-laravel/README.md`).
+**Use.** Formal definition of WebSocket. Distinction from the Pusher Channels protocol, which Laravel Reverb uses on top (`prototypes/php-laravel/README.md`).
 
 ```bibtex
 @techreport{fette2011websocket,
@@ -737,11 +789,11 @@ I. Fette, A. Melnikov. „The WebSocket Protocol." RFC 6455, IETF, Dezember 2011
 }
 ```
 
-### WHATWG HTML Living Standard — Server-Sent Events
+### WHATWG HTML Living Standard, Server-Sent Events
 
-WHATWG. „9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.whatwg.org/multipage/server-sent-events.html (fortlaufend aktualisiert, Abrufdatum angeben).
+WHATWG. "9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.whatwg.org/multipage/server-sent-events.html (updated continuously, state the access date).
 
-**Verwendung.** Formale Definition von SSE. Anders als WebSocket ist SSE kein IETF-RFC, sondern Teil des WHATWG-Standards. Dieser Unterschied im Publikationsstatus kann in der Arbeit kurz erwähnt werden. Außerdem legt der Standard fest, dass EventSource eine abgebrochene Verbindung automatisch neu aufbaut. Nach einem Neustart des Servers verbinden sich deshalb alle Clients fast gleichzeitig neu, der Fall der Phase Ansturm (DECISIONS.md 5.10).
+**Use.** Formal definition of SSE. Unlike WebSocket, SSE is not an IETF RFC but part of the WHATWG standard. The thesis can briefly mention this difference in publication status. The standard also specifies that EventSource reestablishes a dropped connection automatically. After a server restart, all clients therefore reconnect almost simultaneously, which is the case of the connection storm phase (DECISIONS.md 5.10).
 
 ```bibtex
 @online{whatwg-sse,
@@ -753,15 +805,17 @@ WHATWG. „9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.wh
 }
 ```
 
-### RFC 5905 — Network Time Protocol Version 4
+### RFC 5905, Network Time Protocol version 4
 
-D. Mills, J. Burbank, W. Kasch. „Network Time Protocol Version 4: Protocol and Algorithms Specification." RFC 5905, IETF, Juni 2010. DOI 10.17487/RFC5905.
+D. Mills, J. Martin (ed.), J. Burbank, W. Kasch. "Network Time Protocol Version 4: Protocol and Algorithms Specification." RFC 5905, IETF, June 2010. DOI 10.17487/RFC5905.
 
-**Verwendung.** Begründung, warum Sende- und Empfangszeitstempel vom selben Gerät stammen (Lastgenerator, DECISIONS.md 5.14). Eine Uhrensynchronisation zwischen Geräten per NTP erreicht nicht zuverlässig die hier benötigte Genauigkeit unterhalb einer Millisekunde.
+**Use.** Reason why send and receive timestamps come from the same device (load generator, DECISIONS.md 5.14). According to the RFC, clients on fast local networks are typically within a few hundred microseconds, with long poll intervals within a few tens of milliseconds. That is on the order of the measured differences, some of which are below one millisecond.
+
+**CHECK BY HAND.** Until 2026-11-03, this note and DECISIONS.md said that NTP reaches only the millisecond range. The RFC does not say that. Check the wording for the text. The RFC has been updated since (most recently by RFC 9769), but not obsoleted.
 
 ```bibtex
 @techreport{mills2010ntp,
-  author      = {Mills, D. and Burbank, J. and Kasch, W.},
+  author      = {Mills, D. and Martin, J. and Burbank, J. and Kasch, W.},
   title       = {Network Time Protocol Version 4: Protocol and Algorithms
                  Specification},
   institution = {IETF},
@@ -772,11 +826,11 @@ D. Mills, J. Burbank, W. Kasch. „Network Time Protocol Version 4: Protocol and
 }
 ```
 
-### RFC 6202 — Long Polling und Streaming über HTTP
+### RFC 6202, long polling and streaming over HTTP
 
-S. Loreto, P. Saint-Andre, S. Salsano, G. Wilkins. „Known Issues and Best Practices for the Use of Long Polling and Streaming in Bidirectional HTTP." RFC 6202, IETF, April 2011. DOI 10.17487/RFC6202.
+S. Loreto, P. Saint-Andre, S. Salsano, G. Wilkins. "Known Issues and Best Practices for the Use of Long Polling and Streaming in Bidirectional HTTP." RFC 6202, IETF, April 2011. DOI 10.17487/RFC6202.
 
-**Verwendung.** Definition und Grenzen von Long Polling und HTTP-Streaming im Grundlagenkapitel (Push-Verfahren vor SSE und WebSocket).
+**Use.** Definition and limits of long polling and HTTP streaming in the fundamentals chapter (push techniques before SSE and WebSocket).
 
 ```bibtex
 @techreport{loreto2011longpolling,
@@ -790,11 +844,11 @@ S. Loreto, P. Saint-Andre, S. Salsano, G. Wilkins. „Known Issues and Best Prac
 }
 ```
 
-### RFC 9110 und RFC 9112 — HTTP-Semantik und HTTP/1.1
+### RFC 9110 and RFC 9112, HTTP semantics and HTTP/1.1
 
-R. Fielding, M. Nottingham, J. Reschke (Hrsg.). „HTTP Semantics." RFC 9110, IETF, Juni 2022. DOI 10.17487/RFC9110. Dieselben. „HTTP/1.1." RFC 9112, IETF, Juni 2022. DOI 10.17487/RFC9112.
+R. Fielding, M. Nottingham, J. Reschke (eds.). "HTTP Semantics." RFC 9110, IETF, June 2022. DOI 10.17487/RFC9110. The same editors. "HTTP/1.1." RFC 9112, IETF, June 2022. DOI 10.17487/RFC9112.
 
-**Verwendung.** HTTP-Grundlagen, auf denen SSE aufbaut. Persistente Verbindungen und die Empfehlung an Clients, die Zahl gleichzeitiger Verbindungen zu einem Server zu begrenzen (RFC 9112, Abschnitt 9).
+**Use.** HTTP fundamentals on which SSE builds. Persistent connections and the recommendation to clients to limit the number of concurrent connections to a server (RFC 9112, Section 9.4).
 
 ```bibtex
 @techreport{fielding2022semantics,
@@ -818,11 +872,11 @@ R. Fielding, M. Nottingham, J. Reschke (Hrsg.). „HTTP Semantics." RFC 9110, IE
 }
 ```
 
-### RFC 9113 — HTTP/2
+### RFC 9113, HTTP/2
 
-M. Thomson, C. Benfield (Hrsg.). „HTTP/2." RFC 9113, IETF, Juni 2022. DOI 10.17487/RFC9113.
+M. Thomson, C. Benfield (eds.). "HTTP/2." RFC 9113, IETF, June 2022. DOI 10.17487/RFC9113.
 
-**Verwendung.** Multiplexing mehrerer Streams über eine Verbindung als Unterschied zu HTTP/1.1 (DECISIONS.md 5.2, 5.12, Grundlagenkapitel).
+**Use.** Multiplexing several streams over one connection as the difference from HTTP/1.1 (DECISIONS.md 5.2, 5.12, fundamentals chapter).
 
 ```bibtex
 @techreport{thomson2022http2,
@@ -836,31 +890,31 @@ M. Thomson, C. Benfield (Hrsg.). „HTTP/2." RFC 9113, IETF, Juni 2022. DOI 10.1
 }
 ```
 
-### MDN Web Docs — EventSource
+### MDN Web Docs, EventSource
 
-Mozilla. „EventSource." *MDN Web Docs*. https://developer.mozilla.org/en-US/docs/Web/API/EventSource
+Mozilla. "EventSource." *MDN Web Docs*. https://developer.mozilla.org/en-US/docs/Web/API/EventSource
 
-**Verwendung.** Beleg für die Grenze von sechs gleichzeitigen SSE-Verbindungen je Browser und Domain ohne HTTP/2 (Grundlagenkapitel, DECISIONS.md 5.2). Die Grenze ist eine Eigenschaft der Browser, nicht der SSE-Spezifikation.
+**Use.** Evidence for the limit of six concurrent SSE connections per browser and domain without HTTP/2 (fundamentals chapter, DECISIONS.md 5.2). The limit is a property of browsers, not of the SSE specification. Under HTTP/2, according to MDN, server and client negotiate the number of concurrent streams (default 100).
 
 ```bibtex
 @online{mdn-eventsource,
   author  = {{Mozilla}},
   title   = {{EventSource}},
   url     = {https://developer.mozilla.org/en-US/docs/Web/API/EventSource},
-  urldate = {2026-10-16},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 ```
 
-## Dokumentation der eingesetzten Technologien
+## Documentation of the technologies used
 
-Offizielle Dokumentation als Beleg für Funktionsweise und Konfiguration der eingesetzten Komponenten (Grundlagen, Umsetzung, Methodik). Alle Adressen wurden am 2026-10-16 abgerufen. Online-Dokumentation ändert sich. Die zitierte Fassung ist durch das Abrufdatum bestimmt.
+Official documentation as evidence for how the components used work and are configured (fundamentals, implementation, methodology). The addresses were accessed on 2026-10-16 and checked again on 2026-11-03. Online documentation changes. The cited version is determined by the access date.
 
-### Nginx — Proxy-, FastCGI- und Verbindungsverarbeitung
+### Nginx, proxy, FastCGI and connection processing
 
-nginx.org. „Module ngx_http_proxy_module", „Module ngx_http_fastcgi_module" und „Connection processing methods". https://nginx.org/en/docs/
+nginx.org. "Module ngx_http_proxy_module", "Module ngx_http_fastcgi_module" and "Connection processing methods". https://nginx.org/en/docs/
 
-**Verwendung.** Ereignisgesteuerte Verbindungsverarbeitung von Nginx (Grundlagen, DECISIONS.md 5.1). Pufferung von Antworten (`proxy_buffering`, `fastcgi_buffering`, Header `X-Accel-Buffering`), die für SSE abgeschaltet sein muss (DECISIONS.md 5.6.1).
+**Use.** Event-driven connection processing of Nginx (fundamentals, DECISIONS.md 5.1). Buffering of responses (`proxy_buffering`, `fastcgi_buffering`, header `X-Accel-Buffering`), which must be turned off for SSE (DECISIONS.md 5.6.1).
 
 ```bibtex
 @online{nginx-proxy,
@@ -888,11 +942,11 @@ nginx.org. „Module ngx_http_proxy_module", „Module ngx_http_fastcgi_module" 
 }
 ```
 
-### Apache HTTP Server — Multi-Processing-Module
+### Apache HTTP Server, multi-processing modules
 
-The Apache Software Foundation. „Multi-Processing Modules (MPMs)" und „Apache MPM event". *Apache HTTP Server Version 2.4 Documentation*.
+The Apache Software Foundation. "Multi-Processing Modules (MPMs)" and "Apache MPM event". *Apache HTTP Server Version 2.4 Documentation*.
 
-**Verwendung.** Prozess- und Thread-Modelle von Apache (prefork, worker, event) im Grundlagenkapitel und als Begründung für Nginx (DECISIONS.md 5.1, 5.11).
+**Use.** Process and thread models of Apache (prefork, worker, event) in the fundamentals chapter and as the reason for choosing Nginx (DECISIONS.md 5.1, 5.11).
 
 ```bibtex
 @online{apache-mpm,
@@ -912,11 +966,11 @@ The Apache Software Foundation. „Multi-Processing Modules (MPMs)" und „Apach
 }
 ```
 
-### Redis — Pub/Sub
+### Redis, Pub/Sub
 
-Redis Ltd. „Redis Pub/Sub." *Redis Documentation*. https://redis.io/docs/latest/develop/pubsub/
+Redis Ltd. "Redis Pub/Sub." *Redis Documentation*. https://redis.io/docs/latest/develop/pubsub/
 
-**Verwendung.** Funktionsweise von Redis Pub/Sub und dessen Zustellsemantik (höchstens einmal, keine Speicherung für abwesende Abonnenten), DECISIONS.md 5.4, 5.17.
+**Use.** How Redis Pub/Sub works and its delivery semantics (at most once, no storage for absent subscribers), DECISIONS.md 5.4, 5.17.
 
 ```bibtex
 @online{redis-pubsub,
@@ -928,11 +982,27 @@ Redis Ltd. „Redis Pub/Sub." *Redis Documentation*. https://redis.io/docs/lates
 }
 ```
 
+### Redis, persistence
+
+Redis Ltd. "Redis Persistence." *Redis Documentation*. https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/
+
+**Use.** By default, Redis saves snapshots to disk and uses `fork()` for this, which can cause short pauses with large datasets (DECISIONS.md 5.4).
+
+```bibtex
+@online{redis-persistence,
+  author  = {{Redis Ltd.}},
+  title   = {Redis Persistence},
+  url     = {https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
+
 ### MQTT 5.0
 
-A. Banks, E. Briggs, K. Borgendale, R. Gupta (Hrsg.). „MQTT Version 5.0." OASIS Standard, 7. März 2019. https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
+A. Banks, E. Briggs, K. Borgendale, R. Gupta (eds.). "MQTT Version 5.0." OASIS Standard, March 7, 2019. https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
 
-**Verwendung.** MQTT als Geräteeingang von Lokato im Grundlagen- und Entwurfskapitel. Dienstgüten (QoS 0 bis 2) im Vergleich mit der Zustellsemantik von Redis Pub/Sub. MQTT als alternativer Verteilweg in der Diskussion (DECISIONS.md 5.4).
+**Use.** MQTT as the device input of Lokato in the fundamentals and design chapters. Quality of service levels (QoS 0 to 2) compared with the delivery semantics of Redis Pub/Sub. MQTT as an alternative distribution path in the discussion (DECISIONS.md 5.4).
 
 ```bibtex
 @online{oasis2019mqtt,
@@ -950,7 +1020,7 @@ A. Banks, E. Briggs, K. Borgendale, R. Gupta (Hrsg.). „MQTT Version 5.0." OASI
 
 Taskforce.sh. *BullMQ Documentation*. https://docs.bullmq.io/
 
-**Verwendung.** Queue der Node.js-Zelle mit Queue (Jobs, Worker, Speicherung in Redis), DECISIONS.md 5.19.
+**Use.** Queue of the Node.js variant with a queue (jobs, workers, storage in Redis), DECISIONS.md 5.19. By default, BullMQ keeps completed jobs in Redis, and `removeOnComplete` removes them (DECISIONS.md 5.20).
 
 ```bibtex
 @online{bullmq-docs,
@@ -960,61 +1030,69 @@ Taskforce.sh. *BullMQ Documentation*. https://docs.bullmq.io/
   urldate = {2026-10-16},
   langid  = {english}
 }
+
+@online{bullmq-auto-removal,
+  author  = {{Taskforce.sh}},
+  title   = {Auto-Removal of Jobs: {BullMQ} Documentation},
+  url     = {https://docs.bullmq.io/guide/queues/auto-removal-of-jobs},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
 ```
 
-### Laravel — Queues, Broadcasting, Reverb, Deployment, Releases
+### Laravel, queues, broadcasting, Reverb, deployment, releases
 
-Laravel. *Laravel 13.x Documentation*, Kapitel „Queues", „Broadcasting", „Laravel Reverb", „Deployment" und „Release Notes". https://laravel.com/docs/13.x
+Laravel. *Laravel 13.x Documentation*, chapters "Queues", "Broadcasting", "Laravel Reverb", "Deployment" and "Release Notes". https://laravel.com/framework/docs/13.x
 
-**Verwendung.** Queue-Worker und `block_for` (DECISIONS.md 5.19, 5.20), Broadcasting über Reverb (WebSocket-Zelle), Produktionskonfiguration mit Config-, Route- und Event-Cache (DECISIONS.md 5.5), Unterstützungszeiträume der Laravel-Versionen als Begründung für Laravel 13 (DECISIONS.md 5.23).
+**Use.** Queue worker and `block_for` (DECISIONS.md 5.19, 5.20), broadcasting through Reverb (WebSocket variant), production configuration with config, route and event caches (DECISIONS.md 5.5), support periods of the Laravel versions as the reason for Laravel 13 (DECISIONS.md 5.23).
 
 ```bibtex
 @online{laravel-queues,
   author  = {{Laravel}},
   title   = {Queues: Laravel 13.x Documentation},
-  url     = {https://laravel.com/docs/13.x/queues},
-  urldate = {2026-10-16},
+  url     = {https://laravel.com/framework/docs/13.x/queues},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
 @online{laravel-broadcasting,
   author  = {{Laravel}},
   title   = {Broadcasting: Laravel 13.x Documentation},
-  url     = {https://laravel.com/docs/13.x/broadcasting},
-  urldate = {2026-10-16},
+  url     = {https://laravel.com/framework/docs/13.x/broadcasting},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
 @online{laravel-reverb,
   author  = {{Laravel}},
   title   = {Laravel Reverb: Laravel 13.x Documentation},
-  url     = {https://laravel.com/docs/13.x/reverb},
-  urldate = {2026-10-16},
+  url     = {https://laravel.com/framework/docs/13.x/reverb},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
 @online{laravel-deployment,
   author  = {{Laravel}},
   title   = {Deployment: Laravel 13.x Documentation},
-  url     = {https://laravel.com/docs/13.x/deployment},
-  urldate = {2026-10-16},
+  url     = {https://laravel.com/framework/docs/13.x/deployment},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
 @online{laravel-releases,
   author  = {{Laravel}},
   title   = {Release Notes: Laravel 13.x Documentation},
-  url     = {https://laravel.com/docs/13.x/releases},
-  urldate = {2026-10-16},
+  url     = {https://laravel.com/framework/docs/13.x/releases},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 ```
 
-### Versionen von Node.js und PHP
+### Versions of Node.js and PHP
 
-OpenJS Foundation. „Node.js Releases". https://nodejs.org/en/about/previous-releases. The PHP Group. „Supported Versions". https://www.php.net/supported-versions.php
+OpenJS Foundation. "Node.js Releases". https://nodejs.org/en/about/previous-releases. The PHP Group. "Supported Versions". https://www.php.net/supported-versions.php
 
-**Verwendung.** Erscheinungsdaten und Unterstützungsstatus der gemessenen Versionen (DECISIONS.md 5.26). Am 2026-10-27 führte die Release-Seite Node.js 26 als „Current“ und Node.js 22 und 24 als LTS. PHP 8.5 wird laut php.net bis 31.12.2027 aktiv und bis 31.12.2029 mit Sicherheitskorrekturen unterstützt, PHP 8.4 bis 31.12.2026 beziehungsweise 31.12.2028.
+**Use.** Release dates and support status of the measured versions (DECISIONS.md 5.26). On 2026-10-27, the cutoff date of the version rule, the release page listed Node.js 26 as "Current" and Node.js 22 and 24 as LTS. On 2026-11-03, it also lists Node.js 26 as LTS. According to php.net, PHP 8.5 has active support until 2027-12-31 and security fixes until 2029-12-31, PHP 8.4 until 2026-12-31 and 2028-12-31 respectively.
 
 ```bibtex
 @online{nodejs-releases,
@@ -1029,16 +1107,16 @@ OpenJS Foundation. „Node.js Releases". https://nodejs.org/en/about/previous-re
   author  = {{The PHP Group}},
   title   = {Supported Versions},
   url     = {https://www.php.net/supported-versions.php},
-  urldate = {2026-10-27},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 ```
 
-### PHP-FPM und offizielles PHP-Image
+### PHP-FPM and the official PHP image
 
-The PHP Group. „FastCGI Process Manager (FPM)" und „Configuration". *PHP Manual*. Docker Official Images. „php" (Image-Dokumentation).
+The PHP Group. "FastCGI Process Manager (FPM)" and "Configuration". *PHP Manual*. Docker Official Images. "php" (image documentation).
 
-**Verwendung.** Prozessmodell von PHP-FPM, Pool-Konfiguration (`pm`, `pm.max_children`, `ping.path`), DECISIONS.md 5.5. Empfehlung des offiziellen Images, in Produktion `php.ini-production` zu verwenden (DECISIONS.md 5.5).
+**Use.** Process model of PHP-FPM, pool configuration (`pm`, `pm.max_children`, `ping.path`), DECISIONS.md 5.5. Recommendation of the official image to use `php.ini-production` in production (DECISIONS.md 5.5).
 
 ```bibtex
 @online{php-fpm,
@@ -1066,13 +1144,13 @@ The PHP Group. „FastCGI Process Manager (FPM)" und „Configuration". *PHP Man
 }
 ```
 
-### Symfony und Mercure
+### Symfony and Mercure
 
-Symfony SAS. „Pushing Data to Clients Using the Mercure Protocol." *Symfony Documentation*. https://symfony.com/doc/current/mercure.html — Mercure-Projekt. „Install the Mercure Hub." https://mercure.rocks/docs/hub/install
+Symfony SAS. "Pushing Data to Clients Using the Mercure Protocol." *Symfony Documentation*. https://symfony.com/doc/current/mercure.html. Mercure project. "Install the Mercure.rocks hub." https://mercure.rocks/docs/getting-started/installation
 
-**Verwendung.** Begründung, warum keine Symfony-Variante gemessen wird (DECISIONS.md 5.23). Symfony überträgt Push-Nachrichten über Mercure. Die dauerhaften SSE-Verbindungen hält dabei ein eigener Hub-Server, der als Go-Programm bzw. Caddy-Modul ausgeliefert wird. Eine Symfony-Variante würde den Push-Pfad daher nicht in PHP messen.
+**Use.** Reason why no Symfony variant is measured (DECISIONS.md 5.23). Symfony transmits push messages through Mercure. The long-lived SSE connections are held by a separate hub server, delivered as a Go program or a Caddy module. A Symfony variant would therefore not measure the push path in PHP.
 
-**Ergänzend aus dem Exposé.** Symfony. „Events and Event Listeners." *Symfony Documentation*. https://symfony.com/doc/current/event_dispatcher.html (die im Exposé genannte Adresse der Komponentendokumentation leitet dorthin weiter). Die Dokumentation beschreibt den EventDispatcher als Umsetzung der Muster Mediator und Observer, mit denen Komponenten einer Anwendung über Ereignisse kommunizieren. Beleg dafür, dass der EventDispatcher ein Mechanismus innerhalb eines Prozesses ist und keinen Weg zum Client bietet (DECISIONS.md 5.23).
+**Additional from the proposal.** Symfony. "Events and Event Listeners." *Symfony Documentation*. https://symfony.com/doc/current/event_dispatcher.html (the address of the component documentation named in the proposal redirects there). The documentation describes the EventDispatcher as an implementation of the Mediator and Observer patterns, through which components of an application communicate by events. Evidence that the EventDispatcher is a mechanism within one process and offers no path to the client (DECISIONS.md 5.23).
 
 ```bibtex
 @online{symfony-eventdispatcher,
@@ -1093,18 +1171,18 @@ Symfony SAS. „Pushing Data to Clients Using the Mercure Protocol." *Symfony Do
 
 @online{mercure-hub,
   author  = {{Mercure}},
-  title   = {Install the Mercure Hub},
-  url     = {https://mercure.rocks/docs/hub/install},
-  urldate = {2026-10-16},
+  title   = {Install the {Mercure.rocks} Hub},
+  url     = {https://mercure.rocks/docs/getting-started/installation},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 ```
 
-### Ratchet und ReactPHP
+### Ratchet and ReactPHP
 
-Chris Boden u. a. *Ratchet Documentation*. http://socketo.me/docs/ — ReactPHP-Projekt. *ReactPHP*. https://reactphp.org/
+Chris Boden et al. *Ratchet Documentation*. http://socketo.me/docs/. ReactPHP project. *ReactPHP*. https://reactphp.org/
 
-**Verwendung.** Ereignisgesteuerter WebSocket-Server der PHP-Minimalvariante auf Basis der ReactPHP-Ereignisschleife (Grundlagen, Umsetzung).
+**Use.** Event-driven WebSocket server of the minimal PHP variant, based on the ReactPHP event loop (fundamentals, implementation).
 
 ```bibtex
 @online{ratchet-docs,
@@ -1124,26 +1202,26 @@ Chris Boden u. a. *Ratchet Documentation*. http://socketo.me/docs/ — ReactPHP-
 }
 ```
 
-### Node.js, Express und ws
+### Node.js, Express and ws
 
-Node.js Project. „The Node.js Event Loop." *Node.js Learn*. — Express. „Production Best Practices: Performance and Reliability." — ws. *ws: a Node.js WebSocket library* (README).
+Node.js Project. "The Node.js Event Loop." *Node.js Learn*. Express. "Production Best Practices: Performance and Reliability." ws. *ws: a Node.js WebSocket library* (README).
 
-**Verwendung.** Ereignisschleife von Node.js (Grundlagen). Produktionsbetrieb von Express mit `NODE_ENV=production` (DECISIONS.md 5.5). WebSocket-Bibliothek der Node.js-Zellen.
+**Use.** Event loop of Node.js (fundamentals). Production operation of Express with `NODE_ENV=production` (DECISIONS.md 5.5). WebSocket library of the Node.js variants.
 
 ```bibtex
 @online{nodejs-event-loop,
   author  = {{Node.js Project}},
   title   = {The {Node.js} Event Loop},
-  url     = {https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick},
-  urldate = {2026-10-16},
+  url     = {https://nodejs.org/learn/asynchronous-work/event-loop-timers-and-nexttick},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
 @online{express-production,
   author  = {{Express}},
   title   = {Production Best Practices: Performance and Reliability},
-  url     = {https://expressjs.com/en/advanced/best-practice-performance.html},
-  urldate = {2026-10-16},
+  url     = {https://expressjs.com/en/advanced/best-practice-performance/},
+  urldate = {2026-11-03},
   langid  = {english}
 }
 
@@ -1156,11 +1234,11 @@ Node.js Project. „The Node.js Event Loop." *Node.js Learn*. — Express. „Pr
 }
 ```
 
-### k6 und xk6-sse
+### k6 and xk6-sse
 
-Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/ — Pierrick Hymbert. *xk6-sse: A k6 extension for Server-Sent Events*. https://github.com/phymbert/xk6-sse
+Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/. Pierrick Hymbert. *xk6-sse: A k6 extension for Server-Sent Events*. https://github.com/phymbert/xk6-sse
 
-**Verwendung.** Lastwerkzeug, virtuelle Benutzer, Metriken und Zusammenfassungsexport (Methodik). SSE-Client der Messung (DECISIONS.md 3).
+**Use.** Load tool, virtual users, metrics and summary export (methodology). SSE client of the measurement (DECISIONS.md 3).
 
 ```bibtex
 @online{k6-docs,
@@ -1180,11 +1258,11 @@ Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/ �
 }
 ```
 
-### Linux cgroup v2 und docker stats
+### Linux cgroup v2 and docker stats
 
-The Linux Kernel Documentation. „Control Group v2." https://docs.kernel.org/admin-guide/cgroup-v2.html — Docker Inc. „docker container stats." *Docker Docs*. https://docs.docker.com/reference/cli/docker/container/stats/
+The Linux Kernel Documentation. "Control Group v2." https://docs.kernel.org/admin-guide/cgroup-v2.html. Docker Inc. "docker container stats." *Docker Docs*. https://docs.docker.com/reference/cli/docker/container/stats/
 
-**Verwendung.** Ressourcenmessung aus `cpu.stat`, `memory.current` und `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`). Definition des Working Sets wie bei `docker stats` (Speicher abzüglich `inactive_file`).
+**Use.** Resource measurement from `cpu.stat`, `memory.current` and `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`). Definition of the working set as in `docker stats` (memory minus `inactive_file`).
 
 ```bibtex
 @online{kernel-cgroup-v2,
@@ -1204,15 +1282,103 @@ The Linux Kernel Documentation. „Control Group v2." https://docs.kernel.org/ad
 }
 ```
 
-## Technische Referenzdokumentation (Debugging- und Monitoring-Vergleich)
+### Docker Compose
 
-Offizielle Werkzeugdokumentation als Beleg für den Vergleich in DECISIONS.md 5.13.
+Docker Inc. "Define Services in Docker Compose." *Docker Docs*. https://docs.docker.com/reference/compose-file/services/
 
-### Node.js — Debugger und Inspector
+**Use.** Healthcheck with `start_period` and `start_interval`, available from Compose 2.20.2 (DECISIONS.md 5.18). `cgroup_parent` for the shared slice of a variant (DECISIONS.md 5.6.2).
 
-Node.js-Projekt. „Debugger" und „Inspector", *Node.js API-Dokumentation*. https://nodejs.org/api/debugger.html
+```bibtex
+@online{docker-compose-services,
+  author  = {{Docker Inc.}},
+  title   = {Define Services in {Docker Compose}},
+  url     = {https://docs.docker.com/reference/compose-file/services/},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
 
-**Verwendung.** Der Schritt-Debugger (`--inspect`, V8 Inspector / Chrome-DevTools-Protokoll) ist Bestandteil des Node.js-Kerns.
+### systemd, resource control
+
+The systemd Project. "systemd.resource-control." *systemd Manual*. https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html
+
+**Use.** `CPUQuota`, `MemoryMax` and `MemorySwapMax` as the implementation of the shared budget per variant (DECISIONS.md 5.6.2).
+
+```bibtex
+@online{systemd-resource-control,
+  author  = {{The systemd Project}},
+  title   = {systemd.resource-control: Resource Control Unit Settings},
+  url     = {https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
+
+### Raspberry Pi, throttling status and kernel
+
+Raspberry Pi Ltd. "Raspberry Pi OS" (section `vcgencmd`) and "config.txt" (section `kernel`). *Raspberry Pi Documentation*. https://www.raspberrypi.com/documentation/computers/
+
+**Use.** Meaning of the throttling status from `vcgencmd get_throttled` as a validity criterion of a run (DECISIONS.md 5.14). On the Pi 5, the firmware loads `kernel_2712.img` with 16 KB pages by default, and `kernel=kernel8.img` selects the common 64-bit kernel (DECISIONS.md 5.10). The page does not state explicitly that this kernel uses 4 KB pages. That was measured on the Pi (DECISIONS.md 5.10).
+
+```bibtex
+@online{raspberrypi-os,
+  author  = {{Raspberry Pi Ltd}},
+  title   = {Raspberry {Pi} {OS}: Raspberry {Pi} Documentation},
+  url     = {https://www.raspberrypi.com/documentation/computers/os.html},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+
+@online{raspberrypi-config,
+  author  = {{Raspberry Pi Ltd}},
+  title   = {config.txt: Raspberry {Pi} Documentation},
+  url     = {https://www.raspberrypi.com/documentation/computers/config_txt.html},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
+
+### Pusher Channels protocol
+
+Pusher Ltd. "Pusher Channels Protocol." *Pusher Channels Documentation*. https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/
+
+**Use.** Protocol that Laravel Reverb speaks over WebSocket. After the handshake, the server sends `pusher:connection_established`, and then the client subscribes to a channel with `pusher:subscribe`. This is why the subscription is not part of the measured connection setup for Reverb (DECISIONS.md 5.15).
+
+```bibtex
+@online{pusher-protocol,
+  author  = {{Pusher Ltd.}},
+  title   = {Pusher Channels Protocol},
+  url     = {https://pusher.com/docs/channels/library_auth_reference/pusher-websockets-protocol/},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
+
+### OPcache
+
+The PHP Group. "Runtime Configuration" (OPcache). *PHP Manual*. https://www.php.net/manual/en/opcache.configuration.php
+
+**Use.** Settings `opcache.enable` and `opcache.enable_cli`. The value is recorded for PHP-FPM, and the long-running CLI processes run without OPcache (DECISIONS.md 5.16).
+
+```bibtex
+@online{php-opcache,
+  author  = {{The PHP Group}},
+  title   = {{OPcache} Runtime Configuration},
+  url     = {https://www.php.net/manual/en/opcache.configuration.php},
+  urldate = {2026-11-03},
+  langid  = {english}
+}
+```
+
+## Technical reference documentation (debugging and monitoring comparison)
+
+Official tool documentation as evidence for the comparison in DECISIONS.md 5.13.
+
+### Node.js, debugger and inspector
+
+Node.js project. "Debugger" and "Inspector", *Node.js API documentation*. https://nodejs.org/api/debugger.html
+
+**Use.** The step debugger (`--inspect`, V8 Inspector or Chrome DevTools protocol) is part of the Node.js core.
 
 ```bibtex
 @online{nodejs-debugger,
@@ -1224,11 +1390,11 @@ Node.js-Projekt. „Debugger" und „Inspector", *Node.js API-Dokumentation*. ht
 }
 ```
 
-### Xdebug — Installation
+### Xdebug, installation
 
-Derick Rethans. *Xdebug Documentation — Installation*. https://xdebug.org/docs/install
+Derick Rethans. *Xdebug Documentation, Installation*. https://xdebug.org/docs/install
 
-**Verwendung.** Xdebug ist eine separate PECL-Erweiterung und wird nicht mit PHP ausgeliefert.
+**Use.** Xdebug is a separate PECL extension and does not ship with PHP.
 
 ```bibtex
 @online{xdebug-install,
@@ -1242,13 +1408,13 @@ Derick Rethans. *Xdebug Documentation — Installation*. https://xdebug.org/docs
 
 ---
 
-## Nachhaltigkeit
+## Sustainability
 
-### Vereinte Nationen (2015) — Agenda 2030 und Ziele für nachhaltige Entwicklung
+### United Nations (2015), 2030 Agenda and Sustainable Development Goals
 
-United Nations General Assembly. „Transforming our World: The 2030 Agenda for Sustainable Development." Resolution A/RES/70/1, angenommen im September 2015. https://sdgs.un.org/2030agenda
+United Nations General Assembly. "Transforming our World: The 2030 Agenda for Sustainable Development." Resolution A/RES/70/1, adopted in September 2015. https://sdgs.un.org/2030agenda
 
-**Verwendung.** Bezug der Arbeit zu den Zielen für nachhaltige Entwicklung (SDG 9, 11 und 12) in Einleitung und Diskussion, wie in der Lehrveranstaltung WIA4SE (Teil 5) verlangt.
+**Use.** Connection of the thesis to the Sustainable Development Goals (SDG 9, 11 and 12) in the introduction and discussion, as required in the course WIA4SE (part 5).
 
 ```bibtex
 @online{un2015agenda,
@@ -1264,49 +1430,242 @@ United Nations General Assembly. „Transforming our World: The 2030 Agenda for 
 
 ---
 
-## Übersicht, Quelle je Entscheidung
+## Proposals, not read yet (as of 2026-11-03)
 
-| DECISIONS.md | Entscheidung | Quelle(n) |
-| ------------ | ------------ | --------- |
-| Verwandte Arbeiten | Nebenläufigkeitsmodelle von Servern | Lauer & Needham (1979), Welsh et al. (2001), von Behren et al. (2003), Pariag et al. (2007) |
-| Verwandte Arbeiten | PHP und Node.js | Tilkov & Vinoski (2010) und Lei, Ma & Tan (2014) |
-| Verwandte Arbeiten | Echtzeit im Web, Messaging | Murley et al. (2021), Hohpe & Woolf (2003) |
-| 5.18 | Hypothesen vorab festlegen | Kerr (1998) |
-| 5.8 | Analyseeinheit k6-Lauf | Hurlbert (1984) |
-| 5.8 | Mittelwert pro Lauf als Testgröße | Widrow & Kollár (2008) |
-| 5.8 | Wilcoxon-Vorzeichen-Rang-Test (gepaart) | Wilcoxon (1945), Arcuri & Briand (2014) |
-| 5.8 | Mann-Whitney-U-Test (ersetzt) | Mann & Whitney (1947) |
-| 5.8 | Cliff's Delta und Schwellen | Cliff (1993), Romano et al. (2006), vgl. Vargha & Delaney (2000) |
-| 5.8 | Rangbiseriale Korrelation (gepaart) | Kerby (2014) |
-| 5.8 | Bootstrap-Konfidenzintervall | Efron & Tibshirani (1993) |
-| 5.8 | Holm-Korrektur je Familie | Holm (1979) |
-| 5.8 | Tail-Latenzen berichten | Dean & Barroso (2013) |
-| 5.8 | nichtparametrisches Vorgehen | Georges et al. (2007), Kalibera & Jones (2013) |
-| 5.8, 5.9 | Validitätsrahmen | Wohlin et al. (2024) |
-| 5.9 | Warm-up, Wiederholungszahl aus Pilot | Georges et al. (2007), Kalibera & Jones (2013) |
-| 5.9 | kein Abbruch nach Zwischenauswertung | Armitage et al. (1969) |
-| 5.14 | Zeitstempel vom selben Gerät | RFC 5905 |
-| 5.17 | Latenzgrenze im Sättigungskriterium | Nielsen (1993) |
-| externe Validität | Docker als symmetrischer Einflussfaktor | Felter et al. (2015) |
-| Konstruktvalidität | Definition von WebSocket und SSE | RFC 6455, WHATWG HTML Living Standard |
-| 5.13 | Debugger und Profiler eingebaut bzw. Zusatzinstallation | Node.js-Dokumentation, Xdebug-Dokumentation |
-| Grundlagen | Polling, Long Polling, Streaming | RFC 6202 |
-| Einleitung, Diskussion | Bezug zu den Zielen für nachhaltige Entwicklung | Vereinte Nationen (2015) |
-| 5.2, 5.12 | HTTP/1.1, HTTP/2, Verbindungsgrenze im Browser | RFC 9110, RFC 9112, RFC 9113, MDN EventSource |
-| 5.1, 5.11 | Nginx ereignisgesteuert, Apache-MPMs | Nginx-Dokumentation, Apache-Dokumentation |
-| 5.6.1 | Pufferung im Front-Nginx für SSE abgeschaltet | Nginx-Dokumentation (Proxy, FastCGI) |
-| 5.4, 5.17 | Zustellsemantik von Redis Pub/Sub | Redis-Dokumentation |
-| 5.4 | MQTT als Geräteeingang von Lokato, Dienstgüten, MQTT als alternativer Verteilweg | OASIS MQTT 5.0 |
-| 5.4 | Push über einen Broker statt Polling | Fowler (2017), Hohpe & Woolf (2003), RFC 6202 |
-| 5.5 | Produktionsbetrieb (php.ini, Laravel-Caches, `NODE_ENV`) | PHP-Image-Dokumentation, Laravel Deployment, Express Production Best Practices |
-| 5.5 | PHP-FPM-Prozessmodell und Pool-Konfiguration | PHP-Handbuch (FPM) |
-| 5.19, 5.20 | Queues (BullMQ, Laravel Queue, `block_for`) | BullMQ-Dokumentation, Laravel Queues |
-| 5.16 | Ressourcenmessung über cgroup v2, Working Set | Kernel-Dokumentation cgroup v2, Docker-Dokumentation `docker stats` |
-| 3, 5.9 | Lastwerkzeug k6 und xk6-sse | k6-Dokumentation, xk6-sse |
-| 5.9, 5.10 | verteilter Verbindungsaufbau, Ansturm nach einem Neustart (automatische Wiederverbindung von EventSource) | WHATWG Server-Sent Events, k6-Dokumentation |
-| 5.23 | Laravel 13 statt 12 (Unterstützungszeitraum) | Laravel Release Notes |
-| 5.26 | Versionen nach Erscheinungsdatum | Node.js Releases, PHP Supported Versions, Laravel Release Notes |
-| 5.23 | keine Symfony-Variante | Symfony EventDispatcher und Mercure, Mercure-Hub |
-| Grundlagen | Anfrage-Antwort-Modell, ereignisbasierte Integration | Fielding (2000), Fowler (2017), Hohpe & Woolf (2003) |
-| Verwandte Arbeiten | ereignisgesteuerte Architektur (Modularität, Performance, Herausforderungen, Modelle) | Farias & Lazzari (2023), Cabane & Farias (2024), Laigner et al. (2026), Woodside (2021) |
-| 5.13, 5.22 | Fehlersuche und Überwachung, Wartbarkeit | Laigner et al. (2026), Farias & Lazzari (2023) |
+The metadata of these sources are confirmed through Crossref unless noted otherwise. The content comes from the abstracts. **CHECK BY HAND.** Read all sources here in the original first, then either move them to the matching section or delete them. None of them is cited unread.
+
+### Van de Vyvere, Colpaert & Verborgh (2020), polling versus SSE
+
+**Content (per abstract).** Peer-reviewed comparison of HTTP polling and SSE with up to 25,000 clients, measuring scalability, server CPU load and client latency. SSE is better on all three as long as updates should arrive as fast as possible. If users accept a delay of about 10 s, polling serves as many clients.
+
+**Intended for.** Related work, Chapter 3 and the research gap. Closest to this thesis, but it does not compare SSE with WebSocket or PHP with Node.js. It also fits Lokato, which distributes by polling every 500 ms (DECISIONS.md 5.4). Full text freely available.
+
+```bibtex
+@inproceedings{vandevyvere2020polling,
+  author    = {Van de Vyvere, Brecht and Colpaert, Pieter and Verborgh, Ruben},
+  title     = {Comparing a Polling and Push-Based Approach for Live Open Data Interfaces},
+  booktitle = {Web Engineering (ICWE 2020)},
+  series    = {Lecture Notes in Computer Science},
+  publisher = {Springer},
+  pages     = {87--101},
+  date      = {2020},
+  doi       = {10.1007/978-3-030-50578-3_7},
+  langid    = {english}
+}
+```
+
+### Pimentel & Nickerson (2012), WebSocket versus polling
+
+**Content (per abstract).** Measures the one-way latency of sensor data at 4 Hz over WebSocket, HTTP polling and long polling.
+
+**Intended for.** Related work, real time on the web. Peer-reviewed predecessor of a latency measurement for WebSocket, without SSE and without comparing languages.
+
+```bibtex
+@article{pimentel2012websocket,
+  author       = {Pimentel, Victoria and Nickerson, Bradford G.},
+  title        = {Communicating and Displaying Real-Time Data with {WebSocket}},
+  journaltitle = {IEEE Internet Computing},
+  volume       = {16},
+  number       = {4},
+  pages        = {45--53},
+  date         = {2012},
+  doi          = {10.1109/MIC.2012.64},
+  langid       = {english}
+}
+```
+
+### Appelqvist & Örnmyr (2017), SSE and WebSocket compared directly
+
+Blekinge Institute of Technology, found through OpenAlex. The record in the DiVA database could not be retrieved during the review. **CHECK BY HAND.** The type of work and the content are not confirmed yet, only title, authors, year and university.
+
+**Intended for.** Research gap. By its title the most direct comparison of polling, long polling, SSE and WebSocket. Student theses are not peer-reviewed, but the gap must be worded so that it also holds against this one.
+
+```bibtex
+@thesis{appelqvist2017performance,
+  author      = {Appelqvist, Rasmus and {\"O}rnmyr, Oliver},
+  title       = {Performance Comparison of {XHR} Polling, Long Polling, Server Sent Events and {WebSockets}},
+  type        = {Thesis},
+  institution = {Blekinge Institute of Technology},
+  date        = {2017},
+  url         = {http://urn.kb.se/resolve?urn=urn:nbn:se:bth-14497},
+  urldate     = {2026-11-03},
+  langid      = {english}
+}
+```
+
+### Chaniotis, Kyriakou & Tselikas (2015), performance of Node.js
+
+No abstract available, the content is known only from the title.
+
+**Intended for.** Related work, PHP versus Node.js, as a peer-reviewed addition to Lei et al. (2014), if the full text confirms the comparison with PHP.
+
+```bibtex
+@article{chaniotis2015nodejs,
+  author       = {Chaniotis, Ioannis K. and Kyriakou, Kyriakos-Ioannis D. and Tselikas, Nikolaos D.},
+  title        = {Is {Node.js} a Viable Option for Building Modern Web Applications? {A} Performance Evaluation Study},
+  journaltitle = {Computing},
+  volume       = {97},
+  number       = {10},
+  pages        = {1023--1044},
+  date         = {2015},
+  doi          = {10.1007/s00607-014-0394-9},
+  langid       = {english}
+}
+```
+
+### Mytkowicz, Diwan, Hauswirth & Sweeney (2009), measurement bias from the setup
+
+**Content (per abstract).** Seemingly innocuous aspects of an experimental setup can lead to wrong conclusions (measurement bias).
+
+**Intended for.** Methodology and threats to internal validity. Fits the finding that the healthcheck distorted the CPU time of Redis (DECISIONS.md 5.18).
+
+```bibtex
+@inproceedings{mytkowicz2009wrong,
+  author    = {Mytkowicz, Todd and Diwan, Amer and Hauswirth, Matthias and Sweeney, Peter F.},
+  title     = {Producing Wrong Data Without Doing Anything Obviously Wrong!},
+  booktitle = {Proceedings of the 14th International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS)},
+  pages     = {265--276},
+  date      = {2009},
+  doi       = {10.1145/1508244.1508275},
+  langid    = {english}
+}
+```
+
+### Barrett et al. (2017), warm-up of virtual machines
+
+**Content (per abstract).** Even small, deterministic benchmarks often fail to reach a steady state of peak performance on common virtual machines, at most 43.5% of the studied pairs do so consistently.
+
+**Intended for.** Threats to internal validity. The 5 warm-up runs assume a steady state. Relevant for Node.js with the V8 JIT. The paper covers microbenchmarks, so the transfer would be a conclusion of this thesis. Full text freely available.
+
+```bibtex
+@article{barrett2017warmup,
+  author       = {Barrett, Edd and Bolz-Tereick, Carl Friedrich and Killick, Rebecca and Mount, Sarah and Tratt, Laurence},
+  title        = {Virtual Machine Warmup Blows Hot and Cold},
+  journaltitle = {Proceedings of the ACM on Programming Languages},
+  volume       = {1},
+  number       = {OOPSLA},
+  pages        = {1--27},
+  date         = {2017},
+  doi          = {10.1145/3133876},
+  langid       = {english}
+}
+```
+
+### Hoefler & Belli (2015), rules for reporting measurements
+
+**Content (per abstract).** Examines 120 papers and derives rules for the design, analysis and reporting of performance measurements.
+
+**Intended for.** Methodology, as evidence for reporting variation and confidence intervals. It comes from high-performance computing, so the transfer needs a short explanation.
+
+```bibtex
+@inproceedings{hoefler2015scientific,
+  author    = {Hoefler, Torsten and Belli, Roberto},
+  title     = {Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results},
+  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)},
+  pages     = {1--12},
+  date      = {2015},
+  doi       = {10.1145/2807591.2807644},
+  langid    = {english}
+}
+```
+
+### Papadopoulos et al. (2021), principles of reproducible measurements (optional)
+
+**Content (per abstract).** Eight methodological principles for performance measurements in the cloud and a literature review of how well they are followed.
+
+**Intended for.** Methodology, if a more recent framework is wanted next to Georges et al. and Kalibera & Jones. It concerns the cloud, not a single test server.
+
+```bibtex
+@article{papadopoulos2021methodological,
+  author       = {Papadopoulos, Alessandro Vittorio and Versluis, Laurens and Bauer, Andre and Herbst, Nikolas and von Kistowski, Joakim and Ali-Eldin, Ahmed and Abad, Cristina L. and Amaral, Jose Nelson and T{\r{u}}ma, Petr and Iosup, Alexandru},
+  title        = {Methodological Principles for Reproducible Performance Evaluation in Cloud Computing},
+  journaltitle = {IEEE Transactions on Software Engineering},
+  volume       = {47},
+  number       = {8},
+  pages        = {1528--1543},
+  date         = {2021},
+  doi          = {10.1109/TSE.2019.2927908},
+  langid       = {english}
+}
+```
+
+### Johnston et al. (2018), single board computers as servers
+
+**Content (per abstract).** Current single board computers such as the Raspberry Pi can run mainstream operating systems and workloads and are cheap and low-power, for example for edge and fog computing.
+
+**Intended for.** Test environment and external validity. Explains why the Pi is a realistic small server. Full text freely available.
+
+```bibtex
+@article{johnston2018commodity,
+  author       = {Johnston, Steven J. and Basford, Philip J. and Perkins, Colin S. and Herry, Herry and Tso, Fung Po and Pezaros, Dimitrios and Mullins, Robert D. and Yoneki, Eiko and Cox, Simon J. and Singer, Jeremy},
+  title        = {Commodity Single Board Computer Clusters and Their Applications},
+  journaltitle = {Future Generation Computer Systems},
+  volume       = {89},
+  pages        = {201--212},
+  date         = {2018},
+  doi          = {10.1016/j.future.2018.06.048},
+  langid       = {english}
+}
+```
+
+### Found and not proposed
+
+Low visibility or little relevance. They do show that related measurements exist and should be known when wording the gap.
+
+- Fernando & Engel (2025). WebSocket libraries on Node.js and Go, up to 1,000 clients with broadcast latency. *Sinkron*, 9(4), 2051–2060. DOI 10.33395/sinkron.v9i4.15266.
+- Sanjaya & Wibhowo (2026). Real-time architectures on the ESP32, including WebSocket and MQTT with SSE. *SISFORMA*, 13(1), 86–92. DOI 10.24167/sisforma.v13i1.15565.
+- "Node.js or PHP?" (2023). Compares sorting algorithms, no network load. *Issues in Information Systems*. DOI 10.48009/1_iis_2023_128.
+
+## Overview, source per decision
+
+| DECISIONS.md | Decision | Source(s) |
+| ------------ | -------- | --------- |
+| Related work | Concurrency models of servers | Lauer & Needham (1979), Welsh et al. (2001), von Behren et al. (2003), Pariag et al. (2007) |
+| Related work | PHP and Node.js | Tilkov & Vinoski (2010) and Lei, Ma & Tan (2014) |
+| Related work | Real time on the web, messaging | Murley et al. (2021), Hohpe & Woolf (2003) |
+| 5.18 | Fixing hypotheses in advance | Kerr (1998) |
+| 5.8 | k6 run as the unit of analysis | Hurlbert (1984) |
+| 5.8 | Mean per run as the test statistic | Widrow & Kollár (2008) |
+| 5.8 | Wilcoxon signed-rank test (paired) | Wilcoxon (1945), Arcuri & Briand (2014) |
+| 5.8 | Mann-Whitney U test (replaced) | Mann & Whitney (1947) |
+| 5.8 | Cliff's delta and thresholds | Cliff (1993), Romano et al. (2006), see also Vargha & Delaney (2000) |
+| 5.8 | Rank-biserial correlation (paired) | Kerby (2014) |
+| 5.8 | Bootstrap confidence interval | Efron & Tibshirani (1993) |
+| 5.8 | Holm correction per family | Holm (1979) |
+| 5.8 | Reporting tail latencies | Dean & Barroso (2013) |
+| 5.8 | Nonparametric approach | Georges et al. (2007), Kalibera & Jones (2013) |
+| 5.8, 5.9 | Validity framework | Wohlin et al. (2024) |
+| 5.9 | Warm-up, number of repetitions from a pilot | Georges et al. (2007), Kalibera & Jones (2013) |
+| 5.9 | No stopping after interim analysis | Armitage et al. (1969) |
+| 5.14 | Timestamps from the same device | RFC 5905 |
+| 5.17 | Latency limit in the saturation criterion | Nielsen (1993) |
+| External validity | Overhead of Docker (that it affects both languages alike is a conclusion of this thesis) | Felter et al. (2015) |
+| Construct validity | Definition of WebSocket and SSE | RFC 6455, WHATWG HTML Living Standard |
+| 5.13 | Debugger and profiler built in or additional installation | Node.js documentation, Xdebug documentation |
+| Fundamentals | Polling, long polling, streaming | RFC 6202 |
+| Introduction, discussion | Connection to the Sustainable Development Goals | United Nations (2015) |
+| 5.2, 5.12 | HTTP/1.1, HTTP/2, connection limit in the browser | RFC 9110, RFC 9112, RFC 9113, MDN EventSource |
+| 5.1, 5.11 | Nginx event-driven, Apache MPMs | Nginx documentation, Apache documentation |
+| 5.6.1 | Buffering in the front proxy turned off for SSE | Nginx documentation (proxy, FastCGI) |
+| 5.4, 5.17 | Delivery semantics of Redis Pub/Sub | Redis documentation |
+| 5.4 | MQTT as the device input of Lokato, quality of service levels, MQTT as an alternative distribution path | OASIS MQTT 5.0 |
+| 5.4 | Push through a broker instead of polling | Fowler (2017), Hohpe & Woolf (2003), RFC 6202 |
+| 5.5 | Production operation (php.ini, Laravel caches, `NODE_ENV`) | PHP image documentation, Laravel Deployment, Express Production Best Practices |
+| 5.5 | PHP-FPM process model and pool configuration | PHP manual (FPM) |
+| 5.19, 5.20 | Queues (BullMQ, Laravel Queue, `block_for`) | BullMQ documentation, Laravel Queues |
+| 5.16 | Resource measurement through cgroup v2, working set | Kernel documentation cgroup v2, Docker documentation `docker stats` |
+| 3, 5.9 | Load tool k6 and xk6-sse | k6 documentation, xk6-sse |
+| 5.9, 5.10 | Staggered connection setup, connection storm after a restart (automatic reconnection of EventSource) | WHATWG Server-Sent Events, k6 documentation |
+| 5.23 | Laravel 13 instead of 12 (support period) | Laravel Release Notes |
+| 5.26 | Versions by release date | Node.js Releases, PHP Supported Versions, Laravel Release Notes |
+| 5.23 | No Symfony variant | Symfony EventDispatcher and Mercure, Mercure hub |
+| Fundamentals | Request-response model, event-based integration | Fielding (2000), Fowler (2017), Hohpe & Woolf (2003) |
+| Related work | Event-driven architecture (modularity, performance, challenges, models) | Farias & Lazzari (2023), Cabane & Farias (2024), Laigner et al. (2026), Woodside (2021) |
+| 5.13, 5.22 | Debugging and monitoring, maintainability | Laigner et al. (2026), Farias & Lazzari (2023) |
+| 5.4 | Persistence of Redis | Redis documentation (persistence) |
+| 5.6.2 | Budget per variant through systemd slices | systemd.resource-control, Docker Compose |
+| 5.10, 5.14 | Throttling status of the Pi, kernel and page size | Raspberry Pi documentation |
+| 5.15 | Subscription of Reverb not part of the connection setup | Pusher Channels protocol |
+| 5.16 | OPcache in PHP-FPM and in CLI processes | PHP manual (OPcache) |
+| 5.18 | Healthcheck only during startup | Docker Compose |
+| 5.20 | BullMQ removes completed jobs | BullMQ documentation (auto-removal) |
