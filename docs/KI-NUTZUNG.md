@@ -50,6 +50,7 @@ Beispiele, in denen die Autorin Ergebnisse der KI nicht ungeprüft übernommen h
 - **Verständnis vor Zustimmung.** Bei Vorschlägen, die sie nicht unmittelbar nachvollziehen konnte, verlangte sie eine verständliche Erklärung, bevor sie zustimmte, etwa beim Vorlauf und beim Neustart vor jedem Ansturm-Lauf.
 - **Rohdaten.** Sie gab die vollständigen Ergebnisse vom Lastgenerator zur Prüfung weiter. Daraus ergaben sich drei Korrekturen am Messverfahren vor Beginn des Pilots (Verlauf unten).
 - **Statische Prüfung vor der Hauptmessung.** Vor Block 1 ließ sie den Messaufbau mit einer vollständigen Liste von Prüfpunkten zu Fairness, Messung und Statistik gegen DECISIONS.md prüfen, ohne Messung. Den Prüfauftrag hatte sie im Claude-Projekt der schriftlichen Arbeit formuliert. Dabei fielen ein kritischer und zwei mittlere Befunde auf (Verlauf unten). Um die Fairness-Regeln in der Arbeit nachvollziehbar begründen zu können, ließ sie die Prüfung am selben Tag mit Schwerpunkt Fairness wiederholen. Dabei fiel ein weiterer mittlerer Befund auf.
+- **Quellen.** Sie fragte, ob die Literaturangaben aktuell sind und zum Stand des Projekts passen. Die Prüfung korrigierte drei Aussagen und markierte die Stellen, die sie im Original prüft (LITERATUR.md).
 
 Fehler der KI, die dabei aufgefallen sind:
 
@@ -63,6 +64,8 @@ Fehler der KI, die dabei aufgefallen sind:
 - Der Healthcheck von Redis startete alle 2 s ein Programm im gemessenen Redis-Container. Dessen CPU-Zeit zählte zu Redis und machte rund 85 % der festen Grundlast aus, die im Pilot auffiel. Die zuerst genannte Ursache, die Module von Redis 8, war eine ungeprüfte Vermutung der KI. Erst eine getrennte Messung des Redis-Prozesses und des ganzen Containers zeigte die tatsächliche Ursache (DECISIONS.md 5.18).
 - Im ursprünglichen Entwurf galt die gegenseitige Störung der beiden Varianten eines Paares als symmetrisch. Für die später ergänzten Queue-Vergleiche mit zwei verschiedenen Ereignisquellen traf das nicht zu, Redis rechnete dort die Queue-Arbeit der anderen Variante der gemessenen zu. Aufgefallen ist das erst bei einer zweiten, auf Fairness ausgerichteten Prüfung (DECISIONS.md 5.6.3).
 - Das Statuswerkzeug verglich die Kontrollmessung auch mit Probeläufen anderer Haltezeit, und die Zahl der nicht committeten Änderungen enthielt die Ergebnisdateien. Beides fiel bei der Durchsicht vor dem Start von Block 1 auf (DECISIONS.md 5.9, 5.16).
+- Drei Aussagen zu Quellen hielten der Prüfung vom 2026-11-03 nicht stand. Die Genauigkeit von NTP war zu grob angegeben, Romano et al. (2006) wurde eine Verbreitung über Arcuri & Briand (2014) zugeschrieben, die dort nicht belegt ist, und Felter et al. (2015) sollte eine gleiche Wirkung von Docker auf PHP und Node.js belegen, die dort nicht steht (DECISIONS.md 5.14, LITERATUR.md).
+- Für den Pilot nannte die KI 1 640 Messläufe. Das war der Gesamtzähler des Statuswerkzeugs, der auch Läufe außerhalb des Pilots enthielt. Tatsächlich waren es 1 600. Aufgefallen ist das erst beim Nachzählen aus den Laufprotokollen am 2026-11-04 (DECISIONS.md 5.9).
 
 ## Gelernt und selbst überprüft
 
@@ -111,3 +114,5 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-31 | Wunsch der Autorin, die Fairness-Regeln für die Arbeit nachvollziehbar zu begründen, dazu eine zweite Prüfung | je Lauf nur die Ereignisquelle der gemessenen Variante, Nginx beschreibend mitgemessen, zwei Textkorrekturen (DECISIONS.md 5.14) |
 | 2026-10-31 | gründliche Durchsicht vor dem Start von Block 1 auf Wunsch der Autorin | Prüfkampagne auf dem Pi ausgewertet, Kontrollmessung und Prüfung des Code-Stands im Orchestrator korrigiert (DECISIONS.md 5.14) |
 | 2026-10-31 | Skript für die Entscheidungsregeln, während Block 1 läuft | Regeln aus `plan.json` als Code mit Tests, Festlegung des „Gegenteils" je Art von Fall vor jeder Auswertung (DECISIONS.md 5.18) |
+| 2026-11-03 | Nachfrage der Autorin, ob die Quellen aktuell sind und zum Projekt passen | Abgleich mit Crossref, RFC Editor und allen Adressen, drei Aussagen korrigiert, offene Stellen mit `CHECK BY HAND` markiert, LITERATUR.md auf Englisch umgestellt |
+| 2026-11-04 | Durchsicht des Repositorys, bevor der Betreuer es sich genauer ansieht | Zahl der Pilotläufe korrigiert, Übersicht der Berichte und gemessener Commit im README |

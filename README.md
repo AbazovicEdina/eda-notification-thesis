@@ -107,6 +107,8 @@ docker compose --profile tools run --rm figures --evaluation results/<auswertung
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).
 
+**Stand (2026-11-04).** Block 1 läuft seit dem 2026-10-31 auf Commit `ac47cb7`, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software.
+
 Ein einzelner manueller k6-Lauf gegen den Front-Nginx:
 
 ```bash
@@ -210,4 +212,23 @@ Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet. Bereits gemessene
 
 ## Ergebnisse
 
-`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. `results/2026-10-16_verification/` und `results/2026-10-16_verification-2/` enthalten die lokalen Funktionsprüfungen des Messaufbaus, `results/xk6-sse-feasibility-*.txt` die Machbarkeitsprüfung von xk6-sse.
+`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Die Ergebnisse von Block 1 und 2 kommen nach Abschluss der Messung dazu.
+
+Die wichtigsten Berichte:
+
+| Bericht | Inhalt |
+| --- | --- |
+| [Belastungstest](results/2026-10-22T13-43-23Z_burn-in.csv) | 24 Stunden Volllast auf dem Pi, Rohdaten (DECISIONS.md 5.14) |
+| [Ansturm](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle (DECISIONS.md 5.14) |
+| [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
+| [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
+| [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |
+
+Die lokalen Funktionsprüfungen sind bewusst kurz und keine Messergebnisse der Arbeit:
+
+- [erste](results/2026-10-16_verification/README.md), [zweite](results/2026-10-16_verification-2/README.md) und [dritte Runde](results/2026-10-16_verification-3/README.md) vom 2026-10-16
+- [Versionswechsel](results/2026-10-27_version-update/README.md) vom 2026-10-27
+- [Vorlauf, Neustart beim Ansturm und Statusprüfung](results/2026-10-29_orchestrator-check/README.md) vom 2026-10-29
+- [Korrekturen aus der statischen Prüfung](results/2026-10-31_review-fixes-check/README.md) vom 2026-10-31
+
+`results/xk6-sse-feasibility-*.txt` enthält die Machbarkeitsprüfung von xk6-sse (DECISIONS.md, Abschnitt 3).
