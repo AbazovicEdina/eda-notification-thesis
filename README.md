@@ -212,7 +212,7 @@ Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet. Bereits gemessene
 
 ## Ergebnisse
 
-`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Die Rohdaten von Block 1 liegen seit 2026-11-07 im Repository, Block 2 und die Gesamtauswertung folgen nach Abschluss der Messung.
+`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Rohdaten, Auswertung und Abbildungen von Block 1 liegen seit 2026-11-07 im Repository. Block 2 mit der Replikation, die Reihen und die Gesamtauswertung folgen nach Abschluss der Messung.
 
 Die wichtigsten Berichte:
 
@@ -223,6 +223,8 @@ Die wichtigsten Berichte:
 | [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
 | [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
 | [Block 1](results/2026-10-31T19-08-30-054Z_schedule_block1.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b1-c<Vergleich>-<Laststufe>` in `results/`, die Prüfung vor Block 2 steht in DECISIONS.md 5.14 |
+| [Auswertung Block 1](results/2026-11-07T13-53-42-222Z_evaluation/evaluation.md) | Tests, Effektstärken und Bewertung der Hypothesen aus dem konfirmatorischen Block, ohne Replikation und Reihen (DECISIONS.md 5.8, 5.18) |
+| [Abbildungen Block 1](results/2026-11-07T19-11-09-727Z_figures/figures.md) | Boxplots aller Vergleiche je Messgröße (DECISIONS.md 5.25) |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |
 
 Die lokalen Funktionsprüfungen sind bewusst kurz und keine Messergebnisse der Arbeit:
