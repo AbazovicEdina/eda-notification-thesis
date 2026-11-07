@@ -107,7 +107,7 @@ docker compose --profile tools run --rm figures --evaluation results/<auswertung
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).
 
-**Stand (2026-11-04).** Block 1 läuft seit dem 2026-10-31 auf Commit `ac47cb7`, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software. Nach Block 2 wird auf demselben Commit der Ansturm wiederholt (DECISIONS.md 5.14).
+**Stand (2026-11-07).** Block 1 lief vom 2026-10-31 bis 2026-11-07 auf Commit `ac47cb7` und ist geprüft, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software. Nach Block 2 wird auf demselben Commit der Ansturm wiederholt (DECISIONS.md 5.14).
 
 Ein einzelner manueller k6-Lauf gegen den Front-Nginx:
 
@@ -212,7 +212,7 @@ Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet. Bereits gemessene
 
 ## Ergebnisse
 
-`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Die Ergebnisse von Block 1 und 2 kommen nach Abschluss der Messung dazu.
+`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Die Rohdaten von Block 1 liegen seit 2026-11-07 im Repository, Block 2 und die Gesamtauswertung folgen nach Abschluss der Messung.
 
 Die wichtigsten Berichte:
 
@@ -222,6 +222,7 @@ Die wichtigsten Berichte:
 | [Ansturm](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle, erster Durchgang, Wiederholung nach Block 2 (DECISIONS.md 5.14) |
 | [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
 | [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
+| [Block 1](results/2026-10-31T19-08-30-054Z_schedule_block1.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b1-c<Vergleich>-<Laststufe>` in `results/`, die Prüfung vor Block 2 steht in DECISIONS.md 5.14 |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |
 
 Die lokalen Funktionsprüfungen sind bewusst kurz und keine Messergebnisse der Arbeit:
