@@ -223,8 +223,9 @@ Die wichtigsten Berichte:
 | [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
 | [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
 | [Block 1](results/2026-10-31T19-08-30-054Z_schedule_block1.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b1-c<Vergleich>-<Laststufe>` in `results/`, die Prüfung vor Block 2 steht in DECISIONS.md 5.14 |
-| [Auswertung Block 1](results/2026-11-07T13-53-42-222Z_evaluation/evaluation.md) | Tests, Effektstärken und Bewertung der Hypothesen aus dem konfirmatorischen Block, ohne Replikation und Reihen (DECISIONS.md 5.8, 5.18) |
-| [Abbildungen Block 1](results/2026-11-07T19-11-09-727Z_figures/figures.md) | Boxplots aller Vergleiche je Messgröße (DECISIONS.md 5.25) |
+| [Auswertung Block 1](results/2026-11-07T20-17-13-280Z_evaluation/evaluation.md) | Tests, Effektstärken und Bewertung der Hypothesen aus dem konfirmatorischen Block, ohne Replikation und Reihen (DECISIONS.md 5.8, 5.18) |
+| [Abbildungen Block 1](results/2026-11-07T20-18-21-899Z_figures/figures.md) | Boxplots aller Vergleiche je Messgröße (DECISIONS.md 5.25) |
+| [Beschreibende Auswertung Block 1](results/2026-11-07T20-22-02-396Z_block1-descriptive/block1-descriptive.md) | Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null, Messbetrieb und Front-Nginx, ohne Tests |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |
 
 Die lokalen Funktionsprüfungen sind bewusst kurz und keine Messergebnisse der Arbeit:

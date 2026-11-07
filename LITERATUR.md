@@ -1,10 +1,10 @@
 # Literature
 
-Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03 and 2026-11-04). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
+Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03, 2026-11-04 and 2026-11-07). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
 
 **Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
 
-## To check by hand (as of 2026-11-04)
+## To check by hand (as of 2026-11-07)
 
 The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND.**
 
@@ -13,17 +13,15 @@ The author checks these points in the original before they appear in the text. E
 - [ ] **Research gap.** The search in IEEE Xplore, ACM Digital Library and Google Scholar is still open. Read and place Van de Vyvere et al. (2020) and Appelqvist & Örnmyr (2017). Both are close to the gap.
 - [ ] **Romano et al. (2006).** Check the four thresholds of Cliff's delta in the original. The full text was not available during this review. The earlier claim that the thresholds became established through Arcuri & Briand (2014) was wrong and has been removed.
 - [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
-- [ ] **Kalibera & Jones (2013).** Only searched for key terms on 2026-11-04. The paper does not say that measurement data are typically non-normal, so DECISIONS.md 5.8 no longer cites it for that. Confirm its use for setting the number of repetitions from an initial experiment (DECISIONS.md 5.9).
-- [ ] **Hoefler & Belli (2015).** Now the source for not assuming a normal distribution (DECISIONS.md 5.8). Read rule 6 and the passage on nonparametric techniques in the original.
+- [ ] **Kalibera & Jones (2013).** Confirm in the original the use for DECISIONS.md 5.9, setting the number of repetitions from an initial experiment.
 - [ ] **Felter et al. (2015).** The source compares KVM and Docker, not PHP and Node.js. That the overhead affects both alike is a conclusion of this thesis and must be worded that way in the text.
-- [ ] **RFC 5905.** The statement on the accuracy of NTP was too coarse and has been corrected (also in DECISIONS.md 5.14). Check the wording for the text.
 - [ ] **Cabane & Farias (2024).** Only the title is known so far, and there is no open access. Read it through the university library or do not cite it. Its placement in the research gap depends on this.
 
 **Read before citing:**
 
 - [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
 - [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
-- [ ] **Georges et al. (2007).** Passage on warm-up. The paper does not support the claim about non-normal data, see its entry.
+- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis.
 - [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
 - [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
 
@@ -31,6 +29,8 @@ The author checks these points in the original before they appear in the text. E
 
 - [ ] **Online sources.** Access them once more and update `urldate`. Documentation changes, and the addresses of Laravel and Mercure have already moved since the first access.
 - [ ] **Proposals.** Resolve the section "Proposals, not read yet" after reading. Whatever is not cited does not appear in the bibliography anyway.
+
+**Confirmed on 2026-11-07.** The author checked Hoefler & Belli (2015, rules 5 to 8), the warm-up passages of Georges et al. (2007) and RFC 5905 (Section 1, p. 4) in the original. The sections of the cgroup v2 documentation and of the Node.js event loop page were confirmed online. Crossref lists the pages of Hoefler & Belli as 1-12 without an article number, see that entry.
 
 **Already confirmed on 2026-11-03.** Crossref metadata of all entries with a DOI, status of all RFCs (none is obsoleted), abstract of Murley et al. (2021), abstract of von Behren et al. (2003), the limit of six connections at MDN, the support periods at php.net, `block_for` in the Laravel documentation and Section 9.2 of the WHATWG standard.
 
@@ -663,9 +663,9 @@ Stuart H. Hurlbert. "Pseudoreplication and the Design of Ecological Field Experi
 
 Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Performance Evaluation." In *Proceedings of OOPSLA 2007*, 57–76, 2007.
 
-**Use.** Repeated runs and exclusion of warm-up runs (DECISIONS.md 5.9). The paper refers to JVM benchmarks. The underlying problem (nondeterminism from JIT, garbage collection, scheduling) carries over to OPcache, the V8 JIT, connection setup and the file system cache.
+**Use.** Warm-up runs (Section 4.2, also Sections 2.1.2 and 6.2.2, DECISIONS.md 5.9). Georges et al. recommend determining the end of the start-up phase from the coefficient of variation of the last iterations. The fixed number of 5 warm-up runs is a decision of this thesis. The paper refers to JVM benchmarks, and its abstract covers other runtimes only in part. The transfer to OPcache, the V8 JIT, connection setup and the file system cache is a conclusion of this thesis. Section 6.1 found approximately normally distributed data in more than 90 % of the measurements, so the paper is not cited for the choice of the test (DECISIONS.md 5.8).
 
-**CHECK BY HAND.** Check the passage on warm-up. The transfer to PHP and Node.js is a conclusion of this thesis. Do not cite this paper for non-normal data. Its note on normality in Section 3.2 says that confidence intervals do not require normally distributed data, because of the central limit theorem, and the paper works with parametric methods. Corrected on 2026-11-04 after a search of the full text.
+**CHECK BY HAND.** Word the transfer to PHP and Node.js as a conclusion of this thesis. Its note on normality in Section 3.2 says that confidence intervals do not require normally distributed data, because of the central limit theorem, and the paper works with parametric methods. Corrected on 2026-11-04, warm-up passages checked by the author on 2026-11-07.
 
 ```bibtex
 @inproceedings{georges2007statistically,
@@ -687,7 +687,7 @@ Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *P
 
 **Use.** Fixing the number of repetitions from pilot data instead of across the board (DECISIONS.md 5.9). The actual nondeterminism of a benchmark is often lower than assumed. Repetitions belong where the uncertainty actually lies.
 
-**CHECK BY HAND.** Confirm the use above in the original. Do not cite this paper for non-normal data. Its paragraph on normality says that parametric methods have been found robust under various conditions, even though the central limit theorem does not fully justify them. The earlier claim "far fewer pairs suffice" in DECISIONS.md 5.9 went beyond the paper and has been reworded. Corrected on 2026-11-04 after a search of the full text.
+**CHECK BY HAND.** Confirm the use above in the original. The paper is not cited for the choice of the test. The earlier claim "far fewer pairs suffice" in DECISIONS.md 5.9 went beyond the paper and has been reworded. Corrected on 2026-11-04 after a search of the full text.
 
 ```bibtex
 @inproceedings{kalibera2013rigorous,
@@ -704,18 +704,25 @@ Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *P
 
 ### Hoefler & Belli (2015), not assuming a normal distribution
 
-Torsten Hoefler, Roberto Belli. "Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results." In *Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)*, 1–12, 2015. DOI 10.1145/2807591.2807644.
+Torsten Hoefler, Roberto Belli. "Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results." In *Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)*, article 73, 73:1–73:12, 2015. DOI 10.1145/2807591.2807644.
 
-**Use.** Measurement data should not be assumed to be normally distributed without a diagnostic check (rule 6), and nonparametric techniques are the choice when the distribution is unknown (DECISIONS.md 5.8). Also supports reporting variation and confidence intervals. The paper comes from high-performance computing, so the transfer needs a short explanation.
+**Use.** Checked by the author in the original on 2026-11-07.
 
-**CHECK BY HAND.** The passages were found by a search of the full text on 2026-11-04. Read them in the original before citing.
+- **Rule 5 (p. 73:4).** Report confidence intervals for nondeterministic measurement values. Use, confidence intervals of the median difference (DECISIONS.md 5.8).
+- **Rule 6 (p. 73:5).** "Do not assume normality of collected data … without diagnostic checking." The passage before the rule (p. 73:4) names the Shapiro-Wilk test and recommends checking its result with a Q-Q plot. For data that are not normally distributed, the paper covers nonparametric techniques. Use, reason for the nonparametric test (DECISIONS.md 5.8). The check of the skewness in the pilot is such a diagnostic check. Cited in the thesis as `\cite[p.~73:5]{hoefler2015scientific}`.
+- **Rule 7 (p. 73:6).** Compare nondeterministic data in a statistically sound way. Use, reason for comparing through tests and confidence intervals instead of single measured values (DECISIONS.md 5.8).
+- **Rule 8 (p. 73:6).** Check whether the mean, the median or other percentiles are meaningful to report. Use, reason for reporting the median, p95 and p99 in addition to the mean per run (DECISIONS.md 5.8, together with Dean & Barroso 2013).
+
+The paper comes from high-performance computing. The transfer to measurements of web servers is a conclusion of this thesis and is worded that way in the text.
+
+**Note on the pages.** Crossref lists the pages as 1-12 and has no article number (checked on 2026-11-07). The entry follows the author's check of the original, article 73 with pages 73:1–73:12.
 
 ```bibtex
 @inproceedings{hoefler2015scientific,
   author    = {Hoefler, Torsten and Belli, Roberto},
   title     = {Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results},
   booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)},
-  pages     = {1--12},
+  pages     = {73:1--73:12},
   date      = {2015},
   doi       = {10.1145/2807591.2807644},
   langid    = {english}
@@ -830,9 +837,7 @@ WHATWG. "9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.what
 
 D. Mills, J. Martin (ed.), J. Burbank, W. Kasch. "Network Time Protocol Version 4: Protocol and Algorithms Specification." RFC 5905, IETF, June 2010. DOI 10.17487/RFC5905.
 
-**Use.** Reason why send and receive timestamps come from the same device (load generator, DECISIONS.md 5.14). According to the RFC, clients on fast local networks are typically within a few hundred microseconds, with long poll intervals within a few tens of milliseconds. That is on the order of the measured differences, some of which are below one millisecond.
-
-**CHECK BY HAND.** Until 2026-11-03, this note and DECISIONS.md said that NTP reaches only the millisecond range. The RFC does not say that. Check the wording for the text. The RFC has been updated since (most recently by RFC 9769), but not obsoleted.
+**Use.** Reason why send and receive timestamps come from the same device (load generator, DECISIONS.md 5.14). According to the RFC, clients on fast local networks are typically within a few hundred microseconds, with long poll intervals within a few tens of milliseconds. That is on the order of the measured differences, some of which are below one millisecond. Source Section 1, p. 4, checked by the author on 2026-11-07. Until 2026-11-03, this note and DECISIONS.md said that NTP reaches only the millisecond range, which the RFC does not say. The RFC has been updated since (most recently by RFC 9769), but not obsoleted.
 
 ```bibtex
 @techreport{mills2010ntp,
@@ -1227,7 +1232,7 @@ Chris Boden et al. *Ratchet Documentation*. http://socketo.me/docs/. ReactPHP pr
 
 Node.js Project. "The Node.js Event Loop." *Node.js Learn*. Express. "Production Best Practices: Performance and Reliability." ws. *ws: a Node.js WebSocket library* (README).
 
-**Use.** Event loop of Node.js (fundamentals). Production operation of Express with `NODE_ENV=production` (DECISIONS.md 5.5). WebSocket library of the Node.js variants.
+**Use.** Event loop of Node.js (fundamentals). By default a single JavaScript thread is used (section "What is the Event Loop?", first sentence). That a Node.js process therefore uses only one CPU core for JavaScript is a conclusion of this thesis and is not stated on the page (DECISIONS.md 5.6). Production operation of Express with `NODE_ENV=production` (DECISIONS.md 5.5). WebSocket library of the Node.js variants.
 
 ```bibtex
 @online{nodejs-event-loop,
@@ -1283,7 +1288,7 @@ Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/. P
 
 The Linux Kernel Documentation. "Control Group v2." https://docs.kernel.org/admin-guide/cgroup-v2.html. Docker Inc. "docker container stats." *Docker Docs*. https://docs.docker.com/reference/cli/docker/container/stats/
 
-**Use.** Resource measurement from `cpu.stat`, `memory.current` and `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`). Definition of the working set as in `docker stats` (memory minus `inactive_file`).
+**Use.** Resource measurement from `cpu.stat`, `memory.current` and `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`). Definition of the working set as in `docker stats` (memory minus `inactive_file`). The memory controller must be enabled, otherwise no `memory.` interface files exist in the child cgroups and memory limits cannot be set (section "Controlling Controllers", subsection "Enabling and Disabling", DECISIONS.md 5.14).
 
 ```bibtex
 @online{kernel-cgroup-v2,
@@ -1634,8 +1639,10 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.8 | Cliff's delta and thresholds | Cliff (1993), Romano et al. (2006), see also Vargha & Delaney (2000) |
 | 5.8 | Rank-biserial correlation (paired) | Kerby (2014) |
 | 5.8 | Bootstrap confidence interval | Efron & Tibshirani (1993) |
+| 5.8 | Reporting confidence intervals of the median difference | Hoefler & Belli (2015, rule 5), in addition to Efron & Tibshirani (1993) |
 | 5.8 | Holm correction per family | Holm (1979) |
 | 5.8 | Reporting tail latencies | Dean & Barroso (2013) |
+| 5.8 | Reporting median and percentiles in addition to the mean | Hoefler & Belli (2015, rule 8), in addition to Dean & Barroso (2013) |
 | 5.8 | Nonparametric approach | Hoefler & Belli (2015) |
 | 5.8, 5.9 | Validity framework | Wohlin et al. (2024) |
 | 5.9 | Warm-up, number of repetitions from a pilot | Georges et al. (2007), Kalibera & Jones (2013) |
