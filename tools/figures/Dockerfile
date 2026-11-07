@@ -13,6 +13,7 @@ COPY otf2ttf.py .
 RUN python otf2ttf.py /usr/local/share/fonts/lm-ttf \
     /usr/share/texmf/fonts/opentype/public/lm/lmroman8-regular.otf \
     /usr/share/texmf/fonts/opentype/public/lm/lmroman9-regular.otf \
-    /usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf
+    /usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf \
+    /usr/share/texmf/fonts/opentype/public/lm-math/latinmodern-math.otf
 COPY figures.py .
 ENTRYPOINT ["python", "figures.py"]

@@ -106,6 +106,38 @@ test('Replikation: andere Richtung oder getrennte Intervalle sind nicht replizie
   assert.equal(replicationOf(result({ md: -1, ci: [-1.5, -0.9] }), result({ md: -0.3, ci: [-0.5, -0.1] })).replicated, false);
 });
 
+test('Replikation: eine Median-Differenz von genau 0 ist eine eigene Richtung', () => {
+  // 0 in beiden Blöcken mit überlappenden Intervallen ist repliziert.
+  assert.equal(replicationOf(result({ md: 0, ci: [-0.1, 0] }), result({ md: 0, ci: [-0.1, 0.1] })).replicated, true);
+  // 0 in Block 1 und eine kleine Differenz in Block 2 ist nicht repliziert, obwohl die Intervalle überlappen.
+  const r = replicationOf(result({ md: 0, ci: [-0.1, 0] }), result({ md: 0.05, ci: [0, 0.1] }));
+  assert.equal(r.ci_overlap, true);
+  assert.equal(r.same_direction, false);
+  assert.equal(r.replicated, false);
+  // Ebenso umgekehrt, eine Differenz in Block 1 und 0 in Block 2.
+  assert.equal(replicationOf(result({ md: -0.1, ci: [-0.2, 0] }), result({ md: 0, ci: [-0.1, 0] })).replicated, false);
+});
+
+test('Replikation: beschreibende Zusatzangaben ändern die Regel nicht', () => {
+  const r = replicationOf(result({ md: -0.001, ci: [-0.03, 0.03] }), result({ md: -0.02, ci: [-0.04, -0.01], p: 0.01 }));
+  assert.equal(r.ci_block1_contains_zero, true);
+  assert.equal(r.block2_significant_same_direction, true);
+  assert.equal(r.replicated, true);
+  const s = replicationOf(result({ md: -1, ci: [-1.1, -0.9] }), result({ md: -0.95, ci: [-1.0, -0.9], p: 0.2 }));
+  assert.equal(s.ci_block1_contains_zero, false);
+  assert.equal(s.block2_significant_same_direction, false); // nicht signifikant
+  assert.equal(s.replicated, true);
+  const o = replicationOf(result({ md: -1, ci: [-1.1, -0.9] }), result({ md: 0.5, ci: [0.4, 0.6], p: 0.001 }));
+  assert.equal(o.block2_significant_same_direction, false); // signifikant, aber in der Gegenrichtung
+});
+
+test('Bewertung der Hypothesen: p-Werte unter 0.001 als < 0.001', () => {
+  const c = directionalCase({ result: result({ md: -1 }), significant: true, pHolm: 0.0000123 }, -1, 'Fall');
+  assert.match(c.detail, /p \(Holm\) < 0\.001/);
+  const d = directionalCase({ result: result({ md: -1 }), significant: true, pHolm: 0.0123 }, -1, 'Fall');
+  assert.match(d.detail, /p \(Holm\) 0\.012/);
+});
+
 test('Replikation: Block 2 fehlt wird als solcher ausgewiesen', () => {
   const c1 = plan.comparisons.find((c) => c.id === 1);
   const { found } = matchCampaigns(plan, [campaign({ cellA: c1.a, cellB: c1.b, measures: { latency_mean_ms: result() } })]);

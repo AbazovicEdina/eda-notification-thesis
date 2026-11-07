@@ -163,12 +163,28 @@ for (const family of families) {
 
 lines.push(`## Replikation (Block ${plan.replicationBlock} gegen Block ${plan.confirmatoryBlock})`, '');
 lines.push(`Beschreibender Abgleich ohne eigene Signifikanzaussage. ${plan.decisionRules?.replication ?? ''}`, '');
-lines.push('| Messgröße | verglichen | repliziert | gleiche Richtung | KI überlappen | gleiche Effektklasse |');
-lines.push('|---|---|---|---|---|---|');
+lines.push('Eine Median-Differenz von genau 0 gilt als eigene Richtung. Die letzten beiden Spalten sind nur beschreibend und ändern die Regel nicht (DECISIONS.md 5.8).', '');
+lines.push('| Messgröße | verglichen | repliziert | gleiche Richtung | KI überlappen | gleiche Effektklasse | KI Block 1 enthält 0 | Block 2 allein signifikant, gleiche Richtung (ohne Holm) |');
+lines.push('|---|---|---|---|---|---|---|---|');
 for (const r of replication) {
-  lines.push(`| ${r.measure} | ${r.compared} | ${r.replicated} | ${r.same_direction} | ${r.ci_overlap} | ${r.same_magnitude} |`);
+  lines.push(`| ${r.measure} | ${r.compared} | ${r.replicated} | ${r.same_direction} | ${r.ci_overlap} | ${r.same_magnitude} | ${r.ci_block1_contains_zero} | ${r.block2_significant_same_direction} |`);
 }
 lines.push('');
+// One row per test, only once block 2 has been measured.
+const yesNo = (v) => (v ? 'ja' : 'nein');
+for (const r of replication.filter((x) => x.compared > 0)) {
+  lines.push(`### Replikation je Test, ${r.measure}`, '');
+  lines.push('| Nr. | Laststufe | repliziert | gleiche Richtung | KI überlappen | gleiche Effektklasse | KI Block 1 enthält 0 | Block 2 allein signifikant, gleiche Richtung |');
+  lines.push('|---|---|---|---|---|---|---|---|');
+  for (const row of r.rows) {
+    if (row.status !== 'verglichen') {
+      lines.push(`| ${row.comparison_id} | ${row.scenario} | ${row.status} | – | – | – | – | – |`);
+      continue;
+    }
+    lines.push(`| ${row.comparison_id} | ${row.scenario} | ${yesNo(row.replicated)} | ${yesNo(row.same_direction)} | ${yesNo(row.ci_overlap)} | ${yesNo(row.same_magnitude)} | ${yesNo(row.ci_block1_contains_zero)} | ${yesNo(row.block2_significant_same_direction)} |`);
+  }
+  lines.push('');
+}
 
 lines.push('## Hypothesen (vorab festgelegt, DECISIONS.md 5.18)', '');
 lines.push('| Nr. | Hypothese | Vergleiche | Messgröße | Laststufe | Bestätigt, wenn … |');

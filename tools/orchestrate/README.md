@@ -12,6 +12,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `pilot.js` | Auswertung des Pilots nach dem vorab festgelegten Stabilitätskriterium, ergibt die Wiederholungszahl je Laststufe und schätzt die Dauer eines Blocks |
 | `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Bewertung der Hypothesen |
 | `assessment.js` | Auswertungslogik von `evaluate.js` als reine Funktionen, darunter die Entscheidungsregeln G1 bis G4 und die Regel jeder Hypothese |
+| `descriptive.js` | beschreibende Auswertung eines Blocks der Hauptmessung aus den Laufprotokollen, ohne Tests, darunter Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null und Messbetrieb |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
@@ -49,6 +50,7 @@ node tools/orchestrate/evaluate.js results/<kampagne-1> results/<kampagne-2> ...
 
 # Skalierung und Sättigung über alle Zellen
 node tools/orchestrate/series.js results/<kampagne-1> results/<kampagne-2> ...
+node tools/orchestrate/descriptive.js --block 1
 
 # Tests
 node --test "tools/orchestrate/test/*.test.js"

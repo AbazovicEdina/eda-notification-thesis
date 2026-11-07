@@ -108,9 +108,14 @@ export function correctFamilies(plan, found) {
 
 // Replication (block 2 against block 1). Replicated if the direction of the
 // median difference is the same and the 95 % intervals overlap. The effect
-// class is reported but is not a condition (plan.json, decisionRules).
+// class is reported but is not a condition (plan.json, decisionRules). A
+// median difference of exactly 0 is a direction of its own, so it only
+// matches 0 (DECISIONS.md 5.8, made explicit on 2026-11-07).
+// Also reported, only descriptively and without changing the rule, whether
+// the interval of block 1 contains 0 and whether block 2 alone, without the
+// Holm correction, is significant in the same direction.
 const sign = (v) => (v == null || v === 0 ? 0 : Math.sign(v));
-export function replicationOf(r1, r2) {
+export function replicationOf(r1, r2, alpha = 0.05) {
   const [lo1, hi1] = r1.median_diff_ci95;
   const [lo2, hi2] = r2.median_diff_ci95;
   const sameDirection = sign(r1.median_diff) === sign(r2.median_diff);
@@ -122,6 +127,9 @@ export function replicationOf(r1, r2) {
     same_magnitude: r1.cliffs_magnitude === r2.cliffs_magnitude,
     ci_overlap: ciOverlap,
     replicated: sameDirection && ciOverlap,
+    ci_block1_contains_zero: lo1 != null && hi1 != null && lo1 <= 0 && hi1 >= 0,
+    block2_significant_same_direction: r2.wilcoxon?.p != null && r2.wilcoxon.p <= alpha
+      && sign(r2.median_diff) !== 0 && sign(r2.median_diff) === sign(r1.median_diff),
   };
 }
 
@@ -133,7 +141,7 @@ export function replicationSummary(plan, found) {
       const r1 = t1.result;
       const r2 = b2[i].result;
       if (!r1 || !r2) return { comparison_id: t1.comparison_id, scenario: t1.scenario, status: !r1 ? 'Block 1 fehlt' : 'Block 2 fehlt' };
-      return { comparison_id: t1.comparison_id, scenario: t1.scenario, status: 'verglichen', ...replicationOf(r1, r2) };
+      return { comparison_id: t1.comparison_id, scenario: t1.scenario, status: 'verglichen', ...replicationOf(r1, r2, plan.alpha) };
     });
     const compared = rows.filter((r) => r.status === 'verglichen');
     return {
@@ -143,6 +151,8 @@ export function replicationSummary(plan, found) {
       same_magnitude: compared.filter((r) => r.same_magnitude).length,
       ci_overlap: compared.filter((r) => r.ci_overlap).length,
       replicated: compared.filter((r) => r.replicated).length,
+      ci_block1_contains_zero: compared.filter((r) => r.ci_block1_contains_zero).length,
+      block2_significant_same_direction: compared.filter((r) => r.block2_significant_same_direction).length,
       rows,
     };
   });
@@ -185,6 +195,8 @@ export function redisShares(runs) {
 // ---------------------------------------------------------------------------
 
 const fmtNum = (v, d = 3) => (v == null ? '–' : Number(v).toFixed(d));
+// p-values below 0.001 as "< 0.001", as in the test tables of evaluate.js.
+const fmtP = (v) => (v == null ? '–' : v < 0.001 ? '< 0.001' : Number(v).toFixed(3));
 
 // Look up the Holm-corrected test of a comparison, load level and measure.
 function lookup(families, measure, comparisonId, scenario) {
@@ -210,7 +222,7 @@ function unusableReason(test) {
 export function directionalCase(test, expect, label) {
   if (!usable(test)) return { label, outcome: OUTCOME.unclear, detail: unusableReason(test) };
   const md = test.result.median_diff;
-  const detail = `Median-Diff ${fmtNum(md)}, p (Holm) ${fmtNum(test.pHolm)}`;
+  const detail = `Median-Diff ${fmtNum(md)}, p (Holm) ${fmtP(test.pHolm)}`;
   if (test.significant && Math.sign(md) === expect) return { label, outcome: OUTCOME.holds, detail };
   if (test.significant && Math.sign(md) === -expect) return { label, outcome: OUTCOME.opposite, detail };
   return { label, outcome: OUTCOME.unclear, detail: `${detail}, nicht signifikant` };
@@ -221,7 +233,7 @@ export function directionalCase(test, expect, label) {
 export function smallCase(test, label) {
   if (!usable(test)) return { label, outcome: OUTCOME.unclear, detail: unusableReason(test) };
   const d = test.result.cliffs_delta;
-  const detail = `δ ${fmtNum(d)}, p (Holm) ${fmtNum(test.pHolm)}`;
+  const detail = `δ ${fmtNum(d)}, p (Holm) ${fmtP(test.pHolm)}`;
   if (Math.abs(d) < SMALL_DELTA) return { label, outcome: OUTCOME.holds, detail };
   if (test.significant) return { label, outcome: OUTCOME.opposite, detail };
   return { label, outcome: OUTCOME.unclear, detail: `${detail}, nicht signifikant` };
@@ -237,7 +249,7 @@ export function multipleCase(test, medianA, medianB, larger, label) {
   }
   const ratio = larger === 'a' ? medianA / medianB : medianB / medianA;
   const expect = larger === 'a' ? 1 : -1;
-  const detail = `Verhältnis der Mediane ${fmtNum(ratio, 2)}, p (Holm) ${fmtNum(test.pHolm)}`;
+  const detail = `Verhältnis der Mediane ${fmtNum(ratio, 2)}, p (Holm) ${fmtP(test.pHolm)}`;
   if (ratio < 2) return { label, outcome: OUTCOME.opposite, detail };
   if (test.significant && Math.sign(test.result.median_diff) === expect) return { label, outcome: OUTCOME.holds, detail };
   return { label, outcome: OUTCOME.unclear, detail: `${detail}, nicht signifikant` };
@@ -266,7 +278,7 @@ export function growthCase(testLow, testHigh, label) {
   if (!usable(testHigh)) return { label, outcome: OUTCOME.unclear, detail: `500 Clients: ${unusableReason(testHigh)}` };
   const low = Math.abs(testLow.result.median_diff);
   const high = Math.abs(testHigh.result.median_diff);
-  const detail = `|Median-Diff| ${fmtNum(low)} bei 10 und ${fmtNum(high)} bei 500 Clients, p (Holm) ${fmtNum(testHigh.pHolm)}`;
+  const detail = `|Median-Diff| ${fmtNum(low)} bei 10 und ${fmtNum(high)} bei 500 Clients, p (Holm) ${fmtP(testHigh.pHolm)}`;
   if (high <= low) return { label, outcome: OUTCOME.opposite, detail };
   if (!testHigh.significant) return { label, outcome: OUTCOME.unclear, detail: `${detail}, nicht signifikant` };
   return { label, outcome: OUTCOME.holds, detail };

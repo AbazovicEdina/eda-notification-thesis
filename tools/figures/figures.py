@@ -56,6 +56,12 @@ LM_FILES = {8: f"{LM_DIR}/lmroman8-regular.ttf", 9: f"{LM_DIR}/lmroman9-regular.
             10: f"{LM_DIR}/lmroman10-regular.ttf"}
 for _path in LM_FILES.values():
     font_manager.fontManager.addfont(_path)
+# Latin Modern Math for the math symbols (δ, ↑). Its character map assigns the
+# glyphs their Unicode code points, so δ is copied and found as U+03B4. The
+# BaKoMa fonts of mathtext.fontset "cm" store δ at the code of "±", which made
+# the text layer of the PDFs show "±" instead of δ.
+LM_MATH = f"{LM_DIR}/latinmodern-math.ttf"
+font_manager.fontManager.addfont(LM_MATH)
 SMALL, SCRIPT = 10, 8  # \small and \scriptsize of the template in pt
 
 # Palette A from diagram-styles.tex (sRGB), fill, line and text per role.
@@ -76,7 +82,13 @@ WIDTH = 5.75  # text width of the template in inches (A4, 32 mm margin per side)
 plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["Latin Modern Roman"],
-    "mathtext.fontset": "cm",  # only for ≥, Computer Modern matches Latin Modern
+    "mathtext.fontset": "custom",  # δ and ↑ from Latin Modern Math (LM_MATH)
+    "mathtext.rm": "Latin Modern Math",
+    "mathtext.it": "Latin Modern Math",
+    "mathtext.bf": "Latin Modern Math",
+    "mathtext.sf": "Latin Modern Math",
+    "mathtext.tt": "Latin Modern Math",
+    "mathtext.cal": "Latin Modern Math",
     "axes.formatter.use_mathtext": True,
     "axes.unicode_minus": False,
     "font.size": SMALL,
@@ -133,24 +145,33 @@ def is_ws(cell):
 # Comparison groups from plan.json, tier according to DECISIONS.md 5.24. The
 # second box of a pair is hatched when color and line style do not
 # distinguish it from the first in black-and-white print.
+# "pair_axes" gives every pair its own field and y-axis, for groups whose pairs
+# differ so much in size that a shared axis hides the difference within a pair.
+# "style" describes colors and hatching for figures.md.
 SETS = [
     {"key": "language", "ids": [1, 2, 3, 4], "tier": "Kern (6.2)", "hatch_b": "////", "ws": True,
      "labels": {1: "minimal, SSE", 2: "minimal, WS", 3: "framework, SSE", 4: "framework, WS"},
-     "legend": [("nodejs", "", "-", "Node.js"), ("php", "////", "-", "PHP")]},
+     "legend": [("nodejs", "", "-", "Node.js"), ("php", "////", "-", "PHP")],
+     "style": "Node.js salbeigrün, PHP lavendel und schraffiert"},
     {"key": "transport", "ids": [12, 13], "tier": "Kern (6.3)", "hatch_b": "", "ws": True,
      "labels": {12: "Node.js, minimal", 13: "PHP, minimal"},
-     "legend": [("nodejs", "", "-", "Node.js"), ("php", "", "-", "PHP")]},
+     "legend": [("nodejs", "", "-", "Node.js"), ("php", "", "-", "PHP")],
+     "style": "Node.js salbeigrün, PHP lavendel, ohne Schraffur"},
     {"key": "framework", "ids": [5, 6, 7, 8], "tier": "Ergänzung (6.4) bzw. Anhang", "hatch_b": "////", "ws": True,
      "labels": {5: "Node.js, SSE", 6: "Node.js, WS", 7: "PHP, SSE", 8: "PHP, WS"},
      "legend": [("nodejs", "", "-", "Node.js"), ("php", "", "-", "PHP"),
-                ("infra", "", "-", "minimal"), ("infra", "////", "-", "framework-based")]},
-    {"key": "queue", "ids": [9, 10], "tier": "Ergänzung (6.4) bzw. Anhang", "hatch_b": "....",
+                ("infra", "", "-", "minimal"), ("infra", "////", "-", "framework-based")],
+     "style": "Node.js salbeigrün, PHP lavendel, die Framework-Variante schraffiert"},
+    {"key": "queue", "ids": [9, 10], "tier": "Ergänzung (6.4) bzw. Anhang", "hatch_b": "....", "pair_axes": True,
      "labels": {9: "Node.js (BullMQ)", 10: "PHP (Laravel Queue)"},
      "legend": [("nodejs", "", "-", "Node.js without queue"), ("php", "", "-", "PHP without queue"),
-                ("queue", "....", "-", "with queue")]},
+                ("queue", "....", "-", "with queue")],
+     "style": "Node.js salbeigrün, PHP lavendel, die Variante mit Queue apricot mit Punktmuster"},
     {"key": "language-queue", "ids": [11], "tier": "Anhang", "hatch_b": "////",
      "labels": {11: "framework, SSE with queue"},
-     "legend": [("nodejs", "", "-", "Node.js (BullMQ)"), ("php", "////", "-", "PHP (Laravel Queue)")]},
+     # Both variants of comparison 11 have a queue and are drawn in the queue color.
+     "legend": [("queue", "", "-", "Node.js (BullMQ)"), ("queue", "////", "-", "PHP (Laravel Queue)")],
+     "style": "beide Varianten mit Queue apricot, PHP schraffiert"},
 ]
 # Line style of the transports for every group with WebSocket comparisons ("ws").
 TRANSPORT_LEGEND = [("infra", "", "-", "Server-Sent Events"), ("infra", "", DASHED, "WebSocket")]
@@ -240,7 +261,47 @@ def style_box(box, role, hatch, linestyle):
         item.set_linewidth(1.2)
 
 
-def box_figure(evaluation, measure, spec, out_dir, notes):
+def draw_pair(ax, pos, test, spec, scale, rng):
+    """Both boxes of one comparison around pos. Returns the largest value and the number of runs."""
+    result = test and test.get("result")
+    pairs = result and result.get("pairs")
+    if not pairs or not pairs.get("a"):
+        ax.text(pos, 0.5, "no data", transform=ax.get_xaxis_transform(), ha="center", va="center",
+                color=INFRA_LINE, fontsize=SCRIPT)
+        return None, 0
+    values = [np.asarray(pairs["a"], dtype=float) * scale, np.asarray(pairs["b"], dtype=float) * scale]
+    top = 0.0
+    # Left box variant A, right box variant B of the comparison in plan.json.
+    for j, (data, cell) in enumerate(zip(values, (test["a"], test["b"]))):
+        x = pos + (-0.19 if j == 0 else 0.19)
+        box = ax.boxplot([data], positions=[x], widths=0.32, patch_artist=True, showfliers=False,
+                         manage_ticks=False, whis=1.5)
+        style_box(box, role_of(cell), spec["hatch_b"] if j == 1 else "", DASHED if is_ws(cell) else "-")
+        # Each run as a point, spread horizontally, so that distribution and sample size are visible.
+        jitter = rng.uniform(-0.07, 0.07, len(data))
+        ax.plot(x + jitter, data, linestyle="none", marker="o", markersize=1.6, markeredgewidth=0,
+                color=ROLES[role_of(cell)][1], alpha=0.6, zorder=3)
+        top = max(top, float(np.max(data)))
+    return top, len(values[0])
+
+
+def box_caption(spec, label, n, alpha, pair_axes):
+    """Text for figures.md, everything the caption has to explain."""
+    scales = ("Jedes Paar hat in jeder Laststufe ein eigenes Feld mit eigener y-Achse ab null, Höhen sind nur "
+              "innerhalb eines Feldes vergleichbar." if pair_axes else
+              "Jede Laststufe hat ein eigenes Feld mit eigener y-Achse ab null.")
+    lines = (" Gestrichelt umrandet ist WebSocket, durchgezogen Server-Sent Events." if spec.get("ws") else "")
+    return (f"Die Box zeigt den Interquartilsabstand, die Linie den Median, die Antennen höchstens das 1,5-Fache des "
+            f"Interquartilsabstands und die Punkte die einzelnen Läufe (n = {n} je Box), horizontal zufällig gestreut. "
+            "Links steht Variante A, rechts Variante B des Vergleichs aus plan.json. "
+            "δ ist Cliff's Delta von A gegenüber B (positiv, wenn A höher liegt), * kennzeichnet einen Unterschied, "
+            f"der nach Holm-Korrektur in Block 1 bei α = {alpha:g} signifikant ist. "
+            f"Die y-Achse zeigt „{label}“. {scales} "
+            f"Farben nach diagram-styles.tex (Palette A), {spec['style']}.{lines} "
+            "Die Legende über den Feldern erklärt Farben, Schraffur und Linienart.")
+
+
+def box_figure(evaluation, measure, spec, out_dir, notes, extra):
     family = next((f for f in evaluation["families"] if f["measure"] == measure), None)
     if family is None:
         notes.append(f"{measure}: keine Familie in evaluation.json")
@@ -248,51 +309,43 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
     label, scale = MEASURES[measure]
     # Same seed for every figure, so the jitter of the points is identical on every re-evaluation.
     rng = np.random.default_rng(1)
-    # Three load levels stacked vertically, so the group names fit on one line.
-    fig, axes = plt.subplots(3, 1, figsize=(WIDTH, 6.9), constrained_layout=True)
+    # Three load levels stacked vertically, so the group names fit on one line. With pair_axes
+    # every pair gets its own field in its row.
+    pair_axes = spec.get("pair_axes", False)
+    columns = len(spec["ids"]) if pair_axes else 1
+    fig, axes = plt.subplots(3, columns, figsize=(WIDTH, 6.9), constrained_layout=True, squeeze=False)
     counts = []
     missing = 0
-    for ax, (scenario, title) in zip(axes, SCENARIOS):
-        ax.set_title(title, loc="left")
-        drawn = 0
-        top = 0.0
-        deltas = []
-        for i, cid in enumerate(spec["ids"]):
-            test = next((t for t in family["tests"] if t["comparison_id"] == cid and t["scenario"] == scenario), None)
-            result = test and test.get("result")
-            pairs = result and result.get("pairs")
-            if not pairs or not pairs.get("a"):
-                ax.text(i, 0.5, "no data", transform=ax.get_xaxis_transform(), ha="center", va="center",
-                        color=INFRA_LINE, fontsize=SCRIPT)
-                missing += 1
+    for row, (scenario, title) in enumerate(SCENARIOS):
+        fields = ([(axes[row][c], [cid]) for c, cid in enumerate(spec["ids"])] if pair_axes
+                  else [(axes[row][0], spec["ids"])])
+        for f, (ax, ids) in enumerate(fields):
+            if f == 0:
+                ax.set_title(title, loc="left")
+            drawn, top, deltas = 0, 0.0, []
+            for i, cid in enumerate(ids):
+                test = next((t for t in family["tests"] if t["comparison_id"] == cid and t["scenario"] == scenario), None)
+                high, runs = draw_pair(ax, i, test, spec, scale, rng)
+                if high is None:
+                    missing += 1
+                    continue
+                drawn += 1
+                counts.append(runs)
+                top = max(top, high)
+                if test["result"].get("cliffs_delta") is not None:
+                    deltas.append((i, test["result"]["cliffs_delta"], bool(test.get("significant"))))
+            ax.set_xticks(range(len(ids)))
+            ax.set_xticklabels([spec["labels"][cid] for cid in ids])
+            ax.set_xlim(-0.6, len(ids) - 0.4)
+            ax.grid(axis="x", visible=False)
+            if drawn == 0:
+                ax.set_yticks([])  # empty panel without a meaningless scale
                 continue
-            drawn += 1
-            values = [np.asarray(pairs["a"], dtype=float) * scale, np.asarray(pairs["b"], dtype=float) * scale]
-            counts.append(len(values[0]))
-            for j, (data, cell) in enumerate(zip(values, (test["a"], test["b"]))):
-                pos = i + (-0.19 if j == 0 else 0.19)
-                box = ax.boxplot([data], positions=[pos], widths=0.32, patch_artist=True, showfliers=False,
-                                 manage_ticks=False, whis=1.5)
-                style_box(box, role_of(cell), spec["hatch_b"] if j == 1 else "", DASHED if is_ws(cell) else "-")
-                # Each run as a point, so that distribution and sample size are visible.
-                jitter = rng.uniform(-0.07, 0.07, len(data))
-                ax.plot(pos + jitter, data, linestyle="none", marker="o", markersize=1.6, markeredgewidth=0,
-                        color=ROLES[role_of(cell)][1], alpha=0.6, zorder=3)
-                top = max(top, float(np.max(data)))
-            if result.get("cliffs_delta") is not None:
-                deltas.append((i, result["cliffs_delta"], bool(test.get("significant"))))
-        ax.set_xticks(range(len(spec["ids"])))
-        ax.set_xticklabels([spec["labels"][cid] for cid in spec["ids"]])
-        ax.set_xlim(-0.6, len(spec["ids"]) - 0.4)
-        ax.grid(axis="x", visible=False)
-        if drawn == 0:
-            ax.set_yticks([])  # empty panel without a meaningless scale
-            continue
-        # Axis from zero, all measures are on a ratio scale, so differences are not exaggerated.
-        ax.set_ylim(0, top * 1.2)
-        for i, delta, significant in deltas:
-            ax.text(i, top * 1.08, rf"$\delta$ = {fmt_delta(delta)}{'*' if significant else ''}",
-                    ha="center", va="bottom", fontsize=SCRIPT, color=INFRA_TEXT)
+            # Axis from zero, all measures are on a ratio scale, so differences are not exaggerated.
+            ax.set_ylim(0, top * 1.2)
+            for i, delta, significant in deltas:
+                ax.text(i, top * 1.08, rf"$\delta$ = {fmt_delta(delta)}{'*' if significant else ''}",
+                        ha="center", va="bottom", fontsize=SCRIPT, color=INFRA_TEXT)
     fig.supylabel(label, fontsize=SMALL)
     entries = list(spec["legend"])
     if spec.get("ws"):
@@ -306,13 +359,20 @@ def box_figure(evaluation, measure, spec, out_dir, notes):
     name = f"box-{measure.replace('_', '-')}-{spec['key']}.pdf"
     save(fig, out_dir, name)
     n = "0" if not counts else str(min(counts)) if min(counts) == max(counts) else f"{min(counts)}–{max(counts)}"
-    gaps = f"; ohne Daten: {missing} von {3 * len(spec['ids'])} Gruppen" if missing else ""
-    caption = ("Box: Interquartilsabstand, Linie: Median, Antennen: höchstens das 1,5-Fache des Interquartilsabstands, "
-               f"Punkte: einzelne Läufe (n = {n} je Box). δ: Cliff's Delta der linken gegenüber der rechten Variante "
-               "(positiv: links höher), *: signifikant nach Holm-Korrektur in Block 1. Achse ab null. "
-               "Gestrichelt: WebSocket. Schraffur: zweite Variante des Paares.")
+    gaps = f", ohne Daten {missing} von {3 * len(spec['ids'])} Gruppen" if missing else ""
+    alpha = (evaluation.get("plan") or {}).get("alpha", 0.05)
+    caption = box_caption(spec, label, n, alpha, pair_axes)
+    if name in extra:
+        caption += f" Zusätzlich zu erklären. {extra[name]}"
+    plan_cmp = {c["id"]: c for c in (evaluation.get("plan") or {}).get("comparisons", [])}
+    groups = ", ".join(
+        f"„{spec['labels'][cid]}“ Vergleich {cid}"
+        + (f" ({plan_cmp[cid]['a']} links, {plan_cmp[cid]['b']} rechts)" if cid in plan_cmp else "")
+        for cid in spec["ids"])
     return {"file": name, "tier": spec["tier"], "caption": caption,
-            "what": f"Boxplots der Lauf-Werte ({measure}) für die Vergleiche {', '.join(map(str, spec['ids']))}, je Laststufe ein Feld; Paare je Vergleich und Stufe: {n}{gaps}"}
+            "what": f"Boxplots der Lauf-Werte ({measure}) für die Vergleiche {', '.join(map(str, spec['ids']))}, "
+                    f"je Laststufe {'und Paar ' if pair_axes else ''}ein Feld, Paare je Vergleich und Stufe {n}{gaps}. "
+                    f"Gruppen {groups}"}
 
 
 def place_labels(ax, items, log=False):
@@ -504,9 +564,17 @@ def main():
     parser = argparse.ArgumentParser(description="Abbildungen für die schriftliche Arbeit")
     parser.add_argument("--evaluation", help="Verzeichnis mit evaluation.json")
     parser.add_argument("--series", help="Verzeichnis mit series.json")
+    parser.add_argument("--note", action="append", default=[], metavar="DATEI=TEXT",
+                        help="zusätzlicher Hinweis für die Bildunterschrift einer Abbildung, mehrfach möglich")
     args = parser.parse_args()
     if not args.evaluation and not args.series:
         parser.error("mindestens --evaluation oder --series angeben")
+    extra = {}
+    for note in args.note:
+        file, sep, text = note.partition("=")
+        if not sep or not text.strip():
+            parser.error(f"--note braucht die Form DATEI=TEXT, nicht {note!r}")
+        extra[file.strip()] = text.strip()
 
     evaluation = load(resolve(args.evaluation), "evaluation.json")
     series = load(resolve(args.series), "series.json")
@@ -518,7 +586,7 @@ def main():
     if evaluation:
         for spec in SETS:
             for measure in MEASURES:
-                entry = box_figure(evaluation, measure, spec, out_dir, notes)
+                entry = box_figure(evaluation, measure, spec, out_dir, notes, extra)
                 if entry:
                     made.append(entry)
     if series:
@@ -536,7 +604,7 @@ def main():
         f"Erzeugt: {stamp}. Quellen: {args.evaluation or '–'} (evaluation.json), {args.series or '–'} (series.json).",
         "",
         "Vektor-PDFs für den Ordner `images/` im Overleaf-Projekt, eingebunden mit `\\includegraphics[width=\\textwidth]{<datei ohne .pdf>}`.",
-        "Farben und Linienarten wie in den TikZ-Diagrammen (diagram-styles.tex): Farbe nach Sprache bzw. Queue, durchgezogen SSE, gestrichelt WebSocket.",
+        "Farben und Linienarten wie in den TikZ-Diagrammen (diagram-styles.tex, Palette A). Node.js salbeigrün (Füllung #E6F1E8, Linie #5E8E68), PHP lavendel (#EEE8F8, #7B68B5), Varianten mit Queue apricot (#FCE9DF, #C27A5A). Durchgezogen umrandet Server-Sent Events, gestrichelt WebSocket.",
         "Schwerpunkte nach DECISIONS.md 5.24: Kernabbildungen im Text, die übrigen im Anhang.",
         "Die Spalte „Für die Bildunterschrift“ nennt, was die Unterschrift erklären muss, damit die Abbildung ohne den Fließtext lesbar ist.",
         "",

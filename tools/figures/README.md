@@ -9,7 +9,7 @@ docker compose --profile tools build figures
 docker compose --profile tools run --rm figures --evaluation results/<zeitstempel>_evaluation --series results/<zeitstempel>_series
 ```
 
-Unter Git Bash auf Windows ist `MSYS_NO_PATHCONV=1` voranzustellen, damit die Pfade nicht umgeschrieben werden. Einer der beiden Parameter genügt, dann entstehen nur die zugehörigen Abbildungen.
+Unter Git Bash auf Windows ist `MSYS_NO_PATHCONV=1` voranzustellen, damit die Pfade nicht umgeschrieben werden. Einer der beiden Parameter genügt, dann entstehen nur die zugehörigen Abbildungen. `--note <datei>=<text>` ergänzt in `figures.md` einen Hinweis für die Bildunterschrift einer Abbildung und darf mehrfach stehen.
 
 **Ergebnis.** `results/<zeitstempel>_figures/` mit den PDFs und `figures.md`, das jede Datei beschreibt, ihre Stufe nach DECISIONS.md 5.24 nennt (Kern, Ergänzung, Anhang) und fehlende Werte ausweist.
 
@@ -30,6 +30,8 @@ Unter Git Bash auf Windows ist `MSYS_NO_PATHCONV=1` voranzustellen, damit die Pf
 - Breite der Textspalte der HagenbergThesis-Vorlage. In LaTeX mit `\includegraphics[width=\textwidth]{<datei ohne .pdf>}` einbinden.
 - Gestaltung wie die TikZ-Diagramme der Arbeit (`images/diagram-styles.tex` im Overleaf-Projekt, Palette A). Farbe kodiert die Sprache (PHP lavendel, Node.js salbeigrün) oder die Queue (apricot), Grau die gemeinsame Infrastruktur, die Linienart den Transport (durchgezogen SSE, gestrichelt WebSocket). Füllung, Linie und Text jeder Rolle haben dieselben Farbwerte wie in den Diagrammen.
 - Schraffur und Markierung unterscheiden zusätzlich, was Farbe und Linienart im Schwarzweißdruck nicht trennen, etwa PHP von Node.js oder die Framework- von der Minimalvariante.
+- Die Queue-Abbildungen (`box-*-queue.pdf`) zeigen jedes Paar in einem eigenen Feld mit eigener y-Achse ab null, weil sich Node.js und PHP dort im Speicher um mehr als eine Größenordnung unterscheiden.
+- Mathematische Zeichen wie δ und ↑ aus Latin Modern Math, damit sie in der Textebene des PDF als Unicode-Zeichen stehen.
 - Schrift Latin Modern Roman wie in der Vorlage (`lmodern`, 11 pt). Beschriftungen in der Größe von `\small` (10 pt), Achsenwerte und Anmerkungen in der Größe von `\scriptsize` (8 pt), jeweils in der optischen Größe, die LaTeX dafür verwendet. Die Schriften werden beim Bau des Images nach TrueType umgewandelt (`otf2ttf.py`), damit Schrifttyp und eingebettete Daten in den PDFs übereinstimmen (PDF/A-Prüfung mit veraPDF).
 - **Boxplots.** Box Interquartilsabstand, Linie Median, Antennen höchstens das 1,5-Fache des Interquartilsabstands, dazu jeder Lauf als Punkt, damit Verteilung und Stichprobengröße sichtbar sind. Über jedem Paar steht Cliff's Delta (linke gegenüber rechter Variante), mit Stern, wenn der Vergleich nach der Holm-Korrektur signifikant ist. Die y-Achse beginnt bei null, weil alle Messgrößen verhältnisskaliert sind und Unterschiede sonst überzeichnet würden.
 - **Skalierungsreihe.** Median je Stufe, Fehlerbalken vom kleinsten bis zum größten Lauf der Stufe. Die y-Achse ist logarithmisch, wenn die Werte einen Faktor 20 übersteigen, sonst linear ab null. Jede Stufe hat einen Teilstrich, 750 bleibt ohne Zahl.
