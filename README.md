@@ -107,7 +107,7 @@ docker compose --profile tools run --rm figures --evaluation results/<auswertung
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).
 
-**Stand (2026-11-04).** Block 1 läuft seit dem 2026-10-31 auf Commit `ac47cb7`, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software.
+**Stand (2026-11-04).** Block 1 läuft seit dem 2026-10-31 auf Commit `ac47cb7`, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software. Nach Block 2 wird auf demselben Commit der Ansturm wiederholt (DECISIONS.md 5.14).
 
 Ein einzelner manueller k6-Lauf gegen den Front-Nginx:
 
@@ -160,7 +160,7 @@ Speicherbedarf bei 500 gleichzeitigen SSE-Clients im Produktionsbetrieb (lokal, 
 | php-minimal/SSE | ca. 375 MiB |
 | php-laravel/SSE | ca. 1 390 MiB |
 
-Das Speicherbudget pro Zelle beträgt 1,5 GiB, passend zum Raspberry Pi 5 mit 4 GB (DECISIONS.md 5.10). Verbinden sich alle 500 Clients gleichzeitig, bricht php-laravel/SSE damit wegen Speichermangels ab. Mit dem verteilten Verbindungsaufbau, der für alle Messphasen gilt, lag die echte Spitze auf dem Pi bei rund 1 060 bis 1 100 MiB. Ein Worker belegt eigenen Speicher erst, wenn er zum ersten Mal eine Anfrage bearbeitet hat. Damit der Speicher nicht von Lauf zu Lauf wächst, beginnt jede Kampagne mit einem Vorlauf, nach dem alle 550 Worker einmal gearbeitet haben (DECISIONS.md 5.9). Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Beim gleichzeitigen Verbindungsaufbau aller Clients liegt der Bedarf auf dem Pi kurzzeitig über 1,5 GiB, das misst die Phase Ansturm. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
+Das Speicherbudget pro Zelle beträgt 1,5 GiB, passend zum Raspberry Pi 5 mit 4 GB (DECISIONS.md 5.10). Verbinden sich alle 500 Clients gleichzeitig, bricht php-laravel/SSE damit wegen Speichermangels ab. Mit dem verteilten Verbindungsaufbau, der für alle Messphasen gilt, lag die echte Spitze auf dem Pi bei rund 1 060 bis 1 140 MiB. Ein Worker belegt eigenen Speicher erst, wenn er zum ersten Mal eine Anfrage bearbeitet hat. Damit der Speicher nicht von Lauf zu Lauf wächst, beginnt jede Kampagne mit einem Vorlauf, nach dem alle 550 Worker einmal gearbeitet haben (DECISIONS.md 5.9). Die lokalen Prüfläufe liefen mit 2 GiB. Mit dem früheren Wert von 512 MiB wäre php-laravel/SSE unter Volllast per OOM beendet worden. Die geforkten FPM-Worker teilen Speicherseiten per Copy-on-Write mit dem Master-Prozess, deshalb liegt der Bedarf unter dem Vielfachen eines einzelnen Prozesses. Beim gleichzeitigen Verbindungsaufbau aller Clients liegt der Bedarf auf dem Pi kurzzeitig über 1,5 GiB, das misst die Phase Ansturm. Speicherwachstum über sehr lange Verbindungen (Stunden) ist nicht erfasst.
 
 ## Dateideskriptor-Limits
 
@@ -219,7 +219,7 @@ Die wichtigsten Berichte:
 | Bericht | Inhalt |
 | --- | --- |
 | [Belastungstest](results/2026-10-22T13-43-23Z_burn-in.csv) | 24 Stunden Volllast auf dem Pi, Rohdaten (DECISIONS.md 5.14) |
-| [Ansturm](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle (DECISIONS.md 5.14) |
+| [Ansturm](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle, erster Durchgang, Wiederholung nach Block 2 (DECISIONS.md 5.14) |
 | [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
 | [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |

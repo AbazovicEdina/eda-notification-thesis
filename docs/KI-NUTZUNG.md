@@ -7,7 +7,7 @@ Die Commits tragen bewusst keinen KI-Vermerk. Die KI-Nutzung betrifft nahezu all
 ## Werkzeuge
 
 - **Claude Code (Anthropic)** mit verschiedenen Claude-Modellen, für den gesamten praktischen Teil. Dazu gehören Recherche, Vorbereitung von Entscheidungen, Code, Einrichtung der Hardware, Fehlersuche, Auswertung und Dokumentation.
-- **Ein Claude-Projekt auf claude.ai,** eingerichtet als Unterstützung für die schriftliche Arbeit. Es prüfte am 2026-10-17 den Messaufbau aus Sicht der Arbeit, die Befunde wurden über Claude Code umgesetzt.
+- **Ein Claude-Projekt auf claude.ai,** eingerichtet als Unterstützung für die schriftliche Arbeit. Es prüfte am 2026-10-17 den Messaufbau aus Sicht der Arbeit, die Befunde wurden über Claude Code umgesetzt. Am 2026-10-31 formulierte die Autorin dort die Prüfaufträge vor Block 1.
 
 Weitere KI-Werkzeuge kamen nicht zum Einsatz.
 
@@ -61,11 +61,14 @@ Fehler der KI, die dabei aufgefallen sind:
 - Beide Queue-Worker veröffentlichten auf demselben Redis-Kanal. In Vergleich 11, in dem beide Queue-Varianten gleichzeitig laufen, hätte jede Variante die Events beider Wege erhalten. Gemessen war dieser Vergleich noch nicht (DECISIONS.md 5.19).
 - Die Ereignisquelle ließ BullMQ alle erledigten Jobs in Redis behalten, obwohl Redis mit jeder Variante mitgemessen wird (DECISIONS.md 5.20).
 - Nach der Übersetzung der Code-Kommentare meldete die KI, es sei nur noch eine deutsche Zeile übrig. Tatsächlich waren es noch zehn Stellen, weil ihr Suchfilter zu eng war. Aufgefallen ist das bei der statischen Prüfung.
-- Der Healthcheck von Redis startete alle 2 s ein Programm im gemessenen Redis-Container. Dessen CPU-Zeit zählte zu Redis und machte rund 85 % der festen Grundlast aus, die im Pilot auffiel. Die zuerst genannte Ursache, die Module von Redis 8, war eine ungeprüfte Vermutung der KI. Erst eine getrennte Messung des Redis-Prozesses und des ganzen Containers zeigte die tatsächliche Ursache (DECISIONS.md 5.18).
+- Der Healthcheck von Redis startete alle 2 s ein Programm im gemessenen Redis-Container. Dessen CPU-Zeit zählte zu Redis und machte lokal gut 80 %, auf dem Pi 92 % der festen Grundlast aus, die im Pilot auffiel. Die zuerst genannte Ursache, die Module von Redis 8, war eine ungeprüfte Vermutung der KI. Erst eine getrennte Messung des Redis-Prozesses und des ganzen Containers zeigte die tatsächliche Ursache (DECISIONS.md 5.18).
 - Im ursprünglichen Entwurf galt die gegenseitige Störung der beiden Varianten eines Paares als symmetrisch. Für die später ergänzten Queue-Vergleiche mit zwei verschiedenen Ereignisquellen traf das nicht zu, Redis rechnete dort die Queue-Arbeit der anderen Variante der gemessenen zu. Aufgefallen ist das erst bei einer zweiten, auf Fairness ausgerichteten Prüfung (DECISIONS.md 5.6.3).
 - Das Statuswerkzeug verglich die Kontrollmessung auch mit Probeläufen anderer Haltezeit, und die Zahl der nicht committeten Änderungen enthielt die Ergebnisdateien. Beides fiel bei der Durchsicht vor dem Start von Block 1 auf (DECISIONS.md 5.9, 5.16).
 - Drei Aussagen zu Quellen hielten der Prüfung vom 2026-11-03 nicht stand. Die Genauigkeit von NTP war zu grob angegeben, Romano et al. (2006) wurde eine Verbreitung über Arcuri & Briand (2014) zugeschrieben, die dort nicht belegt ist, und Felter et al. (2015) sollte eine gleiche Wirkung von Docker auf PHP und Node.js belegen, die dort nicht steht (DECISIONS.md 5.14, LITERATUR.md).
 - Für den Pilot nannte die KI 1 640 Messläufe. Das war der Gesamtzähler des Statuswerkzeugs, der auch Läufe außerhalb des Pilots enthielt. Tatsächlich waren es 1 600. Aufgefallen ist das erst beim Nachzählen aus den Laufprotokollen am 2026-11-04 (DECISIONS.md 5.9).
+- Zwei weitere Werte des Pilots stammten aus dem Statusbericht und galten nicht für den Pilot allein. Die 54,5 °C kamen vom Ansturm im selben Zeitfenster, tatsächlich waren es 52,9 °C. Die 2,5 % bei der Kontrollmessung verglichen Läufe mit 10 s und 60 s Haltezeit, gleichartige Läufe wichen um 0,9 % ab. Aufgefallen ist das beim Nachrechnen am 2026-11-04 (DECISIONS.md 5.9).
+- Der nichtparametrische Test war mit Georges et al. (2007) und Kalibera & Jones (2013) begründet. Beide stützen die Aussage nicht und halten parametrische Verfahren bei vielen Messungen für vertretbar. Die Begründung stützt sich seit 2026-11-04 auf Hoefler & Belli (2015, DECISIONS.md 5.8).
+- Bei den Änderungen vom 2026-10-31 wurde die eigene Regel übersehen, den Ansturm bei Änderungen an Zellen oder Orchestrator zu wiederholen. Er wird nach Block 2 wiederholt (DECISIONS.md 5.14).
 
 ## Gelernt und selbst überprüft
 
@@ -116,3 +119,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-10-31 | Skript für die Entscheidungsregeln, während Block 1 läuft | Regeln aus `plan.json` als Code mit Tests, Festlegung des „Gegenteils" je Art von Fall vor jeder Auswertung (DECISIONS.md 5.18) |
 | 2026-11-03 | Nachfrage der Autorin, ob die Quellen aktuell sind und zum Projekt passen | Abgleich mit Crossref, RFC Editor und allen Adressen, drei Aussagen korrigiert, offene Stellen mit `CHECK BY HAND` markiert, LITERATUR.md auf Englisch umgestellt |
 | 2026-11-04 | Durchsicht des Repositorys, bevor der Betreuer es sich genauer ansieht | Zahl der Pilotläufe korrigiert, Übersicht der Berichte und gemessener Commit im README |
+| 2026-11-04 | Wunsch der Autorin, alle Angaben für die Arbeit im gesamten Projekt zu prüfen | Werte des Pilots und Belege der Statistik korrigiert, Grund für die Queue nur mit Framework ergänzt, Wiederholung des Ansturms nach Block 2 festgelegt (DECISIONS.md, Änderungsverlauf) |

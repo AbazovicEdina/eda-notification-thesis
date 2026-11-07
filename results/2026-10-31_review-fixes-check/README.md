@@ -18,7 +18,7 @@ Gemessen ohne Clients und ohne Ereignisquelle, jeweils über 30 s, getrennt nach
 | Healthcheck nur beim Start, Queue-Worker gestoppt | 66 ms | 60 ms |
 | Healthcheck nur beim Start, beide Queue-Worker aktiv | 70 ms | 70 ms |
 
-Rund 85 % der Grundlast stammten vom Healthcheck, der alle 2 s `redis-cli ping` im Container startete. Für die Messung auf dem Pi gibt es `infra/pi/redis-idle.sh`.
+Gut 80 % der Grundlast stammten vom Healthcheck, der alle 2 s `redis-cli ping` im Container startete. Für die Messung auf dem Pi gibt es `infra/pi/redis-idle.sh`.
 
 Der Hinweis auf aktiven Swap betrifft nur den lokalen Rechner, auf dem Pi ist Swap abgeschaltet und wird vor jeder Kampagne geprüft.
 

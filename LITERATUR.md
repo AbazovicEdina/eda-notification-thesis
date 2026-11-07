@@ -1,10 +1,10 @@
 # Literature
 
-Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18 and 2026-11-03). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
+Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03 and 2026-11-04). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
 
 **Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
 
-## To check by hand (as of 2026-11-03)
+## To check by hand (as of 2026-11-04)
 
 The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND.**
 
@@ -13,7 +13,8 @@ The author checks these points in the original before they appear in the text. E
 - [ ] **Research gap.** The search in IEEE Xplore, ACM Digital Library and Google Scholar is still open. Read and place Van de Vyvere et al. (2020) and Appelqvist & Örnmyr (2017). Both are close to the gap.
 - [ ] **Romano et al. (2006).** Check the four thresholds of Cliff's delta in the original. The full text was not available during this review. The earlier claim that the thresholds became established through Arcuri & Briand (2014) was wrong and has been removed.
 - [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
-- [ ] **Kalibera & Jones (2013).** DECISIONS.md rests two statements on it (non-normal measurement data in 5.8, "far fewer pairs suffice" in 5.9). The full text could not be retrieved during this review.
+- [ ] **Kalibera & Jones (2013).** Only searched for key terms on 2026-11-04. The paper does not say that measurement data are typically non-normal, so DECISIONS.md 5.8 no longer cites it for that. Confirm its use for setting the number of repetitions from an initial experiment (DECISIONS.md 5.9).
+- [ ] **Hoefler & Belli (2015).** Now the source for not assuming a normal distribution (DECISIONS.md 5.8). Read rule 6 and the passage on nonparametric techniques in the original.
 - [ ] **Felter et al. (2015).** The source compares KVM and Docker, not PHP and Node.js. That the overhead affects both alike is a conclusion of this thesis and must be worded that way in the text.
 - [ ] **RFC 5905.** The statement on the accuracy of NTP was too coarse and has been corrected (also in DECISIONS.md 5.14). Check the wording for the text.
 - [ ] **Cabane & Farias (2024).** Only the title is known so far, and there is no open access. Read it through the university library or do not cite it. Its placement in the research gap depends on this.
@@ -22,7 +23,7 @@ The author checks these points in the original before they appear in the text. E
 
 - [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
 - [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
-- [ ] **Georges et al. (2007).** Passage on non-normal measurement data and on warm-up.
+- [ ] **Georges et al. (2007).** Passage on warm-up. The paper does not support the claim about non-normal data, see its entry.
 - [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
 - [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
 
@@ -662,9 +663,9 @@ Stuart H. Hurlbert. "Pseudoreplication and the Design of Ecological Field Experi
 
 Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Performance Evaluation." In *Proceedings of OOPSLA 2007*, 57–76, 2007.
 
-**Use.** Repeated runs, exclusion of warm-up runs and non-normal measurement data (DECISIONS.md 5.8, 5.9). The paper refers to JVM benchmarks. The underlying problem (nondeterminism from JIT, garbage collection, scheduling) carries over to OPcache, the V8 JIT, connection setup and the file system cache.
+**Use.** Repeated runs and exclusion of warm-up runs (DECISIONS.md 5.9). The paper refers to JVM benchmarks. The underlying problem (nondeterminism from JIT, garbage collection, scheduling) carries over to OPcache, the V8 JIT, connection setup and the file system cache.
 
-**CHECK BY HAND.** Check the passage on non-normal measurement data and on warm-up. The transfer to PHP and Node.js is a conclusion of this thesis.
+**CHECK BY HAND.** Check the passage on warm-up. The transfer to PHP and Node.js is a conclusion of this thesis. Do not cite this paper for non-normal data. Its note on normality in Section 3.2 says that confidence intervals do not require normally distributed data, because of the central limit theorem, and the paper works with parametric methods. Corrected on 2026-11-04 after a search of the full text.
 
 ```bibtex
 @inproceedings{georges2007statistically,
@@ -686,7 +687,7 @@ Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *P
 
 **Use.** Fixing the number of repetitions from pilot data instead of across the board (DECISIONS.md 5.9). The actual nondeterminism of a benchmark is often lower than assumed. Repetitions belong where the uncertainty actually lies.
 
-**CHECK BY HAND.** DECISIONS.md rests two statements on it (non-normal measurement data in 5.8, "far fewer pairs suffice" in 5.9). The full text could not be retrieved on 2026-11-03, and the abstract confirms neither. Check them in the original and adjust the two sentences if needed.
+**CHECK BY HAND.** Confirm the use above in the original. Do not cite this paper for non-normal data. Its paragraph on normality says that parametric methods have been found robust under various conditions, even though the central limit theorem does not fully justify them. The earlier claim "far fewer pairs suffice" in DECISIONS.md 5.9 went beyond the paper and has been reworded. Corrected on 2026-11-04 after a search of the full text.
 
 ```bibtex
 @inproceedings{kalibera2013rigorous,
@@ -697,6 +698,26 @@ Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *P
   pages     = {63--74},
   date      = {2013},
   doi       = {10.1145/2464157.2464160},
+  langid    = {english}
+}
+```
+
+### Hoefler & Belli (2015), not assuming a normal distribution
+
+Torsten Hoefler, Roberto Belli. "Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results." In *Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)*, 1–12, 2015. DOI 10.1145/2807591.2807644.
+
+**Use.** Measurement data should not be assumed to be normally distributed without a diagnostic check (rule 6), and nonparametric techniques are the choice when the distribution is unknown (DECISIONS.md 5.8). Also supports reporting variation and confidence intervals. The paper comes from high-performance computing, so the transfer needs a short explanation.
+
+**CHECK BY HAND.** The passages were found by a search of the full text on 2026-11-04. Read them in the original before citing.
+
+```bibtex
+@inproceedings{hoefler2015scientific,
+  author    = {Hoefler, Torsten and Belli, Roberto},
+  title     = {Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results},
+  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)},
+  pages     = {1--12},
+  date      = {2015},
+  doi       = {10.1145/2807591.2807644},
   langid    = {english}
 }
 ```
@@ -1551,24 +1572,6 @@ No abstract available, the content is known only from the title.
 }
 ```
 
-### Hoefler & Belli (2015), rules for reporting measurements
-
-**Content (per abstract).** Examines 120 papers and derives rules for the design, analysis and reporting of performance measurements.
-
-**Intended for.** Methodology, as evidence for reporting variation and confidence intervals. It comes from high-performance computing, so the transfer needs a short explanation.
-
-```bibtex
-@inproceedings{hoefler2015scientific,
-  author    = {Hoefler, Torsten and Belli, Roberto},
-  title     = {Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results},
-  booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)},
-  pages     = {1--12},
-  date      = {2015},
-  doi       = {10.1145/2807591.2807644},
-  langid    = {english}
-}
-```
-
 ### Papadopoulos et al. (2021), principles of reproducible measurements (optional)
 
 **Content (per abstract).** Eight methodological principles for performance measurements in the cloud and a literature review of how well they are followed.
@@ -1633,7 +1636,7 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.8 | Bootstrap confidence interval | Efron & Tibshirani (1993) |
 | 5.8 | Holm correction per family | Holm (1979) |
 | 5.8 | Reporting tail latencies | Dean & Barroso (2013) |
-| 5.8 | Nonparametric approach | Georges et al. (2007), Kalibera & Jones (2013) |
+| 5.8 | Nonparametric approach | Hoefler & Belli (2015) |
 | 5.8, 5.9 | Validity framework | Wohlin et al. (2024) |
 | 5.9 | Warm-up, number of repetitions from a pilot | Georges et al. (2007), Kalibera & Jones (2013) |
 | 5.9 | No stopping after interim analysis | Armitage et al. (1969) |
