@@ -1,0 +1,28 @@
+{
+  "name": "b1-c13-baseline",
+  "warmupRuns": 5,
+  "settleSeconds": 10,
+  "connectSpreadSeconds": 5,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
+  },
+  "phase": "main",
+  "block": 1,
+  "configs": [
+    "php-minimal-sse",
+    "php-minimal-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "baseline",
+      "vus": 10,
+      "holdSeconds": 60,
+      "runsPerConfig": 95,
+      "eventRatePerSecond": 1
+    }
+  ]
+}

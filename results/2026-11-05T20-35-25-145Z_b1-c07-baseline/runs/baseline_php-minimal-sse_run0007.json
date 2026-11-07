@@ -1,0 +1,498 @@
+{
+  "schema": "eda-thesis/run/2",
+  "run": {
+    "id": "baseline_php-minimal-sse_run0007",
+    "config": "php-minimal-sse",
+    "cell": "php-minimal-sse",
+    "scenario": "baseline",
+    "phase": "main",
+    "block": 1,
+    "run_index": 7,
+    "warmup": false,
+    "valid": true,
+    "invalid_reason": null,
+    "started_at": "2026-11-05T20:51:52.671Z",
+    "ended_at": "2026-11-05T20:53:04.465Z"
+  },
+  "load": {
+    "vus": 10,
+    "settle_seconds": 10,
+    "connect_spread_seconds": 5,
+    "hold_seconds": 60,
+    "event_rate_nominal_per_s": 1,
+    "producer": "pubsub",
+    "script": "sse-feasibility.js",
+    "metric": "sse_event_latency_ms",
+    "target_base_url": "http://192.168.50.10:8080",
+    "front_mode": "fastcgi",
+    "extra_env_keys": []
+  },
+  "measures": {
+    "latency_mean_ms": 1.3916666666666666,
+    "latency_min_ms": 0,
+    "latency_median_ms": 1,
+    "latency_p90_ms": 2,
+    "latency_p95_ms": 2,
+    "latency_p99_ms": 3,
+    "latency_max_ms": 3,
+    "connect_mean_ms": 2.2,
+    "connect_median_ms": 2,
+    "connect_p95_ms": 3,
+    "connect_max_ms": 3,
+    "clients": 10,
+    "clients_connected_in_time": 10,
+    "clients_served": 10,
+    "connected_ratio": 1,
+    "served_ratio": 1,
+    "events_received": 600,
+    "events_unique": 600,
+    "events_expected": 600,
+    "events_lost": 0,
+    "events_duplicate": 0,
+    "delivery_ratio": 1,
+    "delivered_events_per_s": 10,
+    "source_rate_eps": 1,
+    "connection_errors": 0,
+    "checks_passed": 10,
+    "checks_failed": 0,
+    "data_received_bytes": 112580,
+    "data_received_bytes_per_s": 1587.6380029087368,
+    "data_sent_bytes": 1270,
+    "data_sent_bytes_per_s": 17.90993305821723,
+    "cpu_seconds": 0.058628,
+    "cpu_cores_avg": 0.000808405609254995,
+    "working_set_avg_bytes": 377361805.63573885,
+    "working_set_peak_bytes": 377638912,
+    "mem_peak_bytes": 377638912,
+    "mem_peak_kernel_bytes": 378535936,
+    "mem_peak_kernel_new": false,
+    "cpu_seconds_redis": 0.086029,
+    "working_set_peak_bytes_redis": 14319616,
+    "cpu_seconds_total": 0.14465699999999998,
+    "working_set_peak_bytes_total": 391954432,
+    "cpu_seconds_nginx": 0.028814,
+    "working_set_peak_bytes_nginx": 11411456,
+    "loadgen_cpu_util_avg": 0.004686464119973532,
+    "loadgen_cpu_util_max": 0.05319148936170215
+  },
+  "resources": {
+    "wall_seconds": 72.523,
+    "interval_ms": 250,
+    "samples": 291,
+    "cells": {
+      "php-minimal-sse": {
+        "containers": 1,
+        "cpu_seconds": 0.058628,
+        "mem_peak_lifetime_bytes": 378535936,
+        "mem_peak_lifetime_new": false,
+        "cpu_cores_avg": 0.000808405609254995,
+        "mem_avg_bytes": 377361805.63573885,
+        "mem_peak_bytes": 377638912,
+        "working_set_avg_bytes": 377361805.63573885,
+        "working_set_peak_bytes": 377638912
+      },
+      "redis": {
+        "containers": 1,
+        "cpu_seconds": 0.086029,
+        "mem_peak_lifetime_bytes": 24662016,
+        "mem_peak_lifetime_new": false,
+        "cpu_cores_avg": 0.0011862305751278905,
+        "mem_avg_bytes": 18334892.42611684,
+        "mem_peak_bytes": 18812928,
+        "working_set_avg_bytes": 13841580.426116839,
+        "working_set_peak_bytes": 14319616
+      }
+    },
+    "total": {
+      "containers": 2,
+      "cpu_seconds": 0.14465699999999998,
+      "mem_peak_lifetime_bytes": 403197952,
+      "mem_peak_lifetime_new": false,
+      "cpu_cores_avg": 0.0019946361843828854,
+      "mem_avg_bytes": 395696698.0618557,
+      "mem_peak_bytes": 396447744,
+      "working_set_avg_bytes": 391203386.0618557,
+      "working_set_peak_bytes": 391954432
+    },
+    "containers": {
+      "048af1ad85dd": {
+        "cell": "php-minimal-sse",
+        "cgroup": "/sys/fs/cgroup/eda_php_minimal_sse.slice/docker-048af1ad85ddca1e826554f54e4eae8f726743a531a1b5a76d54256cc46a4e4b.scope",
+        "cpu_seconds": 0.058628,
+        "cpu_cores_avg": 0.000808405609254995,
+        "mem_avg_bytes": 377361805.63573885,
+        "mem_peak_bytes": 377638912,
+        "working_set_avg_bytes": 377361805.63573885,
+        "working_set_peak_bytes": 377638912,
+        "mem_peak_lifetime_start_bytes": 378535936,
+        "mem_peak_lifetime_end_bytes": 378535936
+      },
+      "b419e3b79187": {
+        "cell": "redis",
+        "cgroup": "/sys/fs/cgroup/system.slice/docker-b419e3b79187fb77cb1b9dace452554fd8b3dd4e6abb4baf95134f799aeb4cfa.scope",
+        "cpu_seconds": 0.086029,
+        "cpu_cores_avg": 0.0011862305751278905,
+        "mem_avg_bytes": 18334892.42611684,
+        "mem_peak_bytes": 18812928,
+        "working_set_avg_bytes": 13841580.426116839,
+        "working_set_peak_bytes": 14319616,
+        "mem_peak_lifetime_start_bytes": 24662016,
+        "mem_peak_lifetime_end_bytes": 24662016
+      }
+    },
+    "host": {
+      "temp_start_c": 50.15,
+      "temp_end_c": 45.75,
+      "temp_max_c": 50.7,
+      "throttled_start": "0x0",
+      "throttled_end": "0x0",
+      "cpu": null,
+      "throttled_source": "vcgencmd"
+    }
+  },
+  "loadgen": {
+    "wall_seconds": 72.632,
+    "interval_ms": 1000,
+    "samples": 74,
+    "cells": {},
+    "total": {
+      "containers": 0,
+      "cpu_seconds": 0,
+      "mem_peak_lifetime_bytes": 0,
+      "mem_peak_lifetime_new": false,
+      "cpu_cores_avg": 0,
+      "mem_avg_bytes": 0,
+      "mem_peak_bytes": 0,
+      "working_set_avg_bytes": 0,
+      "working_set_peak_bytes": 0
+    },
+    "containers": {},
+    "host": {
+      "temp_start_c": 30,
+      "temp_end_c": 30,
+      "temp_max_c": 30,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": {
+        "cpus": 12,
+        "util_avg": 0.004686464119973532,
+        "util_max_interval": 0.05319148936170215
+      }
+    }
+  },
+  "nginx": {
+    "wall_seconds": 72.094,
+    "interval_ms": 1000,
+    "samples": 74,
+    "cells": {
+      "nginx": {
+        "containers": 1,
+        "cpu_seconds": 0.028814,
+        "mem_peak_lifetime_bytes": 14618624,
+        "mem_peak_lifetime_new": false,
+        "cpu_cores_avg": 0.0003996726495963603,
+        "mem_avg_bytes": 11217670.918918919,
+        "mem_peak_bytes": 11436032,
+        "working_set_avg_bytes": 11193094.918918919,
+        "working_set_peak_bytes": 11411456
+      }
+    },
+    "total": {
+      "containers": 1,
+      "cpu_seconds": 0.028814,
+      "mem_peak_lifetime_bytes": 14618624,
+      "mem_peak_lifetime_new": false,
+      "cpu_cores_avg": 0.0003996726495963603,
+      "mem_avg_bytes": 11217670.918918919,
+      "mem_peak_bytes": 11436032,
+      "working_set_avg_bytes": 11193094.918918919,
+      "working_set_peak_bytes": 11411456
+    },
+    "containers": {
+      "1c1b2bed8ce0": {
+        "cell": "nginx",
+        "cgroup": "/sys/fs/cgroup/system.slice/docker-1c1b2bed8ce0e574afbd44bf298dbcb45db0ce2c6e202590ff6cd3cc721bcb91.scope",
+        "cpu_seconds": 0.028814,
+        "cpu_cores_avg": 0.0003996726495963603,
+        "mem_avg_bytes": 11217670.918918919,
+        "mem_peak_bytes": 11436032,
+        "working_set_avg_bytes": 11193094.918918919,
+        "working_set_peak_bytes": 11411456,
+        "mem_peak_lifetime_start_bytes": 14618624,
+        "mem_peak_lifetime_end_bytes": 14618624
+      }
+    },
+    "host": {
+      "temp_start_c": 49.6,
+      "temp_end_c": 47.4,
+      "temp_max_c": 50.15,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": null
+    }
+  },
+  "containers": [
+    {
+      "id": "048af1ad85ddca1e826554f54e4eae8f726743a531a1b5a76d54256cc46a4e4b",
+      "name": "eda-thesis-php-minimal-fpm-1",
+      "service": "php-minimal-fpm",
+      "image": "eda-thesis-php-minimal:latest",
+      "image_id": "sha256:949787bf628665ad066f86f222d715544c7db0f3f6436ce7daa80abfd02d849f",
+      "status": "running",
+      "oom_killed": false,
+      "started_at": "2026-11-05T20:35:39.059203369Z",
+      "runtime_env": {
+        "APP_ENV": null,
+        "APP_DEBUG": null,
+        "NODE_ENV": null
+      },
+      "limits": {
+        "cpus": 2,
+        "memory_bytes": 1610612736,
+        "memory_swap_bytes": 1610612736,
+        "cgroup_parent": "eda_php_minimal_sse.slice",
+        "nofile": 8192
+      }
+    }
+  ],
+  "context": {
+    "campaign": {
+      "name": "b1-c07-baseline",
+      "phase": "main",
+      "block": 1,
+      "dir": "2026-11-05T20-35-25-145Z_b1-c07-baseline",
+      "file": "campaigns/block1/b1-c07-baseline.json"
+    },
+    "topology": "zwei Rechner (SUT-Seite per ssh)",
+    "git": {
+      "load": {
+        "commit": "ac47cb7e8907e0ba31c73381220827554353daaf",
+        "dirty_files": 0,
+        "untracked_files": 5788
+      },
+      "sut": {
+        "commit": "ac47cb7e8907e0ba31c73381220827554353daaf",
+        "dirty_files": 0,
+        "untracked_files": 4
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": "Raspberry Pi 5 Model B Rev 1.1",
+      "kernel": "6.18.50+rpt-rpi-v8",
+      "arch": "arm64",
+      "cpus": 4,
+      "mem_total_bytes": 4189671424,
+      "swap_total_bytes": 0,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "pids"
+      ],
+      "memory_controller": true,
+      "cpu_governor": "performance",
+      "cpu_freq_khz": 2400000,
+      "temp_c": 49.05,
+      "throttled": "0x0",
+      "docker_disk_free_bytes": 1879229968384,
+      "docker_disk_total_bytes": 1968554557440,
+      "sampled_at": "2026-11-05T20:35:41.922Z",
+      "throttled_source": "vcgencmd"
+    },
+    "containers": {
+      "php-laravel-fpm": {
+        "image": "eda-thesis-php-laravel:latest",
+        "image_id": "sha256:1981ed6677b4762ff96efabe6ace664e76e5303fcd81cdf0c74ddf9a14d0d69f",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 1610612736,
+          "memory_swap_bytes": 1610612736,
+          "cgroup_parent": "eda_php_laravel_sse.slice",
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0",
+            "opcache_enable_fpm": "On"
+          }
+        }
+      },
+      "php-minimal-fpm": {
+        "image": "eda-thesis-php-minimal:latest",
+        "image_id": "sha256:949787bf628665ad066f86f222d715544c7db0f3f6436ce7daa80abfd02d849f",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 1610612736,
+          "memory_swap_bytes": 1610612736,
+          "cgroup_parent": "eda_php_minimal_sse.slice",
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": null,
+          "APP_DEBUG": null,
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0",
+            "opcache_enable_fpm": "On"
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v24.22.0",
+      "platform": "linux"
+    }
+  },
+  "k6_summary": {
+    "metrics": {
+      "sse_event_latency_ms": {
+        "p(99)": 3,
+        "avg": 1.3916666666666666,
+        "min": 0,
+        "med": 1,
+        "max": 3,
+        "p(90)": 2,
+        "p(95)": 2
+      },
+      "data_received": {
+        "count": 112580,
+        "rate": 1587.6380029087368
+      },
+      "iterations": {
+        "count": 10,
+        "rate": 0.14102309494659238
+      },
+      "vus_max": {
+        "max": 10,
+        "value": 10,
+        "min": 10
+      },
+      "sse_event": {
+        "count": 700,
+        "rate": 9.871616646261465
+      },
+      "http_req_duration": {
+        "max": 70909.56876,
+        "p(90)": 70458.8003373,
+        "p(95)": 70684.18454865,
+        "p(99)": 70864.49191772999,
+        "avg": 68658.6957376,
+        "min": 66409.109066,
+        "med": 68658.56726350001
+      },
+      "sse_events_lost": {
+        "count": 0,
+        "rate": 0
+      },
+      "sse_clients_served": {
+        "count": 10,
+        "rate": 0.14102309494659238
+      },
+      "vus": {
+        "value": 10,
+        "min": 10,
+        "max": 10
+      },
+      "data_sent": {
+        "count": 1270,
+        "rate": 17.90993305821723
+      },
+      "http_reqs": {
+        "count": 10,
+        "rate": 0.14102309494659238
+      },
+      "checks": {
+        "fails": 0,
+        "passes": 10,
+        "value": 1
+      },
+      "sse_clients_connected_in_time": {
+        "rate": 0.14102309494659238,
+        "count": 10
+      },
+      "sse_source_rate_eps": {
+        "p(90)": 1,
+        "p(95)": 1,
+        "p(99)": 1,
+        "avg": 1,
+        "min": 1,
+        "med": 1,
+        "max": 1
+      },
+      "sse_events_expected": {
+        "count": 600,
+        "rate": 8.461385696795542
+      },
+      "sse_events_received": {
+        "count": 600,
+        "rate": 8.461385696795542
+      },
+      "sse_events_duplicate": {
+        "rate": 0,
+        "count": 0
+      },
+      "iteration_duration": {
+        "avg": 70909.9439107,
+        "min": 70909.822849,
+        "med": 70909.9324855,
+        "max": 70910.176061,
+        "p(90)": 70910.052131,
+        "p(95)": 70910.114096,
+        "p(99)": 70910.16366800001
+      },
+      "http_req_sending": {
+        "avg": 1.9756149,
+        "min": 1.377587,
+        "med": 1.8435715,
+        "max": 3.010386,
+        "p(90)": 2.423897400000001,
+        "p(95)": 3.010386,
+        "p(99)": 3.010386
+      },
+      "sse_connect_ms": {
+        "p(95)": 3,
+        "p(99)": 3,
+        "avg": 2.2,
+        "min": 1,
+        "med": 2,
+        "max": 3,
+        "p(90)": 3
+      },
+      "sse_events_unique": {
+        "count": 600,
+        "rate": 8.461385696795542
+      }
+    },
+    "root_group": {
+      "name": "",
+      "path": "",
+      "id": "d41d8cd98f00b204e9800998ecf8427e",
+      "groups": {},
+      "checks": {
+        "SSE-Verbindung: HTTP 200": {
+          "passes": 10,
+          "fails": 0,
+          "name": "SSE-Verbindung: HTTP 200",
+          "path": "::SSE-Verbindung: HTTP 200",
+          "id": "aa6e68e31d1e0a5a7cf1f06674a8f810"
+        }
+      }
+    }
+  }
+}
