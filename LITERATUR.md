@@ -22,7 +22,8 @@ The author checks these points in the original before they appear in the text. E
 - [ ] **Hollander, Wolfe & Chicken (3rd edition).** Only the table of contents could be checked. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication.
 - [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
 - [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
-- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis.
+- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis. Confirm the pages derived from the PDF.
+- [ ] **Hoefler & Belli (2015).** Confirm in the ACM version whether the page of rule 6 is labeled 73:5 or 5.
 - [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
 - [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
 
@@ -702,7 +703,16 @@ Stuart H. Hurlbert. "Pseudoreplication and the Design of Ecological Field Experi
 
 Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Performance Evaluation." In *Proceedings of OOPSLA 2007*, 57–76, 2007.
 
-**Use.** Warm-up runs (Section 4.2, also Sections 2.1.2 and 6.2.2, DECISIONS.md 5.9). Georges et al. recommend determining the end of the start-up phase from the coefficient of variation of the last iterations. The fixed number of 5 warm-up runs is a decision of this thesis. The paper refers to JVM benchmarks, and its abstract covers other runtimes only in part. The transfer to OPcache, the V8 JIT, connection setup and the file system cache is a conclusion of this thesis. Section 6.1 found approximately normally distributed data in more than 90 % of the measurements, so the paper is not cited for the choice of the test (DECISIONS.md 5.8).
+**Use.** Warm-up runs (Section 4.2, also Sections 2.1.2 and 6.2.2, DECISIONS.md 5.9). Georges et al. recommend determining the end of the start-up phase from the coefficient of variation of the last iterations. The fixed number of 5 warm-up runs is a decision of this thesis. The paper refers to JVM benchmarks, and its abstract covers other runtimes only in part. The transfer to OPcache, the V8 JIT, connection setup and the file system cache is a conclusion of this thesis. In Section 6.1, a Kolmogorov-Smirnov test did not reject approximate normality for more than 90 % of the experiments, while a minority of the measurements was skewed or bimodal. A test that does not reject normality does not prove it. The paper is not cited for the choice of the test (DECISIONS.md 5.8).
+
+**Locations (full text searched on 2026-11-08).** The pages are derived from the position in the PDF of 20 pages, which covers pp. 57–76, because no printed page numbers could be read. The author still has to confirm them.
+
+| Statement | Section | Page |
+|---|---|---|
+| In the first iterations a VM does class loading and most of the JIT compilation | 2.1.2 | 60 |
+| Steady state is reached once the coefficient of variation of the last k iterations falls below a threshold such as 0.01 or 0.02 | 4.2 | 66 |
+| A Kolmogorov-Smirnov test does not reject approximate normality for more than 90 % of the experiments | 6.1 | 68 |
+| Several iterations pass before steady state is reached, k = 10 iterations with a coefficient of variation below 0.02 are retained | 6.2.2 | 71–72 |
 
 **CHECK BY HAND.** Word the transfer to PHP and Node.js as a conclusion of this thesis. Its note on normality in Section 3.2 says that confidence intervals do not require normally distributed data, because of the central limit theorem, and the paper works with parametric methods. Corrected on 2026-11-04, warm-up passages checked by the author on 2026-11-07.
 
@@ -748,13 +758,13 @@ Torsten Hoefler, Roberto Belli. "Scientific Benchmarking of Parallel Computing S
 **Use.** Checked by the author in the original on 2026-11-07.
 
 - **Rule 5 (p. 73:4).** Report confidence intervals for nondeterministic measurement values. Use, confidence intervals of the median difference (DECISIONS.md 5.8).
-- **Rule 6 (p. 73:5).** "Do not assume normality of collected data … without diagnostic checking." The passage before the rule (p. 73:4) names the Shapiro-Wilk test and recommends checking its result with a Q-Q plot. For data that are not normally distributed, the paper covers nonparametric techniques. Use, reason for the nonparametric test (DECISIONS.md 5.8). The check of the skewness in the pilot is such a diagnostic check. Cited in the thesis as `\cite[p.~73:5]{hoefler2015scientific}`.
+- **Rule 6 (p. 73:5).** "Do not assume normality of collected data (e.g., based on the number of samples) without diagnostic checking." The passage before the rule (p. 73:4) names the Shapiro-Wilk test and recommends checking its result with a Q-Q plot. For data that are not normally distributed, the paper names the median, quartiles, nonparametric confidence intervals of the median and the Kruskal-Wallis test. It names neither the Wilcoxon signed-rank test nor paired tests (full-text search on 2026-11-08). It therefore supports not assuming normality, but not the specific choice of the test, which rests on the paired design and on Wilcoxon (1945). Use, reason for not assuming a normal distribution (DECISIONS.md 5.8). The check of the skewness in the pilot is such a diagnostic check. Cited in the thesis as `\cite[p.~73:5]{hoefler2015scientific}`.
 - **Rule 7 (p. 73:6).** Compare nondeterministic data in a statistically sound way. Use, reason for comparing through tests and confidence intervals instead of single measured values (DECISIONS.md 5.8).
 - **Rule 8 (p. 73:6).** Check whether the mean, the median or other percentiles are meaningful to report. Use, reason for reporting the median, p95 and p99 in addition to the mean per run (DECISIONS.md 5.8, together with Dean & Barroso 2013).
 
 The paper comes from high-performance computing. The transfer to measurements of web servers is a conclusion of this thesis and is worded that way in the text.
 
-**Note on the pages.** Crossref lists the pages as 1-12 and has no article number (checked on 2026-11-07). The entry follows the author's check of the original, article 73 with pages 73:1–73:12.
+**Note on the pages.** Crossref lists the pages as 1-12 and has no article number (checked on 2026-11-07). The entry follows the author's check of the original, article 73 with pages 73:1–73:12. The authors' version of the paper, which was searched on 2026-11-08, shows no page labels of the form 73:N, and the ACM Digital Library could not be read automatically. **CHECK BY HAND.** Confirm the label on the page of rule 6 in the ACM version. If it reads 5 instead of 73:5, the entry changes to pages 1--12 and the citation to p. 5.
 
 ```bibtex
 @inproceedings{hoefler2015scientific,
@@ -1683,7 +1693,7 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.8 | Holm correction per family | Holm (1979) |
 | 5.8 | Reporting tail latencies | Dean & Barroso (2013) |
 | 5.8 | Reporting median and percentiles in addition to the mean | Hoefler & Belli (2015, rule 8), in addition to Dean & Barroso (2013) |
-| 5.8 | Nonparametric approach | Hoefler & Belli (2015) |
+| 5.8 | Not assuming a normal distribution | Hoefler & Belli (2015, rule 6). The test itself rests on the paired design and on Wilcoxon (1945) |
 | 5.8, 5.9 | Validity framework | Wohlin et al. (2024) |
 | 5.9 | Warm-up, number of repetitions from a pilot | Georges et al. (2007), Kalibera & Jones (2013) |
 | 5.9 | No stopping after interim analysis | Armitage et al. (1969) |
