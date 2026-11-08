@@ -10,7 +10,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `status.js` | Statusbericht für den Dauerbetrieb (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz), optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `pilot.js` | Auswertung des Pilots nach dem vorab festgelegten Stabilitätskriterium, ergibt die Wiederholungszahl je Laststufe und schätzt die Dauer eines Blocks |
-| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2) und Bewertung der Hypothesen |
+| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2), beschreibender Sensitivitätsanalyse des gepaarten Tests für beide Blöcke (Schiefe der Differenzen, Hodges-Lehmann-Schätzer, Vorzeichentest, DECISIONS.md 5.8) und Bewertung der Hypothesen |
 | `assessment.js` | Auswertungslogik von `evaluate.js` als reine Funktionen, darunter die Entscheidungsregeln G1 bis G4 und die Regel jeder Hypothese |
 | `descriptive.js` | beschreibende Auswertung eines Blocks der Hauptmessung aus den Laufprotokollen, ohne Tests, darunter Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null und Messbetrieb |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |

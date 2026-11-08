@@ -19,6 +19,7 @@ The author checks these points in the original before they appear in the text. E
 
 **Read before citing:**
 
+- [ ] **Hollander, Wolfe & Chicken (3rd edition).** Only the table of contents could be checked. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication.
 - [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
 - [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
 - [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis.
@@ -423,6 +424,44 @@ Frank Wilcoxon. "Individual Comparisons by Ranking Methods." *Biometrics Bulleti
   date         = {1945},
   doi          = {10.2307/3001968},
   langid       = {english}
+}
+```
+
+### Hollander, Wolfe & Chicken, nonparametric textbook (symmetry assumption, to be checked)
+
+Myles Hollander, Douglas A. Wolfe, Eric Chicken. *Nonparametric Statistical Methods*, 3rd edition. Wiley Series in Probability and Statistics. Wiley. ISBN 978-0-470-38737-5 (hardcover), 848 pages. Online edition DOI 10.1002/9781119196037.
+
+**Intended use.** Reference for what the Wilcoxon signed-rank test assumes and how its result is to be read (DECISIONS.md 5.8, section on the symmetry of the paired differences).
+
+**What was checked on 2026-11-08.** Title, authors, edition, ISBN and page count on the publisher's product page. DOI, series and the page range of Chapter 3 "The One-Sample Location Problem" (pp. 39–114) in Crossref. The section titles and their first pages in the publisher's table of contents.
+
+| Section | Title in the table of contents | Starts on |
+|---|---|---|
+| 3.1 | A Distribution-Free Signed Rank Test (Wilcoxon) | p. 40 |
+| 3.2 | An Estimator Associated with Wilcoxon's Signed Rank Statistic (Hodges–Lehmann) | p. 56 |
+| 3.3 | A Distribution-Free Confidence Interval Based on Wilcoxon's Signed Rank Test (Tukey) | p. 59 |
+| 3.4 | A Distribution-Free Sign Test (Fisher) | p. 63 |
+| 3.9 | An Asymptotically Distribution-Free Test of Symmetry (Randles–Fligner–Policello–Wolfe, Davis–Quade) | p. 94 |
+
+**CHECK BY HAND.** The text of the book was not available, only its table of contents. It is therefore not confirmed that the book supports the statements below, and no exact page for any of them is known. Do not cite the book before these points are checked in the original.
+
+- Section 3.1 (from p. 40). Does it assume that the differences are symmetric about a common median, and what does it say about the meaning of the test when they are not?
+- Section 3.2 (from p. 56). Is the estimator defined as the median of the Walsh averages? Does the book call it a pseudo-median, or does it relate it to the median in another way?
+- Section 3.4 (from p. 63). Does the sign test get by without the symmetry assumption?
+- Year of publication. Wiley lists December 2013 for the hardcover, Crossref lists 2015 for the online edition. Confirm the year on the copyright page and correct `date` below if needed.
+- Enter the exact pages for each statement after the check. The entry is not yet in `references.bib`.
+
+```bibtex
+@book{hollander2013nonparametric,
+  author    = {Hollander, Myles and Wolfe, Douglas A. and Chicken, Eric},
+  title     = {Nonparametric Statistical Methods},
+  edition   = {3},
+  series    = {Wiley Series in Probability and Statistics},
+  publisher = {Wiley},
+  date      = {2013},
+  isbn      = {978-0-470-38737-5},
+  doi       = {10.1002/9781119196037},
+  langid    = {english}
 }
 ```
 
@@ -1635,6 +1674,7 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.8 | k6 run as the unit of analysis | Hurlbert (1984) |
 | 5.8 | Mean per run as the test statistic | Widrow & Kollár (2008) |
 | 5.8 | Wilcoxon signed-rank test (paired) | Wilcoxon (1945), Arcuri & Briand (2014) |
+| 5.8 | Symmetry assumption of the Wilcoxon test, Hodges-Lehmann estimator, sign test | Hollander, Wolfe & Chicken (3rd edition), to be checked by hand |
 | 5.8 | Mann-Whitney U test (replaced) | Mann & Whitney (1947) |
 | 5.8 | Cliff's delta and thresholds | Cliff (1993), Romano et al. (2006), see also Vargha & Delaney (2000) |
 | 5.8 | Rank-biserial correlation (paired) | Kerby (2014) |

@@ -189,6 +189,82 @@ export function cliffsMagnitude(delta) {
   return 'groß';
 }
 
+// ---------------------------------------------------------------------------
+// Sensitivity analysis of the paired test (DECISIONS.md 5.8, fixed on
+// 2026-11-08 before block 2 was evaluated). Descriptive only, the Wilcoxon
+// signed-rank test stays the planned test. All functions work on the paired
+// differences a[i] − b[i] and treat differences of exactly 0 as stated below.
+// ---------------------------------------------------------------------------
+
+// Quantile with linear interpolation between order statistics, the default
+// of R (type 7). sortedAsc must be sorted, q lies between 0 and 1.
+export function quantileLinear(sortedAsc, q) {
+  if (sortedAsc.length === 0) return null;
+  const h = (sortedAsc.length - 1) * q;
+  const lo = Math.floor(h);
+  const hi = Math.min(lo + 1, sortedAsc.length - 1);
+  return sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (h - lo);
+}
+
+function logChoose(n, k) {
+  let s = 0;
+  for (let i = 1; i <= k; i++) s += Math.log(n - k + i) - Math.log(i);
+  return s;
+}
+
+// Exact two-sided sign test (Fisher). Differences of exactly 0 are dropped, as
+// in the Wilcoxon test. Under the null hypothesis the median of the differences
+// is 0, the test needs no symmetry of the differences.
+export function signTest(a, b) {
+  if (a.length !== b.length) throw new Error('signTest erwartet gepaarte Arrays gleicher Länge');
+  let positive = 0;
+  let negative = 0;
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    if (d > 0) positive++;
+    else if (d < 0) negative++;
+  }
+  const n = positive + negative;
+  const zeros = a.length - n;
+  if (n === 0) return { n, zeros, positive, negative, pValue: 1 };
+  const k = Math.min(positive, negative);
+  let tail = 0;
+  for (let i = 0; i <= k; i++) tail += Math.exp(logChoose(n, i) - n * Math.LN2);
+  return { n, zeros, positive, negative, pValue: Math.min(1, 2 * tail) };
+}
+
+// Hodges-Lehmann estimator of the paired differences, the median of all Walsh
+// averages (d_i + d_j) / 2 with i ≤ j over all differences, zeros included. It
+// is the location estimate that belongs to the Wilcoxon signed-rank test (the
+// pseudo-median). With symmetric differences it equals their median.
+export function hodgesLehmann(a, b) {
+  if (a.length !== b.length) throw new Error('hodgesLehmann erwartet gepaarte Arrays gleicher Länge');
+  const d = a.map((v, i) => v - b[i]);
+  if (d.length === 0) return null;
+  const walsh = [];
+  for (let i = 0; i < d.length; i++) {
+    for (let j = i; j < d.length; j++) walsh.push((d[i] + d[j]) / 2);
+  }
+  return median(walsh);
+}
+
+// Skewness of a sample. Bowley's quartile skewness (Q3 + Q1 − 2 Q2) / (Q3 − Q1)
+// with quartiles from quantileLinear, null if the interquartile range is 0. It
+// lies between −1 and 1 and is robust against single extreme values. Moment
+// skewness m3 / m2^1.5 with population moments, 0 if all values are equal.
+export function skewness(values) {
+  if (values.length === 0) return { bowley: null, moment: null, iqr: null };
+  const s = [...values].sort((x, y) => x - y);
+  const q1 = quantileLinear(s, 0.25);
+  const q2 = quantileLinear(s, 0.5);
+  const q3 = quantileLinear(s, 0.75);
+  const iqr = q3 - q1;
+  const m = values.reduce((x, y) => x + y, 0) / values.length;
+  const m2 = values.reduce((x, y) => x + (y - m) ** 2, 0) / values.length;
+  const m3 = values.reduce((x, y) => x + (y - m) ** 3, 0) / values.length;
+  return { bowley: iqr > 0 ? (q3 + q1 - 2 * q2) / iqr : null, moment: m2 > 0 ? m3 / m2 ** 1.5 : 0, iqr };
+}
+
 // Nonparametric bootstrap (Efron & Tibshirani 1993, percentile method) for
 // the confidence interval of the median of the paired differences
 // a[i] − b[i]. `seed` makes the result reproducible.

@@ -19,7 +19,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses } from './assessment.js';
+import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses, sensitivityFamilies } from './assessment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -73,6 +73,10 @@ if (match.duplicates.length) {
 // descriptive replication by block 2 (assessment.js).
 const families = correctFamilies(plan, found);
 const replication = replicationSummary(plan, found);
+// Sensitivity analysis of the paired test for both blocks, computed the same way
+// (DECISIONS.md 5.8, fixed on 2026-11-08 before block 2 was evaluated).
+const sensitivity = [plan.confirmatoryBlock, plan.replicationBlock]
+  .map((block) => ({ block, families: sensitivityFamilies(plan, found, block) }));
 
 // Share of Redis in the CPU time per single run for H8. Valid, measured runs of
 // block 1 at the stress level, across all campaigns of a cell.
@@ -122,6 +126,7 @@ const evaluation = {
   notes,
   families,
   replication,
+  sensitivity,
   hypotheses: plan.hypotheses,
   assessment,
   redis_share_stress: redis,
@@ -184,6 +189,46 @@ for (const r of replication.filter((x) => x.compared > 0)) {
     lines.push(`| ${row.comparison_id} | ${row.scenario} | ${yesNo(row.replicated)} | ${yesNo(row.same_direction)} | ${yesNo(row.ci_overlap)} | ${yesNo(row.same_magnitude)} | ${yesNo(row.ci_block1_contains_zero)} | ${yesNo(row.block2_significant_same_direction)} |`);
   }
   lines.push('');
+}
+
+// Sensitivity analysis, only for blocks with measured tests.
+const signLabel = (r) => `+${r.sign_test.positive}/−${r.sign_test.negative}${r.sign_test.zeros ? `/0:${r.sign_test.zeros}` : ''}`;
+const fmtS = (v) => (v == null ? '–' : fmt(v, 2));
+lines.push('## Sensitivitätsanalyse (Symmetrie, Hodges-Lehmann, Vorzeichentest)', '');
+lines.push('Der Wilcoxon-Vorzeichen-Rang-Test bleibt der vorab festgelegte Test und entscheidet über alle Ergebnisse. Er setzt annähernd symmetrische Paardifferenzen voraus. Nur dann ist ein signifikantes Ergebnis eine Aussage über den Median der Differenzen, sonst über den Hodges-Lehmann-Pseudomedian (Median aller Walsh-Mittel). '
+  + 'Diese Analyse ist beschreibend (DECISIONS.md 5.8). Sie zeigt je Test die Schiefe der Differenzen (Bowley aus Quartilen mit linearer Interpolation, Momenten-Schiefe aus Populationsmomenten), den Hodges-Lehmann-Schätzer über alle Differenzen und den exakten zweiseitigen Vorzeichentest, der keine Symmetrie braucht und den Median direkt prüft. '
+  + 'Differenzen von genau 0 entfallen in beiden Tests. Beide Tests sind je Familie über dieselben 39 Tests nach Holm korrigiert. Für den Wiederholungsblock ist die Wilcoxon-Spalte nur beschreibend und ändert die Replikationsregel nicht.', '');
+for (const { block, families: fams } of sensitivity) {
+  if (!fams.some((f) => f.measured > 0)) continue;
+  lines.push(`### Block ${block}, Übersicht`, '');
+  lines.push('| Messgröße | Tests | beide signifikant | nur Wilcoxon | nur Vorzeichentest | keiner | Bowley-Schiefe < 0,1 / < 0,3 / < 0,5 / ab 0,5 | Momenten-Schiefe < 0,5 / < 1 / < 2 / ab 2 | Abstand Median zu Hodges-Lehmann in IQR < 0,05 / < 0,1 / < 0,25 / ab 0,25 | stark schief (Bowley ab 0,5), davon alle Differenzen gleich gerichtet |');
+  lines.push('|---|---|---|---|---|---|---|---|---|---|');
+  for (const f of fams) {
+    const s = f.summary;
+    lines.push(`| ${f.measure} | ${f.measured} | ${s.both_significant} | ${s.only_wilcoxon} | ${s.only_sign_test} | ${s.neither} | ${s.bowley_bands.join(' / ')}${s.bowley_undefined ? ` (ohne IQR ${s.bowley_undefined})` : ''} | ${s.moment_bands.join(' / ')} | ${s.distance_bands.join(' / ')} | ${s.strongly_skewed}, ${s.strongly_skewed_all_same_sign} |`);
+  }
+  lines.push('');
+  const rows = fams.flatMap((f) => f.rows.filter((r) => r.sign_test).map((r) => ({ ...r, measure: f.measure })));
+  const differing = rows.filter((r) => r.wilcoxon_significant !== r.sign_significant);
+  const opposite = rows.filter((r) => (r.direction.median && r.direction.hodges_lehmann && r.direction.median !== r.direction.hodges_lehmann)
+    || (r.direction.wilcoxon && r.direction.sign_test && r.direction.wilcoxon !== r.direction.sign_test));
+  lines.push(`Unterschiedliche Testentscheide: ${differing.length}. Gegensätzliche Richtungen (Median gegen Hodges-Lehmann oder Wilcoxon gegen Vorzeichentest): ${opposite.length}. Signifikante Tests, deren Median gegen die Richtung des Wilcoxon-Tests zeigt: ${fams.reduce((x, f) => x + f.summary.significant_median_against_wilcoxon, 0)}.`, '');
+  for (const f of fams.filter((x) => x.measured > 0)) {
+    const u = unitOf(f.measure);
+    const fu = (v) => (v == null ? '–' : fmt(v * u.scale, u.digits));
+    lines.push(`### Block ${block}, je Test, ${f.measure}`, '');
+    lines.push(`| Nr. | Laststufe | Median-Diff (${u.label}) | Hodges-Lehmann (${u.label}) | Bowley | Momente | Vorzeichen +/− | Vorzeichentest p (Holm) | Vorzeichentest signifikant | Wilcoxon p (Holm) | Wilcoxon signifikant | Cliff's δ |`);
+    lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|');
+    for (const r of f.rows) {
+      if (!r.sign_test) {
+        lines.push(`| ${r.comparison_id} | ${r.scenario} | ${r.status} | – | – | – | – | – | – | – | – | – |`);
+        continue;
+      }
+      const flag = r.wilcoxon_significant !== r.sign_significant ? ' **(abweichend)**' : '';
+      lines.push(`| ${r.comparison_id} | ${r.scenario} | ${fu(r.median_diff)} | ${fu(r.hodges_lehmann)} | ${fmtS(r.skew_bowley)} | ${fmtS(r.skew_moment)} | ${signLabel(r)} | ${fmtP(r.sign_p_holm)} | ${yesNo(r.sign_significant)}${flag} | ${fmtP(r.wilcoxon_p_holm)} | ${yesNo(r.wilcoxon_significant)} | ${fmtS(r.cliffs_delta)} |`);
+    }
+    lines.push('');
+  }
 }
 
 lines.push('## Hypothesen (vorab festgelegt, DECISIONS.md 5.18)', '');

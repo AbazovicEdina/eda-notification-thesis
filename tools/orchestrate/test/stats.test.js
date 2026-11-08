@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   describe, median, createRng, wilcoxonSignedRank, cliffsDelta,
   bootstrapMedianDiffCI, holmCorrection, comparePaired,
+  quantileLinear, signTest, hodgesLehmann, skewness,
 } from '../stats.js';
 import { pairByRunIndex } from '../pairing.js';
 
@@ -130,4 +131,54 @@ test('Paarbildung: fehlender Messwert (null) zählt als unvollständiges Paar', 
   const p = pairByRunIndex(A, B, (r) => r.v);
   assert.deepEqual(p.indices, [2]);
   assert.deepEqual(p.dropped, [1, 3]);
+});
+
+// --- Sensitivity analysis (DECISIONS.md 5.8) -----------------------------------------
+
+test('Quantil mit linearer Interpolation wie R-Typ 7', () => {
+  const s = [1, 2, 3, 4, 10];
+  assert.equal(quantileLinear(s, 0), 1);
+  assert.equal(quantileLinear(s, 0.5), 3);
+  assert.equal(quantileLinear(s, 0.25), 2);
+  close(quantileLinear(s, 0.9), 7.6); // h = 3.6, 4 + 0.6 · (10 − 4)
+  assert.equal(quantileLinear([], 0.5), null);
+});
+
+test('Vorzeichentest exakt, Nulldifferenzen entfallen wie beim Wilcoxon-Test', () => {
+  // 10 positive differences: p = 2 · 0.5^10.
+  let r = signTest([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual([r.positive, r.negative, r.zeros], [10, 0, 0]);
+  close(r.pValue, 2 / 1024, 1e-12);
+  // 8 positive, 2 negative, 2 zeros: P(X ≤ 2 | n = 10) = 56 / 1024, two-sided 112 / 1024.
+  r = signTest([1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual([r.n, r.zeros, r.positive, r.negative], [10, 2, 8, 2]);
+  close(r.pValue, 112 / 1024, 1e-12);
+  // Balanced signs give p = 1, only zeros give p = 1 without a test.
+  assert.equal(signTest([1, -1], [0, 0]).pValue, 1);
+  assert.equal(signTest([2, 2], [2, 2]).pValue, 1);
+});
+
+test('Hodges-Lehmann ist der Median der Walsh-Mittel aller Differenzen', () => {
+  // Differences 1, 2, 3 give the Walsh averages 1, 1.5, 2, 2, 2.5, 3, median 2.
+  assert.equal(hodgesLehmann([1, 2, 3], [0, 0, 0]), 2);
+  // Skewed differences 0, 0, 0, 10: Walsh averages 0 (6 times), 5 (3 times), 10, median 0, like the median.
+  assert.equal(hodgesLehmann([0, 0, 0, 10], [0, 0, 0, 0]), 0);
+  // Differences 1, 2, 9: Walsh averages 1, 1.5, 2, 5, 5.5, 9, median 3.5, while the median is 2.
+  assert.equal(hodgesLehmann([1, 2, 9], [0, 0, 0]), 3.5);
+  assert.equal(hodgesLehmann([], []), null);
+});
+
+test('Schiefe: symmetrisch 0, Ausreißer nach rechts positiv, ohne Streuung definiert', () => {
+  const sym = skewness([1, 2, 3, 4, 5]);
+  close(sym.bowley, 0);
+  close(sym.moment, 0);
+  const right = skewness([1, 2, 3, 4, 20]);
+  assert.ok(right.moment > 1);
+  // Quartiles 2, 3, 4: Bowley ignores the single extreme value.
+  close(right.bowley, 0);
+  const tail = skewness([1, 1, 2, 5, 9]);
+  close(tail.bowley, (5 + 1 - 2 * 2) / (5 - 1));
+  const flat = skewness([3, 3, 3]);
+  assert.equal(flat.bowley, null);
+  assert.equal(flat.moment, 0);
 });

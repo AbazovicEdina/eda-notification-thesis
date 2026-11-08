@@ -12,7 +12,7 @@
 // case shows the opposite, and undecided otherwise. What counts as the
 // opposite for each kind of case is fixed in DECISIONS.md 5.18 and below.
 
-import { holmCorrection } from './stats.js';
+import { holmCorrection, signTest, hodgesLehmann, skewness } from './stats.js';
 
 export const VERDICT = { supported: 'bestätigt', notSupported: 'nicht bestätigt', undecided: 'unentschieden' };
 export const OUTCOME = { holds: 'erfüllt', opposite: 'gegenteil', unclear: 'unklar' };
@@ -103,6 +103,102 @@ export function correctFamilies(plan, found) {
   return plan.families.map((family) => {
     const corrected = holmCorrection(testsFor(plan, found, family.measure, plan.confirmatoryBlock), plan.alpha);
     return { ...family, block: plan.confirmatoryBlock, alpha: plan.alpha, m: corrected.length, tests: corrected };
+  });
+}
+
+// Sensitivity analysis of the paired test (DECISIONS.md 5.8, fixed on
+// 2026-11-08 before block 2 was evaluated). The Wilcoxon signed-rank test
+// assumes that the paired differences are roughly symmetric. Only then does a
+// significant result speak about their median, otherwise about the
+// Hodges-Lehmann pseudo-median. Per test this reports the skewness of the
+// differences, the Hodges-Lehmann estimator and the exact sign test, which needs
+// no symmetry and tests the median directly. Descriptive only, the decisions of
+// the thesis stay with the Wilcoxon test (correctFamilies).
+const dir = (v) => (v == null ? null : v > 0 ? 1 : v < 0 ? -1 : 0);
+export function sensitivityOf(result) {
+  const a = result?.pairs?.a;
+  const b = result?.pairs?.b;
+  if (!a?.length || a.length !== b?.length) return null;
+  const diffs = a.map((v, i) => v - b[i]);
+  const sign = signTest(a, b);
+  const hl = hodgesLehmann(a, b);
+  const skew = skewness(diffs);
+  const median = result.median_diff ?? null;
+  return {
+    n_pairs: a.length,
+    sign_test: { positive: sign.positive, negative: sign.negative, zeros: sign.zeros, p: sign.pValue },
+    median_diff: median,
+    hodges_lehmann: hl,
+    iqr_diff: skew.iqr,
+    // Distance between median and pseudo-median in interquartile ranges of the differences.
+    median_hl_distance_iqr: skew.iqr > 0 && median != null ? Math.abs(hl - median) / skew.iqr : null,
+    skew_bowley: skew.bowley,
+    skew_moment: skew.moment,
+    // All differences other than 0 point the same way, so the conclusion does not depend on the shape.
+    all_same_sign: sign.n > 0 && (sign.positive === 0 || sign.negative === 0),
+    direction: {
+      median: dir(median),
+      hodges_lehmann: dir(hl),
+      wilcoxon: dir((result.wilcoxon?.w_plus ?? 0) - (result.wilcoxon?.w_minus ?? 0)),
+      sign_test: dir(sign.positive - sign.negative),
+    },
+  };
+}
+
+// All planned tests of one block per family, with the Wilcoxon test and the
+// sign test each Holm-corrected over the same 39 tests (missing ones with p = 1).
+// For the confirmatory block the Wilcoxon column equals correctFamilies. For the
+// replication block it is computed the same way for comparability, but it is
+// descriptive and does not change the replication rule.
+export function sensitivityFamilies(plan, found, block) {
+  return plan.families.map((family) => {
+    const tests = testsFor(plan, found, family.measure, block);
+    const wilcoxon = holmCorrection(tests, plan.alpha);
+    const sens = tests.map((t) => sensitivityOf(t.result));
+    const sign = holmCorrection(tests.map((t, i) => ({ pValue: sens[i]?.sign_test.p ?? 1 })), plan.alpha);
+    const rows = tests.map((t, i) => ({
+      comparison_id: t.comparison_id,
+      a: t.a,
+      b: t.b,
+      scenario: t.scenario,
+      status: t.status,
+      cliffs_delta: t.result?.cliffs_delta ?? null,
+      wilcoxon_p: t.result ? t.pValue : null,
+      wilcoxon_p_holm: wilcoxon[i].pHolm,
+      wilcoxon_significant: wilcoxon[i].significant,
+      sign_p_holm: sign[i].pHolm,
+      sign_significant: sign[i].significant,
+      ...(sens[i] ?? {}),
+    }));
+    const measured = rows.filter((r) => r.sign_test);
+    const count = (f) => measured.filter(f).length;
+    const band = (key, edges) => edges.map(([lo, hi]) => count((r) => r[key] != null && Math.abs(r[key]) >= lo && Math.abs(r[key]) < hi));
+    return {
+      measure: family.measure,
+      block,
+      alpha: plan.alpha,
+      m: tests.length,
+      measured: measured.length,
+      summary: {
+        both_significant: count((r) => r.wilcoxon_significant && r.sign_significant),
+        only_wilcoxon: count((r) => r.wilcoxon_significant && !r.sign_significant),
+        only_sign_test: count((r) => !r.wilcoxon_significant && r.sign_significant),
+        neither: count((r) => !r.wilcoxon_significant && !r.sign_significant),
+        // Bands of the absolute value: below 0.1, 0.1 to below 0.3, 0.3 to below 0.5, from 0.5.
+        bowley_bands: band('skew_bowley', [[0, 0.1], [0.1, 0.3], [0.3, 0.5], [0.5, Infinity]]),
+        bowley_undefined: count((r) => r.skew_bowley == null),
+        // Bands of the absolute value: below 0.5, 0.5 to below 1, 1 to below 2, from 2.
+        moment_bands: band('skew_moment', [[0, 0.5], [0.5, 1], [1, 2], [2, Infinity]]),
+        // Bands in interquartile ranges: below 0.05, 0.05 to below 0.1, 0.1 to below 0.25, from 0.25.
+        distance_bands: band('median_hl_distance_iqr', [[0, 0.05], [0.05, 0.1], [0.1, 0.25], [0.25, Infinity]]),
+        median_vs_hodges_lehmann_opposite: count((r) => r.direction.median && r.direction.hodges_lehmann && r.direction.median !== r.direction.hodges_lehmann),
+        wilcoxon_vs_sign_test_opposite: count((r) => r.direction.wilcoxon && r.direction.sign_test && r.direction.wilcoxon !== r.direction.sign_test),
+        significant_median_against_wilcoxon: count((r) => r.wilcoxon_significant && r.direction.median && r.direction.median !== r.direction.wilcoxon),
+        strongly_skewed: count((r) => r.skew_bowley != null && Math.abs(r.skew_bowley) >= 0.5),
+        strongly_skewed_all_same_sign: count((r) => r.skew_bowley != null && Math.abs(r.skew_bowley) >= 0.5 && r.all_same_sign),
+      },
+      rows,
+    };
   });
 }
 

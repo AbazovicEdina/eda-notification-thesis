@@ -10,6 +10,7 @@ import {
   matchCampaigns, correctFamilies, replicationOf, replicationSummary, redisShares,
   directionalCase, smallCase, multipleCase, growthCase, largerEffectCase, combine,
   firstDrop, assessH4, assessH11, assessHypotheses, OUTCOME, VERDICT, FPM_SSE_CELLS,
+  sensitivityOf, sensitivityFamilies,
 } from '../assessment.js';
 import { wilcoxonSignedRank } from '../stats.js';
 
@@ -334,3 +335,48 @@ test('Alle elf Hypothesen haben eine Regel, keine bleibt ohne Fälle', () => {
 function close(actual, expected, eps = 1e-9) {
   assert.ok(Math.abs(actual - expected) < eps, `${actual} ≉ ${expected}`);
 }
+
+// --- Sensitivity analysis (DECISIONS.md 5.8) -----------------------------------------
+
+test('Sensitivität eines Tests: Vorzeichen, Hodges-Lehmann, Schiefe und Richtungen', () => {
+  // 90 pairs, differences 1 for 60 pairs, -1 for 20 pairs and 0 for 10 pairs.
+  const a = [...Array(60).fill(2), ...Array(20).fill(0), ...Array(10).fill(1)];
+  const b = Array(90).fill(1);
+  const s = sensitivityOf({ ...result({ md: 1 }), wilcoxon: { p: 0.001, w_plus: 3000, w_minus: 1000 }, pairs: { a, b } });
+  assert.deepEqual(s.sign_test.positive, 60);
+  assert.deepEqual(s.sign_test.negative, 20);
+  assert.deepEqual(s.sign_test.zeros, 10);
+  assert.ok(s.sign_test.p < 0.001);
+  // 4 095 Walsh averages: −1 (210), −0.5 (200), 0 (1 255), 0.5 (600), 1 (1 830). The 2 048th
+  // value is 0.5. Median (1) and pseudo-median (0.5) differ because the differences are not symmetric.
+  assert.equal(s.hodges_lehmann, 0.5);
+  assert.equal(s.all_same_sign, false);
+  assert.deepEqual(s.direction, { median: 1, hodges_lehmann: 1, wilcoxon: 1, sign_test: 1 });
+  // Without pairs there is nothing to analyse.
+  assert.equal(sensitivityOf(result()), null);
+});
+
+test('Sensitivität je Familie: beide Tests über dieselben 39 Tests nach Holm, fehlende mit p = 1', () => {
+  const c4 = plan.comparisons.find((c) => c.id === 4);
+  // All 90 differences negative, both tests clearly significant.
+  const a = Array.from({ length: 90 }, (_, i) => 1 + (i % 7) * 0.01);
+  const b = a.map((v) => v + 2);
+  const r = { ...result({ p: 1e-15, md: -2 }), wilcoxon: { p: 1e-15, w_plus: 0, w_minus: 4095 }, pairs: { a, b } };
+  const { found } = matchCampaigns(plan, [campaign({ cellA: c4.a, cellB: c4.b, measures: { latency_mean_ms: r } })]);
+  const fams = sensitivityFamilies(plan, found, 1);
+  assert.equal(fams.length, 4);
+  const lat = fams.find((f) => f.measure === 'latency_mean_ms');
+  assert.equal(lat.m, 39);
+  assert.equal(lat.measured, 1);
+  const row = lat.rows.find((x) => x.comparison_id === 4 && x.scenario === 'baseline');
+  assert.equal(row.wilcoxon_significant, true);
+  assert.equal(row.sign_significant, true);
+  assert.equal(row.all_same_sign, true);
+  assert.deepEqual([lat.summary.both_significant, lat.summary.only_wilcoxon, lat.summary.only_sign_test, lat.summary.neither], [1, 0, 0, 0]);
+  // Missing tests enter both corrections with p = 1 and are not significant.
+  assert.ok(lat.rows.filter((x) => x.status === 'fehlt').every((x) => !x.sign_significant && !x.wilcoxon_significant));
+  // The same campaign as block 2 gives an empty block 1.
+  const { found: f2 } = matchCampaigns(plan, [campaign({ cellA: c4.a, cellB: c4.b, block: 2, measures: { latency_mean_ms: r } })]);
+  assert.equal(sensitivityFamilies(plan, f2, 1).find((f) => f.measure === 'latency_mean_ms').measured, 0);
+  assert.equal(sensitivityFamilies(plan, f2, 2).find((f) => f.measure === 'latency_mean_ms').measured, 1);
+});
