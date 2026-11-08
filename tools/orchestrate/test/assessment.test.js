@@ -275,6 +275,25 @@ test('H11: WebSocket mit höherer nachhaltiger Rate, Gleichstand unentschieden',
   assert.equal(combine(assessH11(sat(null, 50))).verdict, VERDICT.supported);
 });
 
+test('H11: eine Untergrenze entscheidet nur, wenn sie über der anderen Rate liegt', () => {
+  const sat = (sse, ws) => Object.fromEntries(['node-minimal', 'node-express', 'php-minimal', 'php-laravel']
+    .flatMap((b) => [[`${b}-sse`, sse], [`${b}-ws`, ws]]));
+  const exact = (r) => ({ max_sustainable_rate_per_s: r, limit: 'criterion' });
+  const atLeast = (r, limit = 'loadgen') => ({ max_sustainable_rate_per_s: r, limit });
+  // WebSocket at least 700, SSE exactly 500: WebSocket is higher.
+  assert.equal(combine(assessH11(sat(exact(500), atLeast(700)))).verdict, VERDICT.supported);
+  // SSE at least 700, WebSocket exactly 500: SSE is higher.
+  assert.equal(combine(assessH11(sat(atLeast(700), exact(500)))).verdict, VERDICT.notSupported);
+  // WebSocket at least 300, SSE exactly 500: WebSocket could still be higher.
+  assert.equal(combine(assessH11(sat(exact(500), atLeast(300)))).verdict, VERDICT.undecided);
+  // SSE at least 500, WebSocket exactly 700: SSE could still be higher.
+  assert.equal(combine(assessH11(sat(atLeast(500), exact(700)))).verdict, VERDICT.undecided);
+  // Both passed every level: a tie as in the rule.
+  assert.equal(combine(assessH11(sat(atLeast(1000, 'highest_rate'), atLeast(1000, 'highest_rate')))).verdict, VERDICT.undecided);
+  // Only WebSocket passed every level.
+  assert.equal(combine(assessH11(sat(exact(700), atLeast(1000, 'highest_rate')))).verdict, VERDICT.supported);
+});
+
 // --- Whole chain for single hypotheses ----------------------------------------------------
 
 test('H6 über die ganze Kette: Kampagnen zuordnen, Holm, Bewertung', () => {

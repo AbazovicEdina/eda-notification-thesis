@@ -350,7 +350,12 @@ export function assessH4(scaling, allCells) {
 // H11. In each pair of an SSE and a WebSocket variant with the same language
 // and framework choice, the WebSocket variant reaches the higher maximum
 // sustainable rate. A tie is undecided. No sustainable rate at all counts as 0.
+// A rate that is only a lower bound (series.js, saturation.js: all levels passed,
+// or the series ended at a level the load generator could not serve) decides
+// only if it already lies above the other rate. Otherwise the pair is undecided,
+// as the rule says for two variants that both reach the highest level.
 export const TRANSPORT_PAIRS = ['node-minimal', 'node-express', 'php-minimal', 'php-laravel'];
+const isLowerBound = (entry) => entry.limit === 'loadgen' || entry.limit === 'highest_rate';
 export function assessH11(saturation) {
   if (!saturation) return [{ label: 'Sättigungstest', outcome: OUTCOME.unclear, detail: 'series.json fehlt' }];
   return TRANSPORT_PAIRS.map((base) => {
@@ -360,10 +365,13 @@ export function assessH11(saturation) {
     if (!sse || !ws) return { label, outcome: OUTCOME.unclear, detail: 'nicht gemessen' };
     const rs = sse.max_sustainable_rate_per_s ?? 0;
     const rw = ws.max_sustainable_rate_per_s ?? 0;
-    const detail = `${rw} gegenüber ${rs} Events/s`;
-    if (rw > rs) return { label, outcome: OUTCOME.holds, detail };
-    if (rw < rs) return { label, outcome: OUTCOME.opposite, detail };
-    return { label, outcome: OUTCOME.unclear, detail: `${detail}, Gleichstand` };
+    const bs = isLowerBound(sse);
+    const bw = isLowerBound(ws);
+    const detail = `${bw ? 'mindestens ' : ''}${rw} gegenüber ${bs ? 'mindestens ' : ''}${rs} Events/s`;
+    if (rw > rs && !bs) return { label, outcome: OUTCOME.holds, detail };
+    if (rw < rs && !bw) return { label, outcome: OUTCOME.opposite, detail };
+    if (rw === rs && !bs && !bw) return { label, outcome: OUTCOME.unclear, detail: `${detail}, Gleichstand` };
+    return { label, outcome: OUTCOME.unclear, detail: `${detail}, Untergrenze, Reihenfolge offen` };
   });
 }
 

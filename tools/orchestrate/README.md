@@ -14,12 +14,13 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `assessment.js` | Auswertungslogik von `evaluate.js` als reine Funktionen, darunter die Entscheidungsregeln G1 bis G4 und die Regel jeder Hypothese |
 | `descriptive.js` | beschreibende Auswertung eines Blocks der Hauptmessung aus den Laufprotokollen, ohne Tests, darunter Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null und Messbetrieb |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
+| `saturation.js` | Bedingungen einer bestandenen Stufe im Sättigungstest und höchste nachhaltige Rate (DECISIONS.md 5.17), aufgerufen von `series.js` |
 | `stats.js` | Statistikfunktionen (deskriptiv, Wilcoxon, Cliff's Delta, rangbiseriale Korrelation, Bootstrap, Holm) |
 | `pairing.js` | Paarbildung über die Laufnummer |
 | `cells.json` | die zehn Messzellen mit Container, Front-Nginx (Modus, Ziel), Ereignisquelle, k6-Skript und Messgröße |
 | `plan.json` | vorab festgelegter Auswerteplan mit Vergleichen, Laststufen, Testfamilien und Hypothesen |
 | `campaign*.example.json` | Vorlagen für Haupt-, Pi- und Sättigungskampagnen |
-| `test/` | Tests der Statistik, der Paarbildung, der Holm-Korrektur über alle geplanten Tests, der Replikation und der Entscheidungsregeln |
+| `test/` | Tests der Statistik, der Paarbildung, der Holm-Korrektur über alle geplanten Tests, der Replikation, der Entscheidungsregeln und der Bedingungen des Sättigungstests |
 
 ## Verwendung
 
@@ -166,7 +167,7 @@ In `pilot`, `main` und `control` müssen alle Zellen im Produktionsbetrieb laufe
 | `requireProduction`, `requireAllConnected` | `true` in `pilot`, `main`, `control` | Produktionsbetrieb bzw. vollständiger Verbindungsaufbau als Bedingung |
 | `bootstrap.seed`, `bootstrap.resamples` | 20261016, 10000 | Startwert und Zahl der Resamples des Bootstraps |
 | `resourceSampleIntervalMs` | 250 | Abtastintervall der Speichermessung |
-| `saturation.minDeliveryRatio`, `saturation.maxP95LatencyMs` | 0,99, 1000 | Kriterium der höchsten nachhaltigen Rate |
+| `saturation.minDeliveryRatio`, `saturation.maxP95LatencyMs` | 0,99, 1000 | Kriterium, mit dem die Kampagne selbst eine Stufe bewertet. Maßgeblich ist die Auswertung mit allen Bedingungen in `series.js` (`saturation.js`) |
 | `scaling.minServedRatio` | 0,99 | Kriterium der Skalierungsgrenze |
 | `sut` | lokal | **Zwei-Rechner-Aufbau.** `ssh`, `repoDir`, `pi`, `targetBaseUrl`, `redisHost` (`infra/pi/README.md`) |
 
@@ -215,7 +216,7 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 
 `schedule.js` schreibt ein Protokoll je Zeitplan (`results/<zeitstempel>_schedule_<name>.jsonl`). `evaluate.js` schreibt `results/<zeitstempel>_evaluation/evaluation.json` und `evaluation.md` (Tabellen je Familie mit Holm-adjustierten p-Werten, Replikationsabgleich, Bewertung der Hypothesen, Dezimalpunkt, da die Arbeit auf Englisch verfasst wird). Die Bewertung zerlegt jede Hypothese in Fälle (erfüllt, Gegenteil, unklar) und fasst sie nach G4 zusammen (DECISIONS.md 5.18). Für H8 liest `evaluate.js` die einzelnen Läufe der Kampagnen, für H4 und H11 die `series.json` aus `--series`. Ohne diese Angabe bleiben H4 und H11 unentschieden. Pilot-, Kontroll-, Skalierungs- und Sättigungskampagnen sowie abgebrochene Kampagnen werden mit Hinweis übersprungen. `--include-aborted` bezieht Letztere ein. Ist ein geplanter Vergleich im selben Block mehrfach gemessen, bricht die Auswertung ab, damit eindeutig festgelegt wird, welche Kampagne zählt.
 
-**`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Zustellung, p95-Latenz, CPU), die Kapazitätsgrenze und die höchste nachhaltige Rate, beim Ansturm rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe, sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
+**`series.js` schreibt `results/<zeitstempel>_series/series.json` und `series.md`.** Je Zelle die Stufen der Skalierungsreihe (bediente Clients, Verbindungsaufbau, Latenz, CPU, Working Set) und des Sättigungstests (Senderate der Quelle, bediente Clients, Zustellung, Gesamtzustellung, p95-Latenz, Auslastung des Lastgenerators, CPU, Ergebnis mit Gründen), die Kapazitätsgrenze und die höchste nachhaltige Rate mit dem Grund, an dem die Reihe endete, beim Ansturm rechtzeitig verbundene und bediente Clients, Speicherspitze laut Kernel und Gründe ungültiger Läufe, sowie SSE und WebSocket je Sprache und Variante nebeneinander (Hypothesen H4 und H11). Die Auswertung ist beschreibend, da jede Zelle in einer eigenen Kampagne gemessen wird. Ist eine Zelle in mehreren vollständigen Kampagnen derselben Phase enthalten, bricht sie ab, damit festgelegt wird, welche zählt.
 
 **`pilot.js` schreibt `results/<zeitstempel>_pilot/pilot.json` und `pilot.md`.** Es wendet das Stabilitätskriterium aus DECISIONS.md 5.9 auf die Zwischenstände der Pilotkampagnen an. Ein Vergleich gilt ab einem Zwischenstand als stabil, wenn sich von dort bis zum Ende Vorzeichen und Effektklasse von Cliff's Delta nicht mehr ändern, das Konfidenzintervall mit jedem weiteren Zwischenstand um weniger als 10 % schmaler wird und mindestens ein späterer Zwischenstand das bestätigt. Je Laststufe nennt es den größten stabilen Wert über alle Vergleiche, mindestens 20, oder die Vergleiche, die im Pilot nicht stabil wurden. Mit `--runs` schätzt es aus der gemessenen Dauer eines Laufs die Dauer eines Blocks mit allen 13 Vergleichen.
 

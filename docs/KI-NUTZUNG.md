@@ -72,6 +72,8 @@ Fehler der KI, die dabei aufgefallen sind:
 - Bei den Änderungen vom 2026-10-31 wurde die eigene Regel übersehen, den Ansturm bei Änderungen an Zellen oder Orchestrator zu wiederholen. Er wird nach Block 2 wiederholt (DECISIONS.md 5.14).
 - Die Farben der ersten Abbildungen waren nach Augenmaß gewählt. Gemessen waren die Füllungen von Node.js und PHP fast gleich, und die Schraffur `////` bedeutete in zwei Abbildungen Verschiedenes. Aufgefallen ist das erst bei der Überarbeitung am 2026-11-08 (DECISIONS.md 5.25).
 - In der Vorschau der überarbeiteten Abbildungen kam das kursive δ unbemerkt aus der Ersatzschrift STIX statt aus Latin Modern Math, und in `figures.md` stand statt der Achsenbeschriftung ein Programmobjekt. Das erste fiel bei der Prüfung der eingebetteten Schriften auf, das zweite bei der Übernahme ins Repository, beides vor einem Commit (DECISIONS.md 5.25).
+- Die erste Beschreibung der langsamen Node.js-Läufe in DECISIONS.md 5.14 nannte „12 bis 23 %“ und „bei PHP höchstens 5 Läufe“. Das passte zu keinem Kriterium genau. Aufgefallen ist es beim Nachzählen aus den Laufdateien am 2026-11-08 (DECISIONS.md 5.14).
+- Der Vorschlag für den Sättigungstest vom 2026-11-07 übersah, dass ein Client, der früh keine Events mehr erhält, weder als unbedient noch als Verlust zählt, und dass die Grenze von 80 % für den Lastgenerator in dieser Phase nicht greift. Beides fiel auf, als die Bedingungen vor der Freigabe genau definiert wurden (DECISIONS.md 5.17).
 
 ## Gelernt und selbst überprüft
 
@@ -124,3 +126,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-11-04 | Durchsicht des Repositorys, bevor der Betreuer es sich genauer ansieht | Zahl der Pilotläufe korrigiert, Übersicht der Berichte und gemessener Commit im README |
 | 2026-11-04 | Wunsch der Autorin, alle Angaben für die Arbeit im gesamten Projekt zu prüfen | Werte des Pilots und Belege der Statistik korrigiert, Grund für die Queue nur mit Framework ergänzt, Wiederholung des Ansturms nach Block 2 festgelegt (DECISIONS.md, Änderungsverlauf) |
 | 2026-11-08 | Rückmeldung der Autorin zu den Abbildungen von Block 1 | Farben gemessen statt nach Augenmaß gewählt, Palette A in Version 2, einheitlicher Aufbau mit eigener Achse je Feld, Prüfung des Layouts beim Erzeugen (DECISIONS.md 5.25) |
+| 2026-11-08 | Freigabe des Sättigungstests und Klärung offener Punkte mit der Autorin, Punkt für Punkt | Bedingungen einer bestandenen Stufe genau definiert und in `saturation.js` mit Tests umgesetzt, auffällige Node.js-Läufe aus den Laufdateien neu gezählt, Quellen Hoefler & Belli (2015) und Georges et al. (2007) im Volltext erneut geprüft (DECISIONS.md 5.14, 5.17) |

@@ -7,7 +7,9 @@
 // served, kernel memory peak and reasons for invalid runs. SSE and WebSocket
 // of each language and variant are also shown side by side (hypotheses H4
 // and H11). No significance tests, because each cell is measured in its own
-// campaign and the values are not paired.
+// campaign and the values are not paired. Whether a level of the saturation
+// test passed is decided here with all conditions of DECISIONS.md 5.17
+// (saturation.js), not with the shorter check of the campaign itself.
 //
 // Usage: node tools/orchestrate/series.js <campaign-directory>... [--include-aborted]
 // Output: results/<timestamp>_series/series.json and series.md
@@ -15,6 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assessSaturationConfig, rateLabel } from './saturation.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -56,10 +59,15 @@ for (const dir of dirs) {
     const cell = agg.configs.find((c) => c.name === configName)?.cell ?? configName;
     const target = series[agg.phase];
     if (target[cell]) duplicates.push(`${agg.phase} ${cell}: ${target[cell].campaign} und ${agg.campaign_dir}`);
-    // For the storm the entry is a list of levels (stormSummary in run.js).
-    target[cell] = Array.isArray(entry)
-      ? { campaign: agg.campaign_dir, config: configName, steps: entry }
-      : { campaign: agg.campaign_dir, config: configName, criteria: summary.criteria, ...entry };
+    // For the storm the entry is a list of levels (stormSummary in run.js). The
+    // saturation test is assessed again with all conditions (saturation.js).
+    if (Array.isArray(entry)) {
+      target[cell] = { campaign: agg.campaign_dir, config: configName, steps: entry };
+    } else if (agg.phase === 'saturation') {
+      target[cell] = { campaign: agg.campaign_dir, config: configName, ...assessSaturationConfig(agg, configName, entry.steps, summary.criteria) };
+    } else {
+      target[cell] = { campaign: agg.campaign_dir, config: configName, criteria: summary.criteria, ...entry };
+    }
   }
 }
 if (duplicates.length) {
@@ -86,6 +94,7 @@ const transport = transportPairs.map(({ base, sse, ws }) => {
     scaling: clients.map((n) => ({ clients: n, sse: stepOf(sc.sse, n), ws: stepOf(sc.ws, n) })),
     scaling_limit: { sse: sc.sse?.first_clients_below_criterion ?? null, ws: sc.ws?.first_clients_below_criterion ?? null },
     max_sustainable_rate_per_s: { sse: sa.sse?.max_sustainable_rate_per_s ?? null, ws: sa.ws?.max_sustainable_rate_per_s ?? null },
+    saturation_label: { sse: sa.sse ? rateLabel(sa.sse) : null, ws: sa.ws ? rateLabel(sa.ws) : null },
     measured: {
       scaling: { sse: Boolean(sc.sse), ws: Boolean(sc.ws) },
       saturation: { sse: Boolean(sa.sse), ws: Boolean(sa.ws) },
@@ -143,19 +152,27 @@ const saturationCells = Object.keys(series.saturation).sort();
 if (saturationCells.length) {
   lines.push('## Sättigungstest', '');
   const crit = series.saturation[saturationCells[0]].criteria;
-  lines.push(`Nachhaltig ist eine Rate, wenn im Median mindestens ${pct(crit?.minDeliveryRatio)} der Events zugestellt werden und die p95-Latenz höchstens ${crit?.maxP95LatencyMs} ms beträgt, auf dieser und allen niedrigeren Stufen.`, '');
+  lines.push('Eine Stufe ist bestanden, wenn im Median ihrer Läufe alle fünf Bedingungen gelten (DECISIONS.md 5.17).', '');
+  lines.push(`1. Zustellung mindestens ${pct(crit?.minDeliveryRatio)} der Events zwischen dem ersten und dem letzten empfangenen Event eines Clients.`);
+  lines.push(`2. p95-Latenz höchstens ${crit?.maxP95LatencyMs} ms.`);
+  lines.push(`3. Senderate der Quelle mindestens ${pct(crit?.minSourceRatio)} der eingestellten Rate.`);
+  lines.push(`4. Mindestens ${pct(crit?.minServedRatio)} der Clients bedient, also mit mindestens einem Event im Messfenster.`);
+  lines.push(`5. Gesamtzustellung mindestens ${pct(crit?.minTotalDeliveryRatio)}, also alle empfangenen Events geteilt durch Clients × Rate × Haltezeit.`, '');
+  lines.push(`War der Lastgenerator im Median mehr als ${pct(crit?.maxLoadgenUtil)} ausgelastet oder ist seine Auslastung unbekannt, ist die Stufe nicht auswertbar. Die höchste nachhaltige Rate ist die höchste Stufe, bis zu der jede Stufe bestanden ist. „≥ … (Lastgenerator)“ heißt, dass die Reihe an einer nicht auswertbaren Stufe endete und die Grenze mindestens dort liegt. „≥ … (höchste Stufe)“ heißt, dass alle Stufen bestanden sind.`, '');
   lines.push('| Zelle | höchste nachhaltige Rate (Events/s) | Kampagne |', '|---|---|---|');
   for (const cell of saturationCells) {
     const s = series.saturation[cell];
-    lines.push(`| ${cell} | ${s.max_sustainable_rate_per_s ?? 'keine'} | ${s.campaign} |`);
+    lines.push(`| ${cell} | ${rateLabel(s)} | ${s.campaign} |`);
   }
   lines.push('');
   for (const cell of saturationCells) {
     lines.push(`### ${cell}`, '');
-    lines.push('| Rate (Events/s) | Zustellung | Latenz p95 (ms) | CPU (Kerne) | nachhaltig |');
-    lines.push('|---|---|---|---|---|');
+    lines.push('| Rate (Events/s) | Senderate | bedient | Zustellung | Gesamtzustellung | Latenz p95 (ms) | Lastgenerator | CPU (Kerne) | Ergebnis |');
+    lines.push('|---|---|---|---|---|---|---|---|---|');
     for (const st of series.saturation[cell].steps) {
-      lines.push(`| ${st.rate_per_s} | ${pct(st.delivery_ratio_median)} | ${num(st.latency_p95_median_ms)} | ${num(st.cpu_cores_avg_median, 2)} | ${st.pass ? 'ja' : 'nein'} |`);
+      const result = st.pass ? 'bestanden' : `${st.evaluable ? 'nicht bestanden' : 'nicht auswertbar'} (${st.reasons.join(', ')})`;
+      lines.push(`| ${st.rate_per_s} | ${pct(st.source_ratio)} | ${pct(st.served_ratio_median)} | ${pct(st.delivery_ratio_median)} | ${pct(st.total_delivery_ratio)} | `
+        + `${num(st.latency_p95_median_ms)} | ${pct(st.loadgen_util_median)} | ${num(st.cpu_cores_avg_median, 2)} | ${result} |`);
     }
     lines.push('');
   }
@@ -187,7 +204,7 @@ if (transport.length) {
   for (const t of transport) {
     const { scaling: ms, saturation: mr } = t.measured;
     lines.push(`| ${t.variant} | ${val(t.scaling_limit.sse, ms.sse, 'nicht erreicht')} | ${val(t.scaling_limit.ws, ms.ws, 'nicht erreicht')} | `
-      + `${val(t.max_sustainable_rate_per_s.sse, mr.sse, 'keine')} | ${val(t.max_sustainable_rate_per_s.ws, mr.ws, 'keine')} |`);
+      + `${val(t.saturation_label.sse, mr.sse, 'keine')} | ${val(t.saturation_label.ws, mr.ws, 'keine')} |`);
   }
   lines.push('', '„–" bedeutet: nicht gemessen.', '');
   for (const t of transport.filter((x) => x.measured.scaling.sse && x.measured.scaling.ws)) {
