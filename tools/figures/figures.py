@@ -10,7 +10,8 @@ Usage in the container (paths relative to the repository or absolute under /resu
         --evaluation results/<timestamp>_evaluation \
         --series results/<timestamp>_series
 
-Output: results/<timestamp>_figures/*.pdf and figures.md.
+Output: results/<timestamp>_figures/*.pdf and figures.md. A series.json with
+"test_data": true is marked as invented data inside every PDF made from it.
 
 Styled like the TikZ diagrams of the thesis (images/diagram-styles.tex). All
 colors come from PALETTE, which holds the same values as that file.
@@ -30,14 +31,20 @@ Encoding, the same in every figure:
   diagrams. Dots in the fill mark a variant with a queue, so that it stays
   distinct from Node.js where apricot and green look alike to readers with a
   red-green deficiency.
-- Every panel has its own y-axis from zero, the legend sits above the panels in
-  the same order in every figure, and check_layout reports texts that come too
+- Every panel of a box plot has its own y-axis zoomed to its data. It usually does
+  not start at zero, because a box plot shows positions and spread, not lengths.
+  The size of the differences is shown by the overview figure, on one scale per
+  load level around the line of no difference.
+- One overview per measure shows all comparisons and load levels as paired
+  differences with their intervals. It is made for a landscape page.
+- The legend sits above the panels in the same order in every figure, and check_layout reports texts that come too
   close to an edge or overlap.
 Font Latin Modern Roman as in the HagenbergThesis template (lmodern, 11 pt), in
 the optical sizes LaTeX uses for \\small (10 pt), \\footnotesize (9 pt) and
 \\scriptsize (8 pt), embedded as TrueType. The figures are made for the full
-text width (\\includegraphics[width=\\textwidth]), so that these sizes hold
-in the thesis. Axis labels are in English, because the thesis is written in
+text width (\\includegraphics[width=\\textwidth]), the overviews for a landscape
+page at their natural size (\\includegraphics without a width), so that these
+sizes hold in the thesis. Axis labels are in English, because the thesis is written in
 English.
 """
 
@@ -56,8 +63,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.ticker  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib import font_manager  # noqa: E402
+from matplotlib.legend import Legend  # noqa: E402
+from matplotlib.legend_handler import HandlerBase, HandlerLine2D  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.patches import Patch, PathPatch  # noqa: E402
+from matplotlib.patches import FancyArrowPatch, Patch, PathPatch  # noqa: E402
 from matplotlib.text import Text  # noqa: E402
 
 RESULTS = "/results"
@@ -223,21 +232,20 @@ def box_name(cell, kind):
 
 # Comparison groups from plan.json, tier according to DECISIONS.md 5.24.
 # "rows" names each comparison above its row, "names" says how the boxes are named.
-# Every panel has its own y-axis from zero. An axis shared by a column let the largest
-# pair set the scale and flattened the other pairs, so that the difference within them,
-# which the test is about, could no longer be seen.
+# Every panel has its own y-axis zoomed to its data, so that the distribution of the
+# runs and the overlap of the two variants can be seen (DECISIONS.md 5.25).
 SETS = [
-    {"key": "language", "ids": [1, 2, 3, 4], "tier": "Kern (6.2)", "names": "language",
+    {"key": "language", "ids": [1, 2, 3, 4], "tier": "Anhang, einzelne im Text (5.24)", "names": "language",
      "rows": {1: "Minimal variants, SSE", 2: "Minimal variants, WebSocket",
               3: "Framework-based variants (Express, Laravel), SSE",
               4: "Framework-based variants (Express, Laravel), WebSocket"}},
-    {"key": "transport", "ids": [12, 13], "tier": "Kern (6.3)", "names": "transport",
+    {"key": "transport", "ids": [12, 13], "tier": "Anhang, einzelne im Text (5.24)", "names": "transport",
      "rows": {12: "Node.js, minimal variants", 13: "PHP, minimal variants"}},
-    {"key": "framework", "ids": [5, 6, 7, 8], "tier": "Ergänzung (6.4) bzw. Anhang", "names": "framework",
+    {"key": "framework", "ids": [5, 6, 7, 8], "tier": "Anhang, einzelne im Text (5.24)", "names": "framework",
      "rows": {5: "Node.js, SSE", 6: "Node.js, WebSocket", 7: "PHP, SSE", 8: "PHP, WebSocket"}},
-    {"key": "queue", "ids": [9, 10], "tier": "Ergänzung (6.4) bzw. Anhang", "names": "queue",
+    {"key": "queue", "ids": [9, 10], "tier": "Anhang, einzelne im Text (5.24)", "names": "queue",
      "rows": {9: "Node.js, Express, SSE, queue BullMQ", 10: "PHP, Laravel, SSE, queue Laravel Queue"}},
-    {"key": "language-queue", "ids": [11], "tier": "Anhang", "names": "language",
+    {"key": "language-queue", "ids": [11], "tier": "Anhang, einzelne im Text (5.24)", "names": "language",
      "rows": {11: "Framework-based variants with queue (BullMQ, Laravel Queue), SSE"}},
 ]
 
@@ -396,11 +404,21 @@ def thin_tick_labels(ax, axis="y"):
     (ax.set_yticklabels if axis == "y" else ax.set_xticklabels)(texts)
 
 
+TEST_DATA = False  # set from series.json, marks every series figure as invented data
+
+
 def save(fig, out_dir, name, notes):
     apply_fonts(fig)
     center_y_title(fig)
     check_layout(fig, name, notes)
-    fig.savefig(os.path.join(out_dir, name), metadata={"CreationDate": None, "Creator": None, "Producer": None})
+    metadata = {"CreationDate": None, "Creator": None, "Producer": None}
+    if TEST_DATA:
+        # After the layout check, on purpose: the stamp lies across the content.
+        stamp = {"rotation": 22, "ha": "center", "va": "center", "color": PALETTE["queue"][2], "alpha": 0.34, "zorder": 1000}
+        fig.text(0.5, 0.57, "TEST DATA", fontproperties=font_manager.FontProperties(fname=LM_FILES[10], size=48), **stamp)
+        fig.text(0.54, 0.4, "invented values, not measured", fontproperties=font_manager.FontProperties(fname=LM_FILES[10], size=20), **stamp)
+        metadata["Title"] = "TEST DATA, invented values, not measured"
+    fig.savefig(os.path.join(out_dir, name), metadata=metadata)
     plt.close(fig)
 
 
@@ -417,6 +435,26 @@ def legend_marker(marker, color, label, filled=True, linestyle="none"):
 
 
 BLANK = Patch(facecolor="none", edgecolor="none", label=" ")
+
+
+class IntervalKey(Line2D):
+    """Legend key of an interval, a line with an end mark on both sides."""
+
+
+class ArrowKey(Line2D):
+    """Legend key of a lower bound, an upward arrow as in the figure."""
+
+
+class HandlerArrow(HandlerBase):
+    def create_artists(self, legend, orig_handle, xdescent, ydescent, width, height, fontsize, trans):
+        x = width / 2 - xdescent
+        arrow = FancyArrowPatch((x, -ydescent - 0.15 * height), (x, -ydescent + 1.15 * height), arrowstyle="-|>",
+                                mutation_scale=6, linewidth=0.7, color=orig_handle.get_color(), shrinkA=0, shrinkB=0,
+                                linestyle=orig_handle.get_linestyle(), transform=trans)
+        return [arrow]
+
+
+Legend.update_default_handler_map({IntervalKey: HandlerLine2D(numpoints=2), ArrowKey: HandlerArrow()})
 
 
 def figure_legend(fig, columns):
@@ -485,6 +523,7 @@ def draw_pair(ax, test, scale, rng):
     for x, data, cell, role in zip((-BOX_OFFSET, BOX_OFFSET), values, (test["a"], test["b"]),
                                    line_roles(test["a"], test["b"])):
         draw_box(ax, x, data, cell, role, rng)
+    ax._eda_low = min(float(np.min(v)) for v in values)
     return max(float(np.max(v)) for v in values), len(values[0])
 
 
@@ -509,7 +548,16 @@ def box_legend(fig, comparisons):
     figure_legend(fig, columns)
 
 
-def box_caption(label, n, alpha):
+def axis_sentence(zero_axes, drawn_axes):
+    """What the y-axes of this figure really do, zoomed axes can reach zero."""
+    if zero_axes == 0:
+        return "Jedes Feld hat eine eigene, auf seine Daten gezoomte y-Achse, die nicht bei null beginnt."
+    if zero_axes == drawn_axes:
+        return "Jedes Feld hat eine eigene y-Achse. Sie beginnt hier in allen Feldern bei null, weil die beiden Varianten eines Paars weit auseinanderliegen."
+    return f"Jedes Feld hat eine eigene, auf seine Daten gezoomte y-Achse. Sie beginnt in {zero_axes} von {drawn_axes} Feldern bei null, in den übrigen nicht."
+
+
+def box_caption(label, n, alpha, zero_axes, drawn_axes):
     """Text for figures.md, everything the caption has to explain."""
     return (f"Jede Zeile ist ein Vergleich, jede Spalte eine Laststufe. Die Box zeigt den Interquartilsabstand, die "
             "Linie den Median, die Antennen höchstens das 1,5-Fache des Interquartilsabstands und die Punkte die "
@@ -517,8 +565,8 @@ def box_caption(label, n, alpha):
             "Links steht Variante A, rechts Variante B des Vergleichs aus plan.json, unter jeder Box ihr Name. "
             "δ ist Cliff's Delta von A gegenüber B (positiv, wenn A höher liegt), * kennzeichnet einen Unterschied, "
             f"der nach Holm-Korrektur in Block 1 bei α = {alpha:g} signifikant ist. "
-            f"Die y-Achse zeigt „{label.replace(chr(10), ' ')}“. Jedes Feld hat eine eigene y-Achse ab null, "
-            "Höhen sind nur innerhalb eines Feldes vergleichbar. "
+            f"Die y-Achse zeigt „{label.replace(chr(10), ' ')}“. {axis_sentence(zero_axes, drawn_axes)} "
+            "Höhen sind nur innerhalb eines Feldes vergleichbar, die Größe der Unterschiede zeigt die Übersicht. "
             "Die Füllung zeigt die Sprache (Node.js grün, PHP violett). Umrandung und Punkte zeigen, was der "
             "Vergleich ändert. Bei Vergleichen innerhalb einer Sprache trägt Variante B die Farbe der geänderten "
             "Eigenschaft (WebSocket petrol, Framework bronze, Queue apricot). Gestrichelt ist WebSocket, "
@@ -587,17 +635,25 @@ def box_figure(evaluation, measure, spec, out_dir, notes, extra):
             tops[r, col] = high
             if test["result"].get("cliffs_delta") is not None:
                 deltas[(r, col)] = (test["result"]["cliffs_delta"], bool(test.get("significant")))
-    # Own axis per panel from zero, all measures are on a ratio scale, so differences are not exaggerated.
+    # Own axis per panel, zoomed to the data. The lower limit is clipped at zero, and the
+    # caption says in how many panels that happens.
+    zero_axes, drawn_axes = 0, 0
     for r in range(rows):
         for col in range(3):
             top = tops[r, col]
             if top <= 0:
                 continue
             ax = axes[r][col]
-            ax.set_ylim(0, top * 1.22)
+            low = ax._eda_low
+            span = (top - low) or (top * 0.05)
+            lower = max(0.0, low - 0.12 * span)
+            drawn_axes += 1
+            zero_axes += lower == 0.0
+            ax.set_ylim(lower, top + 0.42 * span)
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4))
             if (r, col) in deltas:
                 delta, significant = deltas[(r, col)]
-                text = ax.text(0, top * 1.1, f"{DELTA} = {fmt_delta(delta)}{'*' if significant else ''}",
+                text = ax.text(0, top + 0.17 * span, f"{DELTA} = {fmt_delta(delta)}{'*' if significant else ''}",
                                ha="center", va="bottom", color=INFRA_TEXT,
                                fontproperties=font_manager.FontProperties(fname=LM_MATH, size=FOOT),
                                bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.8})
@@ -608,7 +664,7 @@ def box_figure(evaluation, measure, spec, out_dir, notes, extra):
     n = "0" if not counts else str(min(counts)) if min(counts) == max(counts) else f"{min(counts)}–{max(counts)}"
     gaps = f", ohne Daten {missing} von {3 * rows} Feldern" if missing else ""
     alpha = (evaluation.get("plan") or {}).get("alpha", 0.05)
-    caption = box_caption(label, n, alpha)
+    caption = box_caption(label, n, alpha, zero_axes, drawn_axes)
     if name in extra:
         caption += f" Zusätzlich zu erklären. {extra[name]}"
     groups = ", ".join(
@@ -618,6 +674,262 @@ def box_figure(evaluation, measure, spec, out_dir, notes, extra):
     return {"file": name, "tier": spec["tier"], "caption": caption,
             "what": f"Boxplots der Lauf-Werte ({measure}) für die Vergleiche {', '.join(map(str, spec['ids']))}, "
                     f"je Vergleich eine Zeile und je Laststufe eine Spalte, Paare je Feld {n}{gaps}. {groups}"}
+
+
+# Overview of the differences (DECISIONS.md 5.24, 5.25). One figure per measure with all
+# comparisons, in the order of plan.json, grouped by what they vary.
+OVERVIEW_GROUPS = [
+    ("Node.js − PHP", [(1, "minimal, SSE"), (2, "minimal, WebSocket"), (3, "framework, SSE"), (4, "framework, WebSocket")]),
+    ("minimal − framework", [(5, "Node.js, SSE"), (6, "Node.js, WebSocket"), (7, "PHP, SSE"), (8, "PHP, WebSocket")]),
+    ("without − with queue", [(9, "Node.js"), (10, "PHP")]),
+    ("Node.js − PHP, with queue", [(11, "framework, SSE")]),
+    ("SSE − WebSocket", [(12, "Node.js, minimal"), (13, "PHP, minimal")]),
+]
+OVERVIEW_UNITS = {
+    "latency_mean_ms": ("Event latency", "ms", 1.0, 2),
+    "cpu_seconds_total": ("CPU time", "s", 1.0, 3),
+    "working_set_peak_bytes_total": ("Working set", "MiB", 1 / 2 ** 20, 1),
+    "connect_mean_ms": ("Connection setup", "ms", 1.0, 2),
+}
+
+
+# The overview is meant for a landscape page, 215 mm wide at its natural size. The panels
+# are then almost twice as wide as on a portrait page, which the narrow intervals need.
+OVERVIEW_WIDTH, OVERVIEW_ROW, OVERVIEW_CHROME = 215 * MM, 0.16, 1.62
+
+
+OVERVIEW_ENGLISH = {
+    "latency_mean_ms": "Mean event latency per run",
+    "cpu_seconds_total": "CPU time per run (variant and Redis)",
+    "working_set_peak_bytes_total": "Peak working set (variant and Redis)",
+    "connect_mean_ms": "Mean connection setup time per run",
+}
+
+
+def fmt_de(value, digits):
+    return f"{value:.{digits}f}".replace(".", ",")
+
+
+def overview_figure(evaluation, family, out_dir, notes):
+    """Median of the paired differences A - B with its 95 % bootstrap interval. Filled means
+    significant in the Wilcoxon test after Holm, a ring marks a different sign test decision."""
+    measure = family["measure"]
+    quantity, unit, scale, digits = OVERVIEW_UNITS[measure]
+    plan_cmp = {c["id"]: c for c in evaluation["plan"]["comparisons"]}
+    block = next((b for b in evaluation.get("sensitivity", []) if b["block"] == family["block"]), None)
+    if block is None:
+        notes.append(f"{measure}: keine Sensitivitätsanalyse in evaluation.json, Abweichungen zum Vorzeichentest nicht markiert")
+    sens = next((f for f in block["families"] if f["measure"] == measure), None) if block else None
+    differs = {(r["comparison_id"], r["scenario"]) for r in (sens["rows"] if sens else [])
+               if r.get("sign_test") and r["wilcoxon_significant"] != r["sign_significant"]}
+    ypos, heads, seps, ticks, y = {}, [], [], [], 0.0
+    for name, rows in OVERVIEW_GROUPS:
+        heads.append((name, y))
+        y += 1.0
+        for cid, text in rows:
+            ypos[cid] = y
+            ticks.append((y, text))
+            y += 1.0
+        seps.append(y - 0.15)
+        y += 0.3
+    width, height = OVERVIEW_WIDTH, OVERVIEW_CHROME + OVERVIEW_ROW * y
+    fig, axes = plt.subplots(1, 3, figsize=(width, height), sharey=True, layout="constrained")
+    outer_padding(fig, width, height, wspace=0.05)
+    drawn_ring = False
+    widest, steps, diverging, disagreeing, resamples = {}, {}, [], [], None
+    for col, (scenario, title) in enumerate(SCENARIOS):
+        ax = axes[col]
+        ax.set_title(title, fontsize=SMALL, pad=15)
+        # The zero line lies below everything and stays thin, so that points close to it stay visible.
+        ax.axvline(0, color=INFRA_LINE, linewidth=0.6, zorder=1)
+        ax.grid(axis="y", visible=False)
+        ax.grid(axis="x", visible=True)
+        for sep in seps[:-1]:
+            ax.axhline(sep, color=GRID, linewidth=0.5, zorder=0)
+        ends = [0.0]
+        for t in family["tests"]:
+            if t["scenario"] != scenario:
+                continue
+            res = t.get("result")
+            if not res or res.get("median_diff") is None or None in res["median_diff_ci95"]:
+                notes.append(f"{measure}: Vergleich {t['comparison_id']}, {scenario} ohne Intervall")
+                continue
+            resamples = (res.get("bootstrap") or {}).get("resamples", resamples)
+            yy = ypos[t["comparison_id"]]
+            cmp = plan_cmp[t["comparison_id"]]
+            role = factor_of(cmp["a"], cmp["b"])
+            color = PALETTE[role][1] if role else INFRA_TEXT
+            lo, hi = (v * scale for v in res["median_diff_ci95"])
+            ends += [lo, hi]
+            widest[scenario] = max(widest.get(scenario, 0.0), hi - lo)
+            md = res["median_diff"] * scale
+            significant = bool(t.get("significant"))
+            excludes_zero = lo > 0 or hi < 0
+            if excludes_zero != significant:
+                disagreeing.append((t["comparison_id"], title.split()[0]))
+                diverging.append(f"Vergleich {t['comparison_id']} bei {title.replace('clients', 'Clients')} "
+                                 + ("(Intervall ohne 0, Test nicht signifikant)" if excludes_zero else "(Intervall berührt 0, Test signifikant)"))
+            # Thin end marks reaching far beyond the point: two end marks stay apart from about
+            # 0.25 mm on, and the point in front of them hides neither.
+            ax.plot([lo, hi], [yy, yy], color=color, linewidth=0.7, solid_capstyle="butt", zorder=3)
+            for end in (lo, hi):
+                ax.plot([end, end], [yy - 0.38, yy + 0.38], color=color, linewidth=0.55, solid_capstyle="butt", zorder=3)
+            ax.plot(md, yy, marker="o", markersize=3.4, linestyle="none", zorder=4,
+                    markerfacecolor=color if significant else "white", markeredgecolor=color, markeredgewidth=0.7)
+            if (t["comparison_id"], scenario) in differs:
+                drawn_ring = True
+                ax.plot(md, yy, marker="o", markersize=8.5, linestyle="none", zorder=5, markerfacecolor="none",
+                        markeredgecolor=INFRA_TEXT, markeredgewidth=0.7, clip_on=False)
+        # Free space on both sides, so that no point sits on the edge of a panel.
+        low, high = min(ends), max(ends)
+        pad = 0.09 * ((high - low) or 1.0)
+        ax.set_xlim(low - pad, high + pad)
+        ax.set_ylim(y - 0.5, -0.7)
+        ax.tick_params(axis="x", labelsize=FOOT)
+        ax.tick_params(axis="y", length=0)
+        ax.locator_params(axis="x", nbins=4)
+        inside = [t for t in ax.get_xticks() if low - pad <= t <= high + pad]
+        steps[scenario] = round(float(inside[1] - inside[0]), 10)
+        ax.annotate(f"x-axis step {steps[scenario]:g} {unit}", xy=(0.5, 1), xycoords="axes fraction", xytext=(0, 3),
+                    textcoords="offset points", ha="center", va="bottom", fontsize=FOOT)
+    axes[0].set_yticks([t[0] for t in ticks])
+    axes[0].set_yticklabels([t[1] for t in ticks], fontsize=FOOT)
+    for name, yh in heads:
+        axes[0].annotate(name, xy=(0, yh), xycoords=("axes fraction", "data"), xytext=(-4, 0), textcoords="offset points",
+                         ha="right", va="center", fontsize=SMALL, annotation_clip=False)
+    axes[1].set_xlabel(f"{quantity}, median of the paired differences A − B ({unit})\n"
+                       "Left of 0 the first named variant is lower. Each column has its own x-axis.\n"
+                       "Filled or open follows the test, not the interval.", fontsize=SMALL, linespacing=1.15)
+    interval = [IntervalKey([], [], color=INFRA_TEXT, linewidth=0.8, marker="|", markersize=7, markeredgewidth=0.7,
+                            label="95 % bootstrap interval of the median, not Holm-corrected")]
+    if drawn_ring:
+        interval.append(Line2D([], [], linestyle="none", marker="o", markersize=8, markerfacecolor="none",
+                               markeredgecolor=INFRA_TEXT, markeredgewidth=0.7, label="sign test decides differently"))
+    figure_legend(fig, [[legend_marker("o", INFRA_TEXT, "significant (Wilcoxon, Holm)"),
+                         legend_marker("o", INFRA_TEXT, "not significant", filled=False)], interval])
+    name = f"overview-{measure.replace('_', '-')}.pdf"
+    save(fig, out_dir, name, notes)
+    alpha = (evaluation.get("plan") or {}).get("alpha", 0.05)
+    long_name = MEASURES[measure][0].replace("\n", " ")
+    widths = ", ".join(f"{fmt_de(widest[sc], digits)} {unit} bei {title.replace('clients', 'Clients')}" for sc, title in SCENARIOS if sc in widest)
+    caption = (f"Messgröße ist {long_name}. Punkt ist der Median der gepaarten Differenzen A − B, nicht die Differenz der Gruppenmediane. "
+               f"Das 95-%-Bootstrap-Intervall dieses Medians (Perzentilmethode, {resamples} Stichproben) gilt je Test und ist nicht nach Holm korrigiert. "
+               f"Gefüllt heißt signifikant im Wilcoxon-Test nach Holm über {family.get('m', 39)} Tests. Der Test wertet die Ränge aller Differenzen aus, das Intervall nur ihren Median. "
+               "Das Intervall ist deshalb keine Signifikanzentscheidung. "
+               + (f"Beide laufen in {'einem Test' if len(diverging) == 1 else str(len(diverging)) + ' Tests'} auseinander, " + " und ".join(diverging) + ". " if diverging else "Beide laufen in keinem Test auseinander. ")
+               + f"Breitestes Intervall {widths}. Jede Spalte hat eine eigene x-Achse."
+               + (f" Ein Ring markiert {len(differs)} Tests mit abweichendem Vorzeichentest (DECISIONS.md 5.8)." if differs else ""))
+    english_widths = " and ".join(filter(None, [", ".join(f"{widest[sc]:.{digits}f}" for sc, _ in SCENARIOS[:-1]), f"{widest[SCENARIOS[-1][0]]:.{digits}f}~{unit}"]))
+    disagree = " and ".join(f"comparison~{cid} at {load}~clients" for cid, load in disagreeing)
+    caption_en = (f"{OVERVIEW_ENGLISH[measure]} in Block~{family['block']}. Points show the median of the paired differences $A - B$, bars its 95\\% percentile bootstrap interval, "
+                  "which holds per test, is not Holm-corrected and is no significance decision. "
+                  f"Filled points are significant in the Wilcoxon signed-rank test after Holm correction over {family.get('m', 39)}~tests ($\\alpha = {alpha:g}$). "
+                  + ("Rings mark a different sign test decision. " if differs else "")
+                  + (f"Interval and test differ for {disagree}. " if disagree else "")
+                  + f"Widest interval per column {english_widths}.")
+    return {"file": name, "tier": "Kern (6.2, 6.3, 6.4)", "caption": caption, "caption_en": caption_en,
+            "what": f"Übersicht aller 13 Vergleiche und 3 Laststufen für {measure}, Median der gepaarten Differenzen mit 95-%-Intervall, Block {family['block']}, Querformat, natürliche Größe 215 mm breit"}
+
+
+# Detail to the flat boxes of the working set: every run as its deviation from the median
+# of its own campaign, so that spread can be seen without breaking an axis.
+SPREAD_CELLS = [
+    ("node-minimal-sse", "Node.js, minimal, SSE"), ("node-minimal-ws", "Node.js, minimal, WebSocket"),
+    ("node-express-sse", "Node.js, Express, SSE"), ("node-express-ws", "Node.js, Express, WebSocket"),
+    ("node-express-sse-queue", "Node.js, Express, SSE, queue"),
+    ("php-minimal-sse", "PHP, minimal, SSE"), ("php-minimal-ws", "PHP, minimal, WebSocket"),
+    ("php-laravel-sse", "PHP, Laravel, SSE"), ("php-laravel-ws", "PHP, Laravel, WebSocket"),
+    ("php-laravel-sse-queue", "PHP, Laravel, SSE, queue"),
+]
+
+
+def spread_figure(evaluation, measure, out_dir, notes):
+    family = next((f for f in evaluation["families"] if f["measure"] == measure), None)
+    if family is None:
+        return None
+    _, scale = MEASURES[measure]
+    data = {}
+    for t in family["tests"]:
+        pairs = (t.get("result") or {}).get("pairs")
+        if not pairs:
+            continue
+        for key in ("a", "b"):
+            values = np.asarray(pairs[key], dtype=float) * scale
+            data.setdefault((t[key], t["scenario"]), []).append(values - np.median(values))
+    ypos, y = {}, 0.0
+    for i, (cell, _) in enumerate(SPREAD_CELLS):
+        if i == 5:
+            y += 0.45
+        ypos[cell] = y
+        y += 1.0
+    height = 1.5 + 0.195 * y
+    fig, axes = plt.subplots(1, 3, figsize=(WIDTH, height), sharey=True, sharex=True, layout="constrained")
+    outer_padding(fig, WIDTH, height, wspace=0.05)
+    rng = np.random.default_rng(1)
+    limit, runs = 0.0, set()
+    for col, (scenario, title) in enumerate(SCENARIOS):
+        ax = axes[col]
+        ax.set_title(title, fontsize=SMALL)
+        ax.axvline(0, color=INFRA_LINE, linewidth=0.6, zorder=1)
+        ax.grid(axis="y", visible=False)
+        ax.grid(axis="x", visible=True)
+        for cell, _ in SPREAD_CELLS:
+            parts = data.get((cell, scenario))
+            if not parts:
+                notes.append(f"Streuung {measure}: keine Daten für {cell}, {scenario}")
+                continue
+            values = np.concatenate(parts)
+            runs.add(len(values))
+            limit = max(limit, float(np.max(np.abs(values))))
+            yy = ypos[cell]
+            lang = language_of(cell)
+            fill, line, median = PALETTE[lang]
+            linestyle = DASHED if is_ws(cell) else "-"
+            box = ax.boxplot([values], positions=[yy], widths=0.62, patch_artist=True, showfliers=False, manage_ticks=False,
+                             whis=1.5, orientation="horizontal")
+            for patch in box["boxes"]:
+                patch.set_facecolor(fill)
+                patch.set_edgecolor("none")
+                patch.set_linewidth(0)
+                patch.set_zorder(1)
+                if has_queue(cell):
+                    patch.set_hatch(QUEUE_HATCH)
+                    patch.set_hatchcolor(PALETTE["queue"][1])
+                ax.add_patch(PathPatch(patch.get_path(), transform=patch.get_transform(), facecolor="none", edgecolor=line,
+                                       linewidth=0.8, linestyle=linestyle, zorder=3))
+            for part in ("whiskers", "caps"):
+                for item in box[part]:
+                    item.set_color(line)
+                    item.set_linewidth(0.8)
+                    item.set_linestyle(linestyle)
+                    item.set_zorder(3)
+            for item in box["medians"]:
+                item.set_color(median)
+                item.set_linewidth(1.2)
+                item.set_zorder(4)
+            ax.plot(values, yy + rng.uniform(-0.26, 0.26, len(values)), linestyle="none", marker="o", markersize=1.5, markeredgewidth=0,
+                    color=line, alpha=0.55, zorder=2)
+        ax.set_ylim(y - 0.4, -0.6)
+        ax.tick_params(axis="x", labelsize=SCRIPT)
+        ax.tick_params(axis="y", length=0)
+    for ax in axes:
+        ax.set_xlim(-limit * 1.08, limit * 1.08)
+    axes[0].set_yticks([ypos[c] for c, _ in SPREAD_CELLS])
+    axes[0].set_yticklabels([t for _, t in SPREAD_CELLS], fontsize=FOOT)
+    axes[1].set_xlabel("Deviation of each run from the median of its campaign (MiB)\nNo absolute memory values, 0 is the median of each campaign", fontsize=SMALL, linespacing=1.15)
+    figure_legend(fig, [[swatch(PALETTE["nodejs"][0], PALETTE["nodejs"][1], "-", "Node.js"), swatch(PALETTE["php"][0], PALETTE["php"][1], "-", "PHP")],
+                        [swatch("white", INFRA_LINE, "-", "SSE"), swatch("white", INFRA_LINE, DASHED, "WebSocket")],
+                        [swatch("white", PALETTE["queue"][1], "-", "with queue", hatch=QUEUE_HATCH), legend_marker("o", INFRA_TEXT, "one run")]])
+    name = f"spread-{measure.replace('_', '-')}.pdf"
+    save(fig, out_dir, name, notes)
+    caption = ("Ergänzung zu den Boxplots des Working Set, in denen die Boxen flach sind, wenn sich zwei Varianten eines Paars stark unterscheiden. "
+               "Gezeigt sind Abweichungen vom Median der eigenen Kampagne, keine absoluten Speicherwerte. Die Lage der Varianten zeigt die Übersicht. "
+               f"Alle Felder teilen sich eine x-Achse ohne Unterbrechung. Je Box {min(runs)} bis {max(runs)} Läufe aus allen Kampagnen der Variante.")
+    caption_en = (f"Spread of the peak working set (variant and Redis) in Block~{family['block']}. Each run is shown as its deviation from the median of its own campaign, "
+                  "so the values are deviations and not absolute memory values. "
+                  f"All panels share one unbroken $x$-axis. Each box pools {min(runs)} to {max(runs)}~runs from all campaigns of the variant.")
+    return {"file": name, "tier": "Anhang, Ergänzung", "caption": caption, "caption_en": caption_en,
+            "what": "Streuung des Working Set je Variante und Laststufe, Abstand zum Median der eigenen Kampagne"}
 
 
 def place_labels(ax, items, log=False):
@@ -762,11 +1074,28 @@ def saturation_figure(series, out_dir, notes):
         return None
     rates = sorted({s["rate_per_s"] for c in saturation.values() for s in c["steps"]})
     top = rates[-1] if rates else None
-    # Dot plot instead of bars, because the result is the highest level passed, not a continuous value.
-    fig, ax = plt.subplots(figsize=(WIDTH, 3.4), layout="constrained")
-    outer_padding(fig, WIDTH, 3.4)
+
+    def row_of(cell):
+        if cell.get("max_sustainable_rate_per_s") is not None:
+            return None
+        return "not_evaluable" if cell.get("limit") == "loadgen" else "none"
+
+    # A variant without a value has no position on the rate axis. It gets a row of its own
+    # below the axis, which carries no scale and names its meaning.
+    present = {row_of(c) for c in saturation.values()} - {None}
+    rows = [r for r in ("none", "not_evaluable") if r in present]
+    row_labels = {"none": "none sustained", "not_evaluable": "not evaluable"}
+    strip_height = 0.22 * len(rows) + 0.08 if rows else 0.0
+    height = 3.4 + strip_height
+    if rows:
+        fig, (ax, strip) = plt.subplots(2, 1, figsize=(WIDTH, height), sharex=True, layout="constrained",
+                                        height_ratios=[2.0, strip_height])
+    else:
+        fig, ax = plt.subplots(figsize=(WIDTH, height), layout="constrained")
+        strip = None
+    outer_padding(fig, WIDTH, height, hspace=0.01)
     offsets = {"sse": -0.22, "ws": 0.0, "sse-queue": 0.22}
-    floor = rates[0] / 1.8 if rates else 1
+    marks = set()
     for i, (fam, _) in enumerate(FAMILIES):
         for suffix in ("sse", "ws", "sse-queue"):
             cell_name = f"{fam}-{suffix}"
@@ -777,36 +1106,58 @@ def saturation_figure(series, out_dir, notes):
             marker = SERIES_STYLE[suffix][2]
             value = cell.get("max_sustainable_rate_per_s")
             x = i + offsets[suffix]
-            # The value sits on a grid line of the tested levels and needs no number.
-            if value is None:
-                ax.plot(x, floor, linestyle="none", marker=marker, markersize=5.5, markerfacecolor="none",
-                        markeredgecolor=line, markeredgewidth=0.9, clip_on=False)
-            else:
-                ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
-                if value >= top:
-                    # Highest level passed, the limit lies above, shown by an upward arrow.
-                    ax.annotate("", xy=(x, value * 1.55), xytext=(x, value * 1.12),
-                                arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7,
-                                            "mutation_scale": 6, "shrinkA": 0, "shrinkB": 0})
+            row = row_of(cell)
+            if row is not None:
+                strip.plot(x, rows.index(row), linestyle="none", marker=marker, markersize=5.5, markerfacecolor="none",
+                           markeredgecolor=line, markeredgewidth=0.9, clip_on=False)
+                marks.add("empty")
+                continue
+            ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
+            # A value that is only a lower bound gets an upward arrow. Solid: all levels passed.
+            # Dashed: the series ended at a level the load generator could not serve.
+            limit = cell.get("limit")
+            bounded_by_load = limit == "loadgen"
+            passed_all = limit == "highest_rate" or (limit is None and value >= top)
+            if bounded_by_load or passed_all:
+                marks.add("loadgen" if bounded_by_load else "highest")
+                ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
+                            arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7, "mutation_scale": 6,
+                                        "shrinkA": 0, "shrinkB": 0, "linestyle": DASHED if bounded_by_load else "-"})
     ax.set_yscale("log")
     if rates:
         ax.set_yticks(rates)
         ax.set_yticklabels([f"{r:g}" for r in rates])
         ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
-        ax.set_ylim(floor / 1.3, top * 1.9)
-    ax.set_xticks(range(len(FAMILIES)))
-    ax.set_xticklabels([t for _, t in FAMILIES])
-    ax.tick_params(axis="x", labelsize=FOOT)
+        ax.set_ylim(rates[0] / 1.25, top * 2.2)
     ax.set_xlim(-0.6, len(FAMILIES) - 0.4)
     ax.set_ylabel("Maximum sustainable\nevent rate (events/s)")
     ax.grid(axis="x", visible=False)
+    bottom = strip if strip is not None else ax
+    if strip is not None:
+        ax.tick_params(axis="x", length=0, labelbottom=False)
+        ax.spines["bottom"].set_visible(False)
+        strip.set_facecolor(INFRA_FILL)
+        strip.set_ylim(len(rows) - 0.5, -0.5)
+        strip.set_yticks(range(len(rows)))
+        strip.set_yticklabels([row_labels[r] for r in rows], fontsize=FOOT)
+        strip.tick_params(axis="y", length=0)
+        strip.grid(False)
+    bottom.set_xticks(range(len(FAMILIES)))
+    bottom.set_xticklabels([t for _, t in FAMILIES])
+    bottom.tick_params(axis="x", labelsize=FOOT)
     columns = [[legend_marker("o", PALETTE["nodejs"][1], "SSE, Node.js"),
                 legend_marker("o", PALETTE["php"][1], "SSE, PHP")],
                [legend_marker("^", PALETTE["websocket"][1], "WebSocket"),
                 legend_marker("s", PALETTE["queue"][1], "SSE with queue")],
-               [legend_marker(r"$\uparrow$", FLOW, "highest tested rate sustained"),
-                legend_marker("o", FLOW, "no tested rate sustained", filled=False)]]
-    figure_legend(fig, columns)
+               []]
+    arrow = lambda linestyle, label: ArrowKey([], [], color=FLOW, linestyle=linestyle, label=label)
+    if "highest" in marks:
+        columns[2].append(arrow("-", "at least, all rates sustained"))
+    if "loadgen" in marks:
+        columns[2].append(arrow(DASHED, "at least, load generator limit"))
+    if "empty" in marks:
+        columns[2].append(legend_marker("o", FLOW, "no rate, see the lowest rows", filled=False))
+    figure_legend(fig, [c for c in columns if c])
     # Every tested rate keeps its grid line, labels that would touch their neighbor are left out.
     thin_tick_labels(ax)
     save(fig, out_dir, "saturation.pdf", notes)
@@ -815,15 +1166,18 @@ def saturation_figure(series, out_dir, notes):
     if crit.get("minDeliveryRatio") is not None and crit.get("maxP95LatencyMs") is not None:
         rule = (f" Nachhaltig: mindestens {crit['minDeliveryRatio'] * 100:g} % zugestellte Events und p95-Latenz "
                 f"höchstens {crit['maxP95LatencyMs']:g} ms auf dieser und allen niedrigeren Stufen.")
-    caption = ("Punkt: höchste getestete Event-Rate, die eine Variante nachhaltig zustellt; y-Achse logarithmisch, "
-               "waagrechte Linien bei den getesteten Stufen; Pfeil nach oben: höchste Stufe bestanden, die Grenze liegt darüber; "
-               "offenes Symbol: schon die niedrigste Stufe nicht bestanden." + rule + " SSE in der Farbe der Sprache, "
+    caption = ("Gefülltes Symbol: höchste getestete Event-Rate, die eine Variante nachhaltig zustellt. y-Achse logarithmisch, "
+               "waagrechte Linien bei den getesteten Stufen. Durchgezogener Pfeil nach oben: alle Stufen bestanden, die Grenze liegt mindestens beim gezeigten Wert. "
+               "Gestrichelter Pfeil nach oben: die Reihe endete an einer Stufe, auf der der Lastgenerator über 80 % ausgelastet war, die Grenze liegt mindestens beim gezeigten Wert. "
+               "Die Zeilen unter der Achse haben keine Skala und zeigen keinen Messwert. Offenes Symbol in der Zeile none sustained: schon die niedrigste getestete Stufe wurde nicht bestanden. "
+               "Offenes Symbol in der Zeile not evaluable: schon die niedrigste Stufe ließ sich wegen des Lastgenerators nicht auswerten." + rule + " SSE in der Farbe der Sprache, "
                "WebSocket petrol, SSE mit Queue apricot, dazu je Transport ein eigenes Symbol.")
     return {"file": "saturation.pdf", "tier": "Kern (6.3)", "caption": caption,
             "what": "Sättigungstest, höchste nachhaltige Event-Rate je Variante"}
 
 
 def main():
+    global TEST_DATA
     parser = argparse.ArgumentParser(description="Abbildungen für die schriftliche Arbeit")
     parser.add_argument("--evaluation", help="Verzeichnis mit evaluation.json")
     parser.add_argument("--series", help="Verzeichnis mit series.json")
@@ -847,12 +1201,20 @@ def main():
 
     notes, made = [], []
     if evaluation:
+        for family in evaluation["families"]:
+            made.append(overview_figure(evaluation, family, out_dir, notes))
+        entry = spread_figure(evaluation, "working_set_peak_bytes_total", out_dir, notes)
+        if entry:
+            made.append(entry)
         for spec in SETS:
             for measure in MEASURES:
                 entry = box_figure(evaluation, measure, spec, out_dir, notes, extra)
                 if entry:
                     made.append(entry)
     if series:
+        TEST_DATA = bool(series.get("test_data"))
+        if TEST_DATA:
+            notes.append("series.json trägt test_data, Skalierung und Sättigung zeigen ERFUNDENE Testdaten")
         for metric in ("served", "latency", "memory"):
             entry = scaling_figure(series, metric, out_dir, notes)
             if entry:
@@ -867,7 +1229,7 @@ def main():
         "",
         f"Erzeugt: {stamp}. Quellen: {args.evaluation or '–'} (evaluation.json), {args.series or '–'} (series.json).",
         "",
-        "Vektor-PDFs für den Ordner `images/` im Overleaf-Projekt, eingebunden mit `\\includegraphics[width=\\textwidth]{<datei ohne .pdf>}`. Die Schriftgrößen stimmen nur bei voller Textbreite.",
+        "Vektor-PDFs für den Ordner `images/` im Overleaf-Projekt, eingebunden mit `\\includegraphics[width=\\textwidth]{<datei ohne .pdf>}`. Die vier Übersichten stehen auf einer Querformatseite in natürlicher Größe, also ohne `width`. Sonst stimmen die Schriftgrößen nicht.",
         f"Farben wie in images/diagram-styles.tex. {palette}.",
         "Die Füllung einer Box zeigt die Sprache, Umrandung und Punkte zeigen, was ein Vergleich ändert. Durchgezogen umrandet Server-Sent Events, gestrichelt WebSocket, gepunktet gefüllt Varianten mit Queue.",
         "Schwerpunkte nach DECISIONS.md 5.24: Kernabbildungen im Text, die übrigen im Anhang.",
@@ -877,6 +1239,10 @@ def main():
         "|---|---|---|---|",
     ]
     lines += [f"| `{m['file']}` | {m['tier']} | {m['what']} | {m['caption']} |" for m in made]
+    english = [m for m in made if m.get("caption_en")]
+    if english:
+        lines += ["", "## Vorschläge für die Bildunterschriften", ""]
+        lines += [f"- `{m['file']}`: {m['caption_en']}" for m in english]
     if notes:
         lines += ["", "## Hinweise", ""] + [f"- {n}" for n in notes]
     with open(os.path.join(out_dir, "figures.md"), "w", encoding="utf-8") as handle:
