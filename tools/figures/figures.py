@@ -12,17 +12,37 @@ Usage in the container (paths relative to the repository or absolute under /resu
 
 Output: results/<timestamp>_figures/*.pdf and figures.md.
 
-Styled like the TikZ diagrams of the thesis (diagram-styles.tex, palette A).
-Color encodes the language (PHP, Node.js) or the queue, gray the shared
-infrastructure, the line style the transport (solid SSE, dashed
-WebSocket). Font Latin Modern Roman as in the HagenbergThesis template
-(lmodern, 11 pt), in the optical sizes LaTeX uses for \\small (10 pt) and
-\\scriptsize (8 pt), embedded as TrueType. Hatching and markers keep the
-figures readable in black-and-white print. Axis labels are in English,
-because the thesis is written in English.
+Styled like the TikZ diagrams of the thesis (images/diagram-styles.tex). All
+colors come from PALETTE, which holds the same values as that file.
+
+Encoding, the same in every figure:
+- Every box plot figure is a grid. Each row is one comparison in the order of
+  plan.json, each column one load level, from 10 to 500 clients from left to
+  right. In every panel variant A stands left and variant B right, and each
+  box is named directly below it.
+- The fill of a box is the language of its variant (Node.js green, PHP violet).
+- Outline, whiskers and points show what the comparison varies. In a comparison
+  of the two languages they have the color of the language. In a comparison
+  within one language, variant A keeps the color of its language and variant B
+  takes the color of the property it adds or changes (WebSocket petrol,
+  framework bronze, queue apricot).
+- The line style is the transport (solid SSE, dashed WebSocket), as in the
+  diagrams. Dots in the fill mark a variant with a queue, so that it stays
+  distinct from Node.js where apricot and green look alike to readers with a
+  red-green deficiency.
+- Every panel has its own y-axis from zero, the legend sits above the panels in
+  the same order in every figure, and check_layout reports texts that come too
+  close to an edge or overlap.
+Font Latin Modern Roman as in the HagenbergThesis template (lmodern, 11 pt), in
+the optical sizes LaTeX uses for \\small (10 pt), \\footnotesize (9 pt) and
+\\scriptsize (8 pt), embedded as TrueType. The figures are made for the full
+text width (\\includegraphics[width=\\textwidth]), so that these sizes hold
+in the thesis. Axis labels are in English, because the thesis is written in
+English.
 """
 
 import argparse
+import itertools
 import json
 import logging
 import os
@@ -37,7 +57,7 @@ import matplotlib.ticker  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib import font_manager  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.patches import Patch  # noqa: E402
+from matplotlib.patches import Patch, PathPatch  # noqa: E402
 from matplotlib.text import Text  # noqa: E402
 
 RESULTS = "/results"
@@ -47,9 +67,9 @@ RESULTS = "/results"
 logging.getLogger("fontTools").setLevel(logging.ERROR)
 
 # Font of the template. hgbthesis loads lmodern at 11 pt. LaTeX sets \small with
-# the 10 pt size and \scriptsize with the 8 pt size of Latin Modern Roman.
-# All three files share the same family name, so the file is chosen per
-# text by its font size (apply_fonts).
+# the 10 pt size, \footnotesize with the 9 pt size and \scriptsize with the 8 pt
+# size of Latin Modern Roman. All three files share the same family name, so the
+# file is chosen per text by its font size (apply_fonts).
 # The files are converted to TrueType when the image is built (otf2ttf.py).
 LM_DIR = "/usr/local/share/fonts/lm-ttf"
 LM_FILES = {8: f"{LM_DIR}/lmroman8-regular.ttf", 9: f"{LM_DIR}/lmroman9-regular.ttf",
@@ -57,27 +77,39 @@ LM_FILES = {8: f"{LM_DIR}/lmroman8-regular.ttf", 9: f"{LM_DIR}/lmroman9-regular.
 for _path in LM_FILES.values():
     font_manager.fontManager.addfont(_path)
 # Latin Modern Math for the math symbols (δ, ↑). Its character map assigns the
-# glyphs their Unicode code points, so δ is copied and found as U+03B4. The
-# BaKoMa fonts of mathtext.fontset "cm" store δ at the code of "±", which made
-# the text layer of the PDFs show "±" instead of δ.
+# glyphs their Unicode code points, so the symbols are copied and found by their
+# code point. The BaKoMa fonts of mathtext.fontset "cm" stored δ at the code of "±".
 LM_MATH = f"{LM_DIR}/latinmodern-math.ttf"
 font_manager.fontManager.addfont(LM_MATH)
-SMALL, SCRIPT = 10, 8  # \small and \scriptsize of the template in pt
+SMALL, FOOT, SCRIPT = 10, 9, 8  # \small, \footnotesize and \scriptsize of the template in pt
 
-# Palette A from diagram-styles.tex (sRGB), fill, line and text per role.
-ROLES = {
-    "php": ("#EEE8F8", "#7B68B5", "#3F3366"),
-    "nodejs": ("#E6F1E8", "#5E8E68", "#2E4E35"),
-    "queue": ("#FCE9DF", "#C27A5A", "#6B3A24"),
+# Cliff's delta is a statistic, so it is set in italic like a variable, as LaTeX
+# sets $\delta$ in the text. U+1D6FF is the mathematical italic small delta of
+# Latin Modern Math. mathtext does not find this glyph and falls back to STIX, so
+# the whole label "δ = +0.40*" is set as plain text in Latin Modern Math, like a
+# formula in math mode (box_figure).
+DELTA = "\U0001D6FF"
+
+# Palette of images/diagram-styles.tex (sRGB), fill, line and text per role.
+# Any change has to be made in both files (DECISIONS.md 5.25).
+PALETTE = {
+    "nodejs": ("#CCEDD2", "#5E8E68", "#2E4E35"),
+    "php": ("#E4DDFF", "#7B68B5", "#3F3366"),
+    "queue": ("#FFD9C8", "#C27A5A", "#6B3A24"),
+    "websocket": ("#C1EAFE", "#005F7B", "#003C51"),
+    "framework": ("#F2E1BE", "#6C5005", "#463200"),
     "infra": ("#F5F2F0", "#8C8480", "#3F3A37"),
 }
 FLOW = "#776F73"  # flow-line
-INFRA_FILL, INFRA_LINE, INFRA_TEXT = ROLES["infra"]
+INFRA_FILL, INFRA_LINE, INFRA_TEXT = PALETTE["infra"]
 GRID = "#DDDAD9"  # infra-line, lightened to 30 %
 DASHED = (0, (3, 2))  # ws style of the diagrams, on 3pt off 2pt
 DOTTED = (0, (1.5, 1.5))  # lifeline style of the diagrams
+QUEUE_HATCH = "...."  # dots for variants with a queue
 
 WIDTH = 5.75  # text width of the template in inches (A4, 32 mm margin per side)
+MM = 1 / 25.4  # one millimeter in inches
+EDGE = 2.5 * MM  # free space between the content and every edge of a figure
 
 plt.rcParams.update({
     "font.family": "serif",
@@ -94,7 +126,7 @@ plt.rcParams.update({
     "font.size": SMALL,
     "axes.labelsize": SMALL,
     "axes.titlesize": SMALL,
-    "xtick.labelsize": SCRIPT,
+    "xtick.labelsize": FOOT,
     "ytick.labelsize": SCRIPT,
     "legend.fontsize": SMALL,
     "text.color": INFRA_TEXT,
@@ -116,25 +148,30 @@ plt.rcParams.update({
     "grid.linewidth": 0.5,
     "axes.axisbelow": True,
     "lines.linewidth": 1.2,
-    "hatch.linewidth": 0.5,
+    "hatch.linewidth": 0.6,
     "legend.frameon": False,
+    "legend.handlelength": 2.2,
+    "legend.handleheight": 1.0,
+    "legend.handletextpad": 0.6,
+    "legend.columnspacing": 1.6,
+    "legend.labelspacing": 0.45,
+    "legend.borderaxespad": 0.2,
     "pdf.fonttype": 42,
     "savefig.dpi": 300,
 })
 
 SCENARIOS = [("baseline", "10 clients"), ("medium", "50 clients"), ("stress", "500 clients")]
 
+# Axis title of each measure, in two lines, so that it also fits a figure with one row.
 MEASURES = {
-    "latency_mean_ms": ("Mean event latency per run (ms)", 1.0),
-    "cpu_seconds_total": ("CPU time per run, variant and Redis (s)", 1.0),
-    "working_set_peak_bytes_total": ("Peak working set, variant and Redis (MiB)", 1 / 2 ** 20),
-    "connect_mean_ms": ("Mean connection setup time per run (ms)", 1.0),
+    "latency_mean_ms": ("Mean event latency\nper run (ms)", 1.0),
+    "cpu_seconds_total": ("CPU time per run,\nvariant and Redis (s)", 1.0),
+    "working_set_peak_bytes_total": ("Peak working set,\nvariant and Redis (MiB)", 1 / 2 ** 20),
+    "connect_mean_ms": ("Mean connection setup\ntime per run (ms)", 1.0),
 }
 
-def role_of(cell):
-    """Color role of a variant, queue variants in the queue color, otherwise the language."""
-    if cell.endswith("-queue"):
-        return "queue"
+
+def language_of(cell):
     return "nodejs" if cell.startswith("node-") else "php"
 
 
@@ -142,39 +179,69 @@ def is_ws(cell):
     return cell.endswith("-ws")
 
 
-# Comparison groups from plan.json, tier according to DECISIONS.md 5.24. The
-# second box of a pair is hatched when color and line style do not
-# distinguish it from the first in black-and-white print.
-# "pair_axes" gives every pair its own field and y-axis, for groups whose pairs
-# differ so much in size that a shared axis hides the difference within a pair.
-# "style" describes colors and hatching for figures.md.
+def has_queue(cell):
+    return cell.endswith("-queue")
+
+
+def is_framework(cell):
+    return cell.split("-")[1] in ("express", "laravel")
+
+
+def factor_of(a, b):
+    """Role of the property in which the two variants of a comparison differ,
+    None for a comparison of the two languages."""
+    if language_of(a) != language_of(b):
+        return None
+    if is_ws(a) != is_ws(b):
+        return "websocket"
+    if has_queue(a) != has_queue(b):
+        return "queue"
+    if is_framework(a) != is_framework(b):
+        return "framework"
+    raise ValueError(f"{a} und {b} unterscheiden sich in keiner bekannten Eigenschaft")
+
+
+def line_roles(a, b):
+    """Color role of outline, whiskers and points of variant A and variant B."""
+    return language_of(a), factor_of(a, b) or language_of(b)
+
+
+FRAMEWORK_NAMES = {"node-minimal": "minimal", "php-minimal": "minimal", "node-express": "Express",
+                   "php-laravel": "Laravel"}
+
+
+def box_name(cell, kind):
+    """Name below a box, depending on what the comparisons of a figure vary."""
+    if kind == "language":
+        return "Node.js" if language_of(cell) == "nodejs" else "PHP"
+    if kind == "transport":
+        return "WebSocket" if is_ws(cell) else "SSE"
+    if kind == "framework":
+        return FRAMEWORK_NAMES["-".join(cell.split("-")[:2])]
+    return "with\nqueue" if has_queue(cell) else "without\nqueue"
+
+
+# Comparison groups from plan.json, tier according to DECISIONS.md 5.24.
+# "rows" names each comparison above its row, "names" says how the boxes are named.
+# Every panel has its own y-axis from zero. An axis shared by a column let the largest
+# pair set the scale and flattened the other pairs, so that the difference within them,
+# which the test is about, could no longer be seen.
 SETS = [
-    {"key": "language", "ids": [1, 2, 3, 4], "tier": "Kern (6.2)", "hatch_b": "////", "ws": True,
-     "labels": {1: "minimal, SSE", 2: "minimal, WS", 3: "framework, SSE", 4: "framework, WS"},
-     "legend": [("nodejs", "", "-", "Node.js"), ("php", "////", "-", "PHP")],
-     "style": "Node.js salbeigrün, PHP lavendel und schraffiert"},
-    {"key": "transport", "ids": [12, 13], "tier": "Kern (6.3)", "hatch_b": "", "ws": True,
-     "labels": {12: "Node.js, minimal", 13: "PHP, minimal"},
-     "legend": [("nodejs", "", "-", "Node.js"), ("php", "", "-", "PHP")],
-     "style": "Node.js salbeigrün, PHP lavendel, ohne Schraffur"},
-    {"key": "framework", "ids": [5, 6, 7, 8], "tier": "Ergänzung (6.4) bzw. Anhang", "hatch_b": "////", "ws": True,
-     "labels": {5: "Node.js, SSE", 6: "Node.js, WS", 7: "PHP, SSE", 8: "PHP, WS"},
-     "legend": [("nodejs", "", "-", "Node.js"), ("php", "", "-", "PHP"),
-                ("infra", "", "-", "minimal"), ("infra", "////", "-", "framework-based")],
-     "style": "Node.js salbeigrün, PHP lavendel, die Framework-Variante schraffiert"},
-    {"key": "queue", "ids": [9, 10], "tier": "Ergänzung (6.4) bzw. Anhang", "hatch_b": "....", "pair_axes": True,
-     "labels": {9: "Node.js (BullMQ)", 10: "PHP (Laravel Queue)"},
-     "legend": [("nodejs", "", "-", "Node.js without queue"), ("php", "", "-", "PHP without queue"),
-                ("queue", "....", "-", "with queue")],
-     "style": "Node.js salbeigrün, PHP lavendel, die Variante mit Queue apricot mit Punktmuster"},
-    {"key": "language-queue", "ids": [11], "tier": "Anhang", "hatch_b": "////",
-     "labels": {11: "framework, SSE with queue"},
-     # Both variants of comparison 11 have a queue and are drawn in the queue color.
-     "legend": [("queue", "", "-", "Node.js (BullMQ)"), ("queue", "////", "-", "PHP (Laravel Queue)")],
-     "style": "beide Varianten mit Queue apricot, PHP schraffiert"},
+    {"key": "language", "ids": [1, 2, 3, 4], "tier": "Kern (6.2)", "names": "language",
+     "rows": {1: "Minimal variants, SSE", 2: "Minimal variants, WebSocket",
+              3: "Framework-based variants (Express, Laravel), SSE",
+              4: "Framework-based variants (Express, Laravel), WebSocket"}},
+    {"key": "transport", "ids": [12, 13], "tier": "Kern (6.3)", "names": "transport",
+     "rows": {12: "Node.js, minimal variants", 13: "PHP, minimal variants"}},
+    {"key": "framework", "ids": [5, 6, 7, 8], "tier": "Ergänzung (6.4) bzw. Anhang", "names": "framework",
+     "rows": {5: "Node.js, SSE", 6: "Node.js, WebSocket", 7: "PHP, SSE", 8: "PHP, WebSocket"}},
+    {"key": "queue", "ids": [9, 10], "tier": "Ergänzung (6.4) bzw. Anhang", "names": "queue",
+     "rows": {9: "Node.js, Express, SSE, queue BullMQ", 10: "PHP, Laravel, SSE, queue Laravel Queue"}},
+    {"key": "language-queue", "ids": [11], "tier": "Anhang", "names": "language",
+     "rows": {11: "Framework-based variants with queue (BullMQ, Laravel Queue), SSE"}},
 ]
-# Line style of the transports for every group with WebSocket comparisons ("ws").
-TRANSPORT_LEGEND = [("infra", "", "-", "Server-Sent Events"), ("infra", "", DASHED, "WebSocket")]
+
+FACTOR_LABELS = {"websocket": "WebSocket", "framework": "framework-based", "queue": "with queue"}
 
 FAMILIES = [
     ("node-minimal", "Node.js, minimal"),
@@ -182,13 +249,21 @@ FAMILIES = [
     ("php-minimal", "PHP, minimal"),
     ("php-laravel", "PHP, Laravel"),
 ]
-# Lines of the scaling series, color from the variant, line style from the transport.
+# Lines of the scaling series: SSE in the color of the language, WebSocket and the
+# queue in the color of the property, as variant B in the box plots.
 SERIES_STYLE = {
-    "sse": ("Server-Sent Events", "-", "o"),
-    "ws": ("WebSocket", DASHED, "^"),
-    "sse-queue": ("Server-Sent Events with queue", "-", "s"),
+    "sse": ("SSE", "-", "o"),  # short label at the end of the line
+    "ws": ("WS", DASHED, "^"),
+    "sse-queue": ("queue", "-", "s"),
 }
-SERIES_SHORT = {"sse": "SSE", "ws": "WS", "sse-queue": "SSE + queue"}
+
+
+def series_role(cell_name):
+    if cell_name.endswith("-sse-queue"):
+        return "queue"
+    if cell_name.endswith("-ws"):
+        return "websocket"
+    return language_of(cell_name)
 
 
 def resolve(path):
@@ -214,27 +289,144 @@ def apply_fonts(fig):
     """Choose the optical size of Latin Modern per text, as LaTeX does."""
     fig.canvas.draw()
     for text in fig.findobj(Text):
-        if not text.get_text():
+        if not text.get_text() or getattr(text, "_eda_math", False):
             continue
         size = text.get_fontsize()
         design = 8 if size < 8.5 else 9 if size < 9.5 else 10
         text.set_fontproperties(font_manager.FontProperties(fname=LM_FILES[design], size=size))
 
 
-def save(fig, out_dir, name):
+def hidden_tick_labels(fig):
+    """Tick labels that are not drawn: those of switched-off axes and those whose
+    tick lies outside the visible range of its axis."""
+    hidden = set()
+    for ax in fig.axes:
+        for axis in (ax.xaxis, ax.yaxis):
+            labels = axis.get_majorticklabels() + axis.get_minorticklabels()
+            if not ax.axison or not axis.get_visible():
+                hidden.update(labels)
+                continue
+            lo, hi = sorted(axis.get_view_interval())
+            span = (hi - lo) * 1e-6
+            for loc, label in zip(axis.get_majorticklocs(), axis.get_majorticklabels()):
+                if loc < lo - span or loc > hi + span:
+                    hidden.add(label)
+            hidden.update(axis.get_minorticklabels())
+    return hidden
+
+
+def check_layout(fig, name, notes):
+    """Quality check of the rendered figure: every drawn text and every legend entry
+    keeps the free space EDGE to all edges, and no two texts overlap."""
+    fig.canvas.draw()
+    renderer = fig._get_renderer()
+    width, height = fig.bbox.width, fig.bbox.height
+    edge = EDGE * fig.dpi * 0.9
+    problems = []
+    hidden = hidden_tick_labels(fig)
+    texts = [t for t in fig.findobj(Text) if t.get_visible() and t.get_text().strip() and t not in hidden
+             and t.get_alpha() != 0]
+    boxes = []
+    for t in texts:
+        bb = t.get_window_extent(renderer)
+        boxes.append((t.get_text().replace("\n", " "), bb))
+        if bb.x0 < edge or bb.y0 < edge or bb.x1 > width - edge or bb.y1 > height - edge:
+            problems.append(f"zu nah am Rand: „{boxes[-1][0]}“")
+    for legend in fig.legends:
+        for artist in legend.get_patches() + legend.get_lines():
+            bb = artist.get_window_extent(renderer)
+            if bb.width and (bb.x0 < edge or bb.x1 > width - edge or bb.y1 > height - edge):
+                problems.append("Symbol der Legende zu nah am Rand oder abgeschnitten")
+                break
+    for (ta, a), (tb, b) in itertools.combinations(boxes, 2):
+        if min(a.x1, b.x1) - max(a.x0, b.x0) > 0.5 and min(a.y1, b.y1) - max(a.y0, b.y0) > 0.5:
+            problems.append(f"Texte überlappen: „{ta}“ und „{tb}“")
+    for p in problems:
+        notes.append(f"{name}: {p}")
+    return problems
+
+
+def outer_padding(fig, width, height, w_pad=1.0 * MM, h_pad=1.0 * MM, wspace=0.06, hspace=0.02, left=0.0):
+    """Same free space EDGE to every edge of every figure, smaller gaps inside.
+    left reserves room (inches) at the left edge for the common y title."""
+    ex, ey, lx = EDGE / width, EDGE / height, (EDGE + left) / width
+    fig.get_layout_engine().set(w_pad=w_pad, h_pad=h_pad, wspace=wspace, hspace=hspace,
+                                rect=(lx, ey, 1 - lx - ex, 1 - 2 * ey))
+
+
+def y_title(fig, label):
+    """Common y title of all panels at the left edge. Returns the width it needs, which
+    outer_padding keeps free. save() centers it on the panels."""
+    lines = label.count("\n") + 1
+    fig._eda_ytitle = fig.text(EDGE / fig.get_figwidth(), 0.5, label, rotation=90, ha="left", va="center",
+                               fontsize=SMALL, linespacing=1.15, in_layout=False)
+    return lines * SMALL * 1.2 / 72 + 1.5 * MM
+
+
+def center_y_title(fig):
+    title = getattr(fig, "_eda_ytitle", None)
+    if title is None:
+        return
+    fig.canvas.draw()
+    panels = [ax.get_position() for ax in fig.axes if ax.axison]
+    title.set_y((min(p.y0 for p in panels) + max(p.y1 for p in panels)) / 2)
+
+
+def thin_tick_labels(ax, axis="y"):
+    """Leaves out tick labels that would touch their neighbor, the grid lines stay.
+    The highest and the lowest label are always kept."""
+    ax.figure.canvas.draw()
+    renderer = ax.figure._get_renderer()
+    labels = ax.get_yticklabels() if axis == "y" else ax.get_xticklabels()
+    shown = [i for i, t in enumerate(labels) if t.get_text()]
+    if len(shown) < 3:
+        return
+    key = (lambda bb: (bb.y0, bb.y1)) if axis == "y" else (lambda bb: (bb.x0, bb.x1))
+    spans = {i: key(labels[i].get_window_extent(renderer)) for i in shown}
+    order = sorted(shown, key=lambda i: spans[i][0])
+    kept = [order[0]]
+    for i in order[1:-1]:
+        if spans[i][0] - spans[kept[-1]][1] >= 2:
+            kept.append(i)
+    last = order[-1]
+    while len(kept) > 1 and spans[last][0] - spans[kept[-1]][1] < 2:
+        kept.pop()
+    kept.append(last)
+    texts = [t.get_text() if i in kept else "" for i, t in enumerate(labels)]
+    (ax.set_yticklabels if axis == "y" else ax.set_xticklabels)(texts)
+
+
+def save(fig, out_dir, name, notes):
     apply_fonts(fig)
+    center_y_title(fig)
+    check_layout(fig, name, notes)
     fig.savefig(os.path.join(out_dir, name), metadata={"CreationDate": None, "Creator": None, "Producer": None})
     plt.close(fig)
 
 
-def legend_patch(role, hatch, linestyle, label):
-    fill, line, _ = ROLES[role]
-    return Patch(facecolor=fill, edgecolor=line, hatch=hatch, linestyle=linestyle, linewidth=0.8, label=label)
+def swatch(fill, line, linestyle, label, hatch=None):
+    patch = Patch(facecolor=fill, edgecolor=line, linestyle=linestyle, linewidth=1.0, label=label, hatch=hatch)
+    if hatch:
+        patch.set_hatchcolor(PALETTE["queue"][1])
+    return patch
 
 
-def legend_marker(marker, color, label, filled=True):
-    return Line2D([], [], linestyle="none", marker=marker, markersize=4, markeredgewidth=0.6,
-                  markerfacecolor=color if filled else "none", markeredgecolor=color, label=label)
+def legend_marker(marker, color, label, filled=True, linestyle="none"):
+    return Line2D([], [], linestyle=linestyle, marker=marker, markersize=4.5, markeredgewidth=0.8,
+                  markerfacecolor=color if filled else "none", markeredgecolor=color, color=color, label=label)
+
+
+BLANK = Patch(facecolor="none", edgecolor="none", label=" ")
+
+
+def figure_legend(fig, columns):
+    """One legend for every figure, above the panels and centered. Two rows, filled
+    column by column, the columns always in the same order: languages, the property a
+    comparison varies, the transports, the marks of single runs or limits."""
+    rows = max(len(c) for c in columns)
+    handles = [h for column in columns for h in (list(column) + [BLANK] * (rows - len(column)))]
+    # borderaxespad keeps the free space EDGE to the top edge (10 pt font, 0.8 em = 2.8 mm).
+    return fig.legend(handles=handles, loc="outside upper center", ncol=len(columns), borderaxespad=0.8)
 
 
 def fmt_delta(delta):
@@ -242,63 +434,99 @@ def fmt_delta(delta):
     return f"{delta:+.2f}".replace("-", "−")
 
 
-def style_box(box, role, hatch, linestyle):
-    fill, line, text = ROLES[role]
+BOX_OFFSET, BOX_WIDTH = 0.23, 0.36  # position of the boxes around the panel center, width in data units
+
+
+def draw_box(ax, x, data, cell, role, rng):
+    """One box with its runs. The fill lies below the points, outline, whiskers and
+    median above them, so that the dashes of WebSocket stay visible where the points
+    cluster."""
+    fill = PALETTE[language_of(cell)][0]
+    _, line, median = PALETTE[role]
+    linestyle = DASHED if is_ws(cell) else "-"
+    box = ax.boxplot([data], positions=[x], widths=BOX_WIDTH, patch_artist=True, showfliers=False,
+                     manage_ticks=False, whis=1.5)
     for patch in box["boxes"]:
         patch.set_facecolor(fill)
-        patch.set_edgecolor(line)
-        patch.set_linewidth(0.8)
-        patch.set_linestyle(linestyle)
-        if hatch:
-            patch.set_hatch(hatch)
+        patch.set_edgecolor("none")
+        patch.set_linewidth(0)
+        patch.set_zorder(1)
+        if has_queue(cell):
+            patch.set_hatch(QUEUE_HATCH)
+            patch.set_hatchcolor(PALETTE["queue"][1])
+        ax.add_patch(PathPatch(patch.get_path(), transform=patch.get_transform(), facecolor="none",
+                               edgecolor=line, linewidth=1.0, linestyle=linestyle, zorder=3))
     for part in ("whiskers", "caps"):
         for item in box[part]:
             item.set_color(line)
-            item.set_linewidth(0.8)
+            item.set_linewidth(1.0)
             item.set_linestyle(linestyle)
+            item.set_zorder(3)
     for item in box["medians"]:
-        item.set_color(text)
-        item.set_linewidth(1.2)
+        item.set_color(median)
+        item.set_linewidth(1.5)
+        item.set_zorder(4)
+    # Each run as a point, spread horizontally, so that distribution and sample size are visible.
+    jitter = rng.uniform(-0.08, 0.08, len(data))
+    ax.plot(x + jitter, data, linestyle="none", marker="o", markersize=1.8, markeredgewidth=0,
+            color=line, alpha=0.65, zorder=2)
 
 
-def draw_pair(ax, pos, test, spec, scale, rng):
-    """Both boxes of one comparison around pos. Returns the largest value and the number of runs."""
+def draw_pair(ax, test, scale, rng):
+    """Both boxes of one comparison in one panel. Returns the largest value and the number of runs."""
     result = test and test.get("result")
     pairs = result and result.get("pairs")
     if not pairs or not pairs.get("a"):
-        ax.text(pos, 0.5, "no data", transform=ax.get_xaxis_transform(), ha="center", va="center",
+        ax.text(0, 0.5, "no data", transform=ax.get_xaxis_transform(), ha="center", va="center",
                 color=INFRA_LINE, fontsize=SCRIPT)
         return None, 0
     values = [np.asarray(pairs["a"], dtype=float) * scale, np.asarray(pairs["b"], dtype=float) * scale]
-    top = 0.0
     # Left box variant A, right box variant B of the comparison in plan.json.
-    for j, (data, cell) in enumerate(zip(values, (test["a"], test["b"]))):
-        x = pos + (-0.19 if j == 0 else 0.19)
-        box = ax.boxplot([data], positions=[x], widths=0.32, patch_artist=True, showfliers=False,
-                         manage_ticks=False, whis=1.5)
-        style_box(box, role_of(cell), spec["hatch_b"] if j == 1 else "", DASHED if is_ws(cell) else "-")
-        # Each run as a point, spread horizontally, so that distribution and sample size are visible.
-        jitter = rng.uniform(-0.07, 0.07, len(data))
-        ax.plot(x + jitter, data, linestyle="none", marker="o", markersize=1.6, markeredgewidth=0,
-                color=ROLES[role_of(cell)][1], alpha=0.6, zorder=3)
-        top = max(top, float(np.max(data)))
-    return top, len(values[0])
+    for x, data, cell, role in zip((-BOX_OFFSET, BOX_OFFSET), values, (test["a"], test["b"]),
+                                   line_roles(test["a"], test["b"])):
+        draw_box(ax, x, data, cell, role, rng)
+    return max(float(np.max(v)) for v in values), len(values[0])
 
 
-def box_caption(spec, label, n, alpha, pair_axes):
+def box_legend(fig, comparisons):
+    """Legend columns of a box plot figure, from the comparisons it shows."""
+    cells = [c for cmp in comparisons for c in (cmp["a"], cmp["b"])]
+    columns = [[swatch(PALETTE["nodejs"][0], PALETTE["nodejs"][1], "-", "Node.js"),
+                swatch(PALETTE["php"][0], PALETTE["php"][1], "-", "PHP")]]
+    factors = {factor_of(c["a"], c["b"]) for c in comparisons} - {None}
+    factor_column = []
+    for factor in ("websocket", "framework", "queue"):
+        if factor in factors:
+            factor_column.append(swatch("white", PALETTE[factor][1], DASHED if factor == "websocket" else "-",
+                                        FACTOR_LABELS[factor], QUEUE_HATCH if factor == "queue" else None))
+    if "queue" not in factors and any(has_queue(c) for c in cells):
+        factor_column.append(swatch("white", INFRA_LINE, "-", "with queue", QUEUE_HATCH))
+    if factor_column:
+        columns.append(factor_column)
+    if "websocket" not in factors and any(is_ws(c) for c in cells) and any(not is_ws(c) for c in cells):
+        columns.append([swatch("white", INFRA_LINE, "-", "SSE"), swatch("white", INFRA_LINE, DASHED, "WebSocket")])
+    columns.append([legend_marker("o", INFRA_LINE, "one run")])
+    figure_legend(fig, columns)
+
+
+def box_caption(label, n, alpha):
     """Text for figures.md, everything the caption has to explain."""
-    scales = ("Jedes Paar hat in jeder Laststufe ein eigenes Feld mit eigener y-Achse ab null, Höhen sind nur "
-              "innerhalb eines Feldes vergleichbar." if pair_axes else
-              "Jede Laststufe hat ein eigenes Feld mit eigener y-Achse ab null.")
-    lines = (" Gestrichelt umrandet ist WebSocket, durchgezogen Server-Sent Events." if spec.get("ws") else "")
-    return (f"Die Box zeigt den Interquartilsabstand, die Linie den Median, die Antennen höchstens das 1,5-Fache des "
-            f"Interquartilsabstands und die Punkte die einzelnen Läufe (n = {n} je Box), horizontal zufällig gestreut. "
-            "Links steht Variante A, rechts Variante B des Vergleichs aus plan.json. "
+    return (f"Jede Zeile ist ein Vergleich, jede Spalte eine Laststufe. Die Box zeigt den Interquartilsabstand, die "
+            "Linie den Median, die Antennen höchstens das 1,5-Fache des Interquartilsabstands und die Punkte die "
+            f"einzelnen Läufe (n = {n} je Box), horizontal zufällig gestreut. "
+            "Links steht Variante A, rechts Variante B des Vergleichs aus plan.json, unter jeder Box ihr Name. "
             "δ ist Cliff's Delta von A gegenüber B (positiv, wenn A höher liegt), * kennzeichnet einen Unterschied, "
             f"der nach Holm-Korrektur in Block 1 bei α = {alpha:g} signifikant ist. "
-            f"Die y-Achse zeigt „{label}“. {scales} "
-            f"Farben nach diagram-styles.tex (Palette A), {spec['style']}.{lines} "
-            "Die Legende über den Feldern erklärt Farben, Schraffur und Linienart.")
+            f"Die y-Achse zeigt „{label.replace(chr(10), ' ')}“. Jedes Feld hat eine eigene y-Achse ab null, "
+            "Höhen sind nur innerhalb eines Feldes vergleichbar. "
+            "Die Füllung zeigt die Sprache (Node.js grün, PHP violett). Umrandung und Punkte zeigen, was der "
+            "Vergleich ändert. Bei Vergleichen innerhalb einer Sprache trägt Variante B die Farbe der geänderten "
+            "Eigenschaft (WebSocket petrol, Framework bronze, Queue apricot). Gestrichelt ist WebSocket, "
+            "durchgezogen SSE, gepunktet gefüllt sind Varianten mit Queue. Die Legende über den Feldern erklärt "
+            "Farben, Linienart und Muster.")
+
+
+HEAD, PLOT, LEGEND = 0.2, 1.2, 0.5  # heights of a header line, a panel and the legend in inches
 
 
 def box_figure(evaluation, measure, spec, out_dir, notes, extra):
@@ -307,72 +535,89 @@ def box_figure(evaluation, measure, spec, out_dir, notes, extra):
         notes.append(f"{measure}: keine Familie in evaluation.json")
         return None
     label, scale = MEASURES[measure]
+    plan_cmp = {c["id"]: c for c in (evaluation.get("plan") or {}).get("comparisons", [])}
+    comparisons = []
+    for cid in spec["ids"]:
+        test = next((t for t in family["tests"] if t["comparison_id"] == cid), None)
+        comparisons.append(plan_cmp.get(cid) or test)
+    name_lines = max(box_name(c[k], spec["names"]).count("\n") + 1 for c in comparisons for k in ("a", "b"))
     # Same seed for every figure, so the jitter of the points is identical on every re-evaluation.
     rng = np.random.default_rng(1)
-    # Three load levels stacked vertically, so the group names fit on one line. With pair_axes
-    # every pair gets its own field in its row.
-    pair_axes = spec.get("pair_axes", False)
-    columns = len(spec["ids"]) if pair_axes else 1
-    fig, axes = plt.subplots(3, columns, figsize=(WIDTH, 6.9), constrained_layout=True, squeeze=False)
-    counts = []
-    missing = 0
-    for row, (scenario, title) in enumerate(SCENARIOS):
-        fields = ([(axes[row][c], [cid]) for c, cid in enumerate(spec["ids"])] if pair_axes
-                  else [(axes[row][0], spec["ids"])])
-        for f, (ax, ids) in enumerate(fields):
-            if f == 0:
-                ax.set_title(title, loc="left")
-            drawn, top, deltas = 0, 0.0, []
-            for i, cid in enumerate(ids):
-                test = next((t for t in family["tests"] if t["comparison_id"] == cid and t["scenario"] == scenario), None)
-                high, runs = draw_pair(ax, i, test, spec, scale, rng)
-                if high is None:
-                    missing += 1
-                    continue
-                drawn += 1
-                counts.append(runs)
-                top = max(top, high)
-                if test["result"].get("cliffs_delta") is not None:
-                    deltas.append((i, test["result"]["cliffs_delta"], bool(test.get("significant"))))
-            ax.set_xticks(range(len(ids)))
-            ax.set_xticklabels([spec["labels"][cid] for cid in ids])
-            ax.set_xlim(-0.6, len(ids) - 0.4)
+    rows = len(spec["ids"])
+    # Every row has the same height: header line, panel, names below the boxes, gap.
+    names_h = 0.16 * name_lines + 0.08
+    height = 2 * EDGE + LEGEND + HEAD + rows * (HEAD + PLOT + names_h + 0.1)
+    fig = plt.figure(figsize=(WIDTH, height), layout="constrained")
+    outer_padding(fig, WIDTH, height, wspace=0.07, hspace=0.09, left=y_title(fig, label))
+    gs = fig.add_gridspec(rows, 3)
+    axes = [[fig.add_subplot(gs[r, col]) for col in range(3)] for r in range(rows)]
+    for r, cid in enumerate(spec["ids"]):
+        # The header of a row stands where the title of its first panel would. It stays out of
+        # the layout, so that a long header does not widen the first column, and may run on
+        # above the next panels. An invisible title in every panel reserves its height.
+        axes[r][0].annotate(spec["rows"][cid], xy=(0, 1), xycoords="axes fraction", xytext=(0, 7),
+                            textcoords="offset points", ha="left", va="baseline", fontsize=SMALL,
+                            annotation_clip=False).set_in_layout(False)
+        for ax in axes[r]:
+            ax.set_title("Ag", loc="center", fontsize=SMALL, pad=7, alpha=0)
+    # Load levels once above the grid, above the header of the first row.
+    for col, (_, title) in enumerate(SCENARIOS):
+        axes[0][col].annotate(title, xy=(0.5, 1), xycoords="axes fraction", xytext=(0, 22),
+                              textcoords="offset points", ha="center", va="bottom", fontsize=SMALL)
+    counts, missing = [], 0
+    tops = np.zeros((rows, 3))
+    deltas = {}
+    for r, cid in enumerate(spec["ids"]):
+        cmp = comparisons[r]
+        for col, (scenario, _) in enumerate(SCENARIOS):
+            ax = axes[r][col]
+            test = next((t for t in family["tests"] if t["comparison_id"] == cid and t["scenario"] == scenario), None)
+            high, runs = draw_pair(ax, test, scale, rng)
+            ax.set_xticks([-BOX_OFFSET, BOX_OFFSET])
+            ax.set_xticklabels([box_name(cmp["a"], spec["names"]), box_name(cmp["b"], spec["names"])],
+                               linespacing=1.0)
+            ax.tick_params(axis="x", length=2.5, pad=2.5)
+            ax.set_xlim(-0.5, 0.5)
             ax.grid(axis="x", visible=False)
-            if drawn == 0:
+            if high is None:
+                missing += 1
                 ax.set_yticks([])  # empty panel without a meaningless scale
                 continue
-            # Axis from zero, all measures are on a ratio scale, so differences are not exaggerated.
-            ax.set_ylim(0, top * 1.2)
-            for i, delta, significant in deltas:
-                ax.text(i, top * 1.08, rf"$\delta$ = {fmt_delta(delta)}{'*' if significant else ''}",
-                        ha="center", va="bottom", fontsize=SCRIPT, color=INFRA_TEXT)
-    fig.supylabel(label, fontsize=SMALL)
-    entries = list(spec["legend"])
-    if spec.get("ws"):
-        entries += TRANSPORT_LEGEND
-    handles = [legend_patch(*e) for e in entries]
-    handles.append(legend_marker("o", INFRA_LINE, "one run"))
-    # The caption (figures.md) explains δ and * above the pairs, so that the legend fits the text width.
-    # One pair per column (language, framework, transport), so that related entries are stacked.
-    fig.legend(handles=handles, loc="outside upper center", ncol=(len(handles) + 1) // 2 if len(handles) > 4 else len(handles),
-               handlelength=1.6, columnspacing=1.5)
+            counts.append(runs)
+            tops[r, col] = high
+            if test["result"].get("cliffs_delta") is not None:
+                deltas[(r, col)] = (test["result"]["cliffs_delta"], bool(test.get("significant")))
+    # Own axis per panel from zero, all measures are on a ratio scale, so differences are not exaggerated.
+    for r in range(rows):
+        for col in range(3):
+            top = tops[r, col]
+            if top <= 0:
+                continue
+            ax = axes[r][col]
+            ax.set_ylim(0, top * 1.22)
+            if (r, col) in deltas:
+                delta, significant = deltas[(r, col)]
+                text = ax.text(0, top * 1.1, f"{DELTA} = {fmt_delta(delta)}{'*' if significant else ''}",
+                               ha="center", va="bottom", color=INFRA_TEXT,
+                               fontproperties=font_manager.FontProperties(fname=LM_MATH, size=FOOT),
+                               bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.8})
+                text._eda_math = True  # keeps Latin Modern Math (apply_fonts)
+    box_legend(fig, comparisons)
     name = f"box-{measure.replace('_', '-')}-{spec['key']}.pdf"
-    save(fig, out_dir, name)
+    save(fig, out_dir, name, notes)
     n = "0" if not counts else str(min(counts)) if min(counts) == max(counts) else f"{min(counts)}–{max(counts)}"
-    gaps = f", ohne Daten {missing} von {3 * len(spec['ids'])} Gruppen" if missing else ""
+    gaps = f", ohne Daten {missing} von {3 * rows} Feldern" if missing else ""
     alpha = (evaluation.get("plan") or {}).get("alpha", 0.05)
-    caption = box_caption(spec, label, n, alpha, pair_axes)
+    caption = box_caption(label, n, alpha)
     if name in extra:
         caption += f" Zusätzlich zu erklären. {extra[name]}"
-    plan_cmp = {c["id"]: c for c in (evaluation.get("plan") or {}).get("comparisons", [])}
     groups = ", ".join(
-        f"„{spec['labels'][cid]}“ Vergleich {cid}"
+        f"Zeile {r + 1} „{spec['rows'][cid]}“ Vergleich {cid}"
         + (f" ({plan_cmp[cid]['a']} links, {plan_cmp[cid]['b']} rechts)" if cid in plan_cmp else "")
-        for cid in spec["ids"])
+        for r, cid in enumerate(spec["ids"]))
     return {"file": name, "tier": spec["tier"], "caption": caption,
             "what": f"Boxplots der Lauf-Werte ({measure}) für die Vergleiche {', '.join(map(str, spec['ids']))}, "
-                    f"je Laststufe {'und Paar ' if pair_axes else ''}ein Feld, Paare je Vergleich und Stufe {n}{gaps}. "
-                    f"Gruppen {groups}"}
+                    f"je Vergleich eine Zeile und je Laststufe eine Spalte, Paare je Feld {n}{gaps}. {groups}"}
 
 
 def place_labels(ax, items, log=False):
@@ -384,7 +629,7 @@ def place_labels(ax, items, log=False):
     y0, y1 = (to_axis(v) for v in ax.get_ylim())
     span = y1 - y0 or 1
     items = sorted(((x, to_axis(y), text, color) for x, y, text, color in items), key=lambda it: it[1])
-    min_gap = 0.085 * span
+    min_gap = 0.1 * span
     placed = []
     for x, y, text, color in items:
         if placed and y - placed[-1][1] < min_gap:
@@ -399,6 +644,16 @@ def place_labels(ax, items, log=False):
                     ha="left", fontsize=SCRIPT, color=color, annotation_clip=False)
 
 
+def series_legend(fig, extra):
+    columns = [[legend_marker("o", PALETTE["nodejs"][1], "SSE, Node.js", linestyle="-"),
+                legend_marker("o", PALETTE["php"][1], "SSE, PHP", linestyle="-")],
+               [Line2D([], [], color=PALETTE["websocket"][1], linestyle=DASHED, marker="^", markersize=4.5,
+                       markeredgewidth=0, label="WebSocket"),
+                legend_marker("s", PALETTE["queue"][1], "SSE with queue", linestyle="-")]]
+    columns.append(extra)
+    figure_legend(fig, columns)
+
+
 def scaling_figure(series, metric, out_dir, notes):
     # Measure, axis title, factor, file, fields of the range (run.js, scalingSummary)
     configs = {
@@ -406,7 +661,7 @@ def scaling_figure(series, metric, out_dir, notes):
                    ("served_ratio_min", "served_ratio_max")),
         "latency": ("latency_mean_median_ms", "Mean event latency (ms)", 1.0, "scaling-latency.pdf",
                     ("latency_mean_min_ms", "latency_mean_max_ms")),
-        "memory": ("working_set_peak_total_median_bytes", "Peak working set,\nvariant and Redis (MiB)", 1 / 2 ** 20,
+        "memory": ("working_set_peak_total_median_bytes", "Peak working set, variant\nand Redis (MiB)", 1 / 2 ** 20,
                    "scaling-memory.pdf", ("working_set_peak_total_min_bytes", "working_set_peak_total_max_bytes")),
     }
     key, label, scale, name, (key_min, key_max) = configs[metric]
@@ -414,13 +669,14 @@ def scaling_figure(series, metric, out_dir, notes):
     if not scaling:
         notes.append("series.json: keine Skalierungsreihe")
         return None
-    fig, axes = plt.subplots(2, 2, figsize=(WIDTH, 4.8), sharex=True, sharey=True, constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=(WIDTH, 5.4), sharex=True, sharey=True, layout="constrained")
+    outer_padding(fig, WIDTH, 5.4, wspace=0.06, hspace=0.06)
     steps_seen, values, runs = set(), [], set()
     has_range = False
     for ax, (fam, title) in zip(axes.flat, FAMILIES):
-        ax.set_title(title)
+        ax.set_title(title, loc="left")
         ends = []
-        for suffix, (_, ls, marker) in SERIES_STYLE.items():
+        for suffix, (short, ls, marker) in SERIES_STYLE.items():
             cell_name = f"{fam}-{suffix}"
             cell = scaling.get(cell_name)
             if not cell:
@@ -433,23 +689,23 @@ def scaling_figure(series, metric, out_dir, notes):
             steps_seen.update(xs)
             values += ys
             runs.update(s["runs"] for s in steps if s.get("runs"))
-            _, line, text = ROLES[role_of(cell_name)]
-            ax.plot(xs, ys, color=line, linestyle=ls, marker=marker, markersize=3.5, markeredgewidth=0)
+            _, line, text = PALETTE[series_role(cell_name)]
+            ax.plot(xs, ys, color=line, linestyle=ls, marker=marker, markersize=3.8, markeredgewidth=0)
             if all(s.get(key_min) is not None and s.get(key_max) is not None for s in steps):
                 has_range = True
                 lo = [y - s[key_min] * scale for y, s in zip(ys, steps)]
                 hi = [s[key_max] * scale - y for y, s in zip(ys, steps)]
                 ax.errorbar(xs, ys, yerr=[lo, hi], fmt="none", ecolor=line, elinewidth=0.6, capsize=1.8,
                             capthick=0.6)
-            ends.append((xs[-1], ys[-1], SERIES_SHORT[suffix], text))
+            ends.append((xs[-1], ys[-1], short, text))
         if metric == "served":
             ax.axhline(99, color=FLOW, linewidth=0.6, linestyle=DOTTED)
         if not ends:
             ax.text(0.5, 0.5, "no data", transform=ax.transAxes, ha="center", va="center", color=INFRA_LINE,
                     fontsize=SCRIPT)
         ax._eda_ends = ends  # label after the axis limits are set
-    # Logarithmic y axis if the values span more than an order of magnitude and a factor of 20,
-    # otherwise the frugal variants would not be readable on the shared axis.
+    # Logarithmic y axis if the values span more than a factor of 20, otherwise the frugal
+    # variants would not be readable on the shared axis.
     positive = [v for v in values if v > 0]
     log_y = metric != "served" and positive and max(positive) / min(positive) > 20
     all_steps = sorted(steps_seen) or [10, 50, 100, 250, 500, 1000]
@@ -459,16 +715,17 @@ def scaling_figure(series, metric, out_dir, notes):
             ax.set_yscale("log")
             ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
             ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
-        ax.set_xlim(7, 2600)  # room on the right for the direct labels
+        ax.set_xlim(7, 2900)  # room on the right for the direct labels
         # Every level gets a tick. 750 has no number, otherwise it collides with 1000.
         ax.set_xticks(all_steps)
-        ax.set_xticklabels(["" if s == 750 else str(s) for s in all_steps], rotation=0)
+        ax.set_xticklabels(["" if s == 750 else str(s) for s in all_steps], rotation=0, fontsize=SCRIPT)
         ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         ax.grid(axis="x", visible=False)
     for ax in axes[1]:
         ax.set_xlabel("Concurrent clients")
-    for ax in axes[:, 0]:
-        ax.set_ylabel(label + (" (log scale)" if log_y and "\n" not in label else "\n(log scale)" if log_y else ""))
+    # One y title for both rows, as in the box plots, the note on the log scale in its last line.
+    title = label + ((", log scale" if "\n" in label else "\nlog scale") if log_y else "")
+    outer_padding(fig, WIDTH, 5.4, wspace=0.06, hspace=0.06, left=y_title(fig, title))
     if metric != "served" and not log_y:
         axes[0, 0].set_ylim(bottom=0)  # linear axis from zero, as for the box plots
     if metric == "served":
@@ -479,19 +736,20 @@ def scaling_figure(series, metric, out_dir, notes):
     fig.canvas.draw()
     for ax in axes.flat:
         place_labels(ax, getattr(ax, "_eda_ends", []), log=log_y)
-    handles = [Line2D([], [], color=FLOW, linestyle="-", marker="o", markersize=3.5, markeredgewidth=0,
-                      label="Server-Sent Events"),
-               Line2D([], [], color=FLOW, linestyle=DASHED, marker="^", markersize=3.5, markeredgewidth=0,
-                      label="WebSocket"),
-               Line2D([], [], color=ROLES["queue"][1], linestyle="-", marker="s", markersize=3.5, markeredgewidth=0,
-                      label="Server-Sent Events with queue")]
-    fig.legend(handles=handles, loc="outside upper center", ncol=3)
-    save(fig, out_dir, name)
+    extra = []
+    if has_range:
+        extra.append(Line2D([], [], color=INFRA_LINE, linestyle="none", marker="|", markersize=7,
+                            markeredgewidth=0.8, label="smallest to largest run"))
+    if metric == "served":
+        extra.append(Line2D([], [], color=FLOW, linestyle=DOTTED, linewidth=0.8, label="99 % criterion"))
+    series_legend(fig, extra or [BLANK])
+    thin_tick_labels(axes[1, 0], "x")  # the panels share the x axis and its labels
+    save(fig, out_dir, name, notes)
     n = "–".join(str(r) for r in sorted({min(runs), max(runs)})) if runs else "unbekannt"
     caption = (f"Punkte und Linien: Median über n = {n} Läufe je Stufe"
                + (", Fehlerbalken: kleinster bis größter Lauf" if has_range else ", ohne Fehlerbalken (keine Spannweite in series.json)")
                + (". y-Achse logarithmisch." if log_y else ".")
-               + " Farbe nach Sprache bzw. Queue, gestrichelt WebSocket."
+               + " SSE in der Farbe der Sprache, WebSocket petrol und gestrichelt, SSE mit Queue apricot."
                + (" Gepunktete Linie: Kriterium von 99 % bedienten Clients." if metric == "served" else ""))
     return {"file": name, "tier": "Kern (6.2, 6.3)", "caption": caption,
             "what": f"Skalierungsreihe, {label.replace(chr(10), ' ')} über die Clientzahl, je Sprache und Framework-Wahl ein Feld"}
@@ -505,7 +763,8 @@ def saturation_figure(series, out_dir, notes):
     rates = sorted({s["rate_per_s"] for c in saturation.values() for s in c["steps"]})
     top = rates[-1] if rates else None
     # Dot plot instead of bars, because the result is the highest level passed, not a continuous value.
-    fig, ax = plt.subplots(figsize=(WIDTH, 3.0), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(WIDTH, 3.4), layout="constrained")
+    outer_padding(fig, WIDTH, 3.4)
     offsets = {"sse": -0.22, "ws": 0.0, "sse-queue": 0.22}
     floor = rates[0] / 1.8 if rates else 1
     for i, (fam, _) in enumerate(FAMILIES):
@@ -514,16 +773,16 @@ def saturation_figure(series, out_dir, notes):
             cell = saturation.get(cell_name)
             if cell is None:
                 continue
-            _, line, text = ROLES[role_of(cell_name)]
+            _, line, text = PALETTE[series_role(cell_name)]
             marker = SERIES_STYLE[suffix][2]
             value = cell.get("max_sustainable_rate_per_s")
             x = i + offsets[suffix]
             # The value sits on a grid line of the tested levels and needs no number.
             if value is None:
-                ax.plot(x, floor, linestyle="none", marker=marker, markersize=5, markerfacecolor="none",
-                        markeredgecolor=line, markeredgewidth=0.8, clip_on=False)
+                ax.plot(x, floor, linestyle="none", marker=marker, markersize=5.5, markerfacecolor="none",
+                        markeredgecolor=line, markeredgewidth=0.9, clip_on=False)
             else:
-                ax.plot(x, value, linestyle="none", marker=marker, markersize=5, color=line, markeredgewidth=0)
+                ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
                 if value >= top:
                     # Highest level passed, the limit lies above, shown by an upward arrow.
                     ax.annotate("", xy=(x, value * 1.55), xytext=(x, value * 1.12),
@@ -537,16 +796,20 @@ def saturation_figure(series, out_dir, notes):
         ax.set_ylim(floor / 1.3, top * 1.9)
     ax.set_xticks(range(len(FAMILIES)))
     ax.set_xticklabels([t for _, t in FAMILIES])
-    ax.tick_params(axis="x", labelsize=SMALL)
+    ax.tick_params(axis="x", labelsize=FOOT)
     ax.set_xlim(-0.6, len(FAMILIES) - 0.4)
     ax.set_ylabel("Maximum sustainable\nevent rate (events/s)")
     ax.grid(axis="x", visible=False)
-    handles = [legend_marker("o", FLOW, "Server-Sent Events"), legend_marker("^", FLOW, "WebSocket"),
-               legend_marker("s", ROLES["queue"][1], "Server-Sent Events with queue"),
-               legend_marker(r"$\uparrow$", FLOW, "highest tested rate sustained"),
-               legend_marker("o", FLOW, "no tested rate sustained", filled=False)]
-    fig.legend(handles=handles, loc="outside upper center", ncol=3, handlelength=1.0, columnspacing=1.5)
-    save(fig, out_dir, "saturation.pdf")
+    columns = [[legend_marker("o", PALETTE["nodejs"][1], "SSE, Node.js"),
+                legend_marker("o", PALETTE["php"][1], "SSE, PHP")],
+               [legend_marker("^", PALETTE["websocket"][1], "WebSocket"),
+                legend_marker("s", PALETTE["queue"][1], "SSE with queue")],
+               [legend_marker(r"$\uparrow$", FLOW, "highest tested rate sustained"),
+                legend_marker("o", FLOW, "no tested rate sustained", filled=False)]]
+    figure_legend(fig, columns)
+    # Every tested rate keeps its grid line, labels that would touch their neighbor are left out.
+    thin_tick_labels(ax)
+    save(fig, out_dir, "saturation.pdf", notes)
     crit = next(iter(saturation.values())).get("criteria") or {}
     rule = ""
     if crit.get("minDeliveryRatio") is not None and crit.get("maxP95LatencyMs") is not None:
@@ -554,8 +817,8 @@ def saturation_figure(series, out_dir, notes):
                 f"höchstens {crit['maxP95LatencyMs']:g} ms auf dieser und allen niedrigeren Stufen.")
     caption = ("Punkt: höchste getestete Event-Rate, die eine Variante nachhaltig zustellt; y-Achse logarithmisch, "
                "waagrechte Linien bei den getesteten Stufen; Pfeil nach oben: höchste Stufe bestanden, die Grenze liegt darüber; "
-               "offenes Symbol: schon die niedrigste Stufe nicht bestanden." + rule + " Farbe nach Sprache bzw. Queue, "
-               "Symbol nach Transport.")
+               "offenes Symbol: schon die niedrigste Stufe nicht bestanden." + rule + " SSE in der Farbe der Sprache, "
+               "WebSocket petrol, SSE mit Queue apricot, dazu je Transport ein eigenes Symbol.")
     return {"file": "saturation.pdf", "tier": "Kern (6.3)", "caption": caption,
             "what": "Sättigungstest, höchste nachhaltige Event-Rate je Variante"}
 
@@ -598,13 +861,15 @@ def main():
         if entry:
             made.append(entry)
 
+    palette = ", ".join(f"{role} (Füllung {fill}, Linie {line}, Text {text})" for role, (fill, line, text) in PALETTE.items())
     lines = [
         "# Abbildungen",
         "",
         f"Erzeugt: {stamp}. Quellen: {args.evaluation or '–'} (evaluation.json), {args.series or '–'} (series.json).",
         "",
-        "Vektor-PDFs für den Ordner `images/` im Overleaf-Projekt, eingebunden mit `\\includegraphics[width=\\textwidth]{<datei ohne .pdf>}`.",
-        "Farben und Linienarten wie in den TikZ-Diagrammen (diagram-styles.tex, Palette A). Node.js salbeigrün (Füllung #E6F1E8, Linie #5E8E68), PHP lavendel (#EEE8F8, #7B68B5), Varianten mit Queue apricot (#FCE9DF, #C27A5A). Durchgezogen umrandet Server-Sent Events, gestrichelt WebSocket.",
+        "Vektor-PDFs für den Ordner `images/` im Overleaf-Projekt, eingebunden mit `\\includegraphics[width=\\textwidth]{<datei ohne .pdf>}`. Die Schriftgrößen stimmen nur bei voller Textbreite.",
+        f"Farben wie in images/diagram-styles.tex. {palette}.",
+        "Die Füllung einer Box zeigt die Sprache, Umrandung und Punkte zeigen, was ein Vergleich ändert. Durchgezogen umrandet Server-Sent Events, gestrichelt WebSocket, gepunktet gefüllt Varianten mit Queue.",
         "Schwerpunkte nach DECISIONS.md 5.24: Kernabbildungen im Text, die übrigen im Anhang.",
         "Die Spalte „Für die Bildunterschrift“ nennt, was die Unterschrift erklären muss, damit die Abbildung ohne den Fließtext lesbar ist.",
         "",

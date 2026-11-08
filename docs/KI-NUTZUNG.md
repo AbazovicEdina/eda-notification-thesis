@@ -51,6 +51,7 @@ Beispiele, in denen die Autorin Ergebnisse der KI nicht ungeprüft übernommen h
 - **Rohdaten.** Sie gab die vollständigen Ergebnisse vom Lastgenerator zur Prüfung weiter. Daraus ergaben sich drei Korrekturen am Messverfahren vor Beginn des Pilots (Verlauf unten).
 - **Statische Prüfung vor der Hauptmessung.** Vor Block 1 ließ sie den Messaufbau mit einer vollständigen Liste von Prüfpunkten zu Fairness, Messung und Statistik gegen DECISIONS.md prüfen, ohne Messung. Den Prüfauftrag hatte sie im Claude-Projekt der schriftlichen Arbeit formuliert. Dabei fielen ein kritischer und zwei mittlere Befunde auf (Verlauf unten). Um die Fairness-Regeln in der Arbeit nachvollziehbar begründen zu können, ließ sie die Prüfung am selben Tag mit Schwerpunkt Fairness wiederholen. Dabei fiel ein weiterer mittlerer Befund auf.
 - **Quellen.** Sie fragte, ob die Literaturangaben aktuell sind und zum Stand des Projekts passen. Die Prüfung korrigierte drei Aussagen und markierte die Stellen, die sie im Original prüft (LITERATUR.md).
+- **Abbildungen.** Sie beurteilte die gerenderten Abbildungen von Block 1 selbst und verlangte einen einheitlichen Aufbau, einheitliche Legenden, genug Abstand und deutlich unterscheidbare Farben. Einen Entwurf mit heller und dunkler Tönung derselben Farbe wies sie zurück, Apricot für die Queue sollte bleiben. Daraus entstanden Palette A in Version 2 und der heutige Aufbau der Boxplots (DECISIONS.md 5.25).
 
 Fehler der KI, die dabei aufgefallen sind:
 
@@ -69,6 +70,8 @@ Fehler der KI, die dabei aufgefallen sind:
 - Zwei weitere Werte des Pilots stammten aus dem Statusbericht und galten nicht für den Pilot allein. Die 54,5 °C kamen vom Ansturm im selben Zeitfenster, tatsächlich waren es 52,9 °C. Die 2,5 % bei der Kontrollmessung verglichen Läufe mit 10 s und 60 s Haltezeit, gleichartige Läufe wichen um 0,9 % ab. Aufgefallen ist das beim Nachrechnen am 2026-11-04 (DECISIONS.md 5.9).
 - Der nichtparametrische Test war mit Georges et al. (2007) und Kalibera & Jones (2013) begründet. Beide stützen die Aussage nicht und halten parametrische Verfahren bei vielen Messungen für vertretbar. Die Begründung stützt sich seit 2026-11-04 auf Hoefler & Belli (2015, DECISIONS.md 5.8).
 - Bei den Änderungen vom 2026-10-31 wurde die eigene Regel übersehen, den Ansturm bei Änderungen an Zellen oder Orchestrator zu wiederholen. Er wird nach Block 2 wiederholt (DECISIONS.md 5.14).
+- Die Farben der ersten Abbildungen waren nach Augenmaß gewählt. Gemessen waren die Füllungen von Node.js und PHP fast gleich, und die Schraffur `////` bedeutete in zwei Abbildungen Verschiedenes. Aufgefallen ist das erst bei der Überarbeitung am 2026-11-08 (DECISIONS.md 5.25).
+- In der Vorschau der überarbeiteten Abbildungen kam das kursive δ unbemerkt aus der Ersatzschrift STIX statt aus Latin Modern Math, und in `figures.md` stand statt der Achsenbeschriftung ein Programmobjekt. Das erste fiel bei der Prüfung der eingebetteten Schriften auf, das zweite bei der Übernahme ins Repository, beides vor einem Commit (DECISIONS.md 5.25).
 
 ## Gelernt und selbst überprüft
 
@@ -120,3 +123,4 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-11-03 | Nachfrage der Autorin, ob die Quellen aktuell sind und zum Projekt passen | Abgleich mit Crossref, RFC Editor und allen Adressen, drei Aussagen korrigiert, offene Stellen mit `CHECK BY HAND` markiert, LITERATUR.md auf Englisch umgestellt |
 | 2026-11-04 | Durchsicht des Repositorys, bevor der Betreuer es sich genauer ansieht | Zahl der Pilotläufe korrigiert, Übersicht der Berichte und gemessener Commit im README |
 | 2026-11-04 | Wunsch der Autorin, alle Angaben für die Arbeit im gesamten Projekt zu prüfen | Werte des Pilots und Belege der Statistik korrigiert, Grund für die Queue nur mit Framework ergänzt, Wiederholung des Ansturms nach Block 2 festgelegt (DECISIONS.md, Änderungsverlauf) |
+| 2026-11-08 | Rückmeldung der Autorin zu den Abbildungen von Block 1 | Farben gemessen statt nach Augenmaß gewählt, Palette A in Version 2, einheitlicher Aufbau mit eigener Achse je Feld, Prüfung des Layouts beim Erzeugen (DECISIONS.md 5.25) |
