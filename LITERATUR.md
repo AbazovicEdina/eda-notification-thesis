@@ -1,16 +1,15 @@
 # Literature
 
-Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03, 2026-11-04 and 2026-11-07). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records. The thesis cites only what the author has read.
+Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03, 2026-11-04, 2026-11-07 and 2026-11-09). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records unless an entry says "per full text". The thesis cites only what the author has read.
 
 **Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
 
-## To check by hand (as of 2026-11-07)
+## To check by hand (as of 2026-11-09)
 
 The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND.**
 
 **Important, the thesis relies on these:**
 
-- [ ] **Research gap.** The search in IEEE Xplore, ACM Digital Library and Google Scholar is still open. Read and place Van de Vyvere et al. (2020) and Appelqvist & Örnmyr (2017). Both are close to the gap.
 - [ ] **Romano et al. (2006).** Check the four thresholds of Cliff's delta in the original. The full text was not available during this review. The earlier claim that the thresholds became established through Arcuri & Briand (2014) was wrong and has been removed.
 - [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
 - [ ] **Kalibera & Jones (2013).** Confirm in the original the use for DECISIONS.md 5.9, setting the number of repetitions from an initial experiment.
@@ -21,7 +20,9 @@ The author checks these points in the original before they appear in the text. E
 
 - [ ] **Hollander, Wolfe & Chicken (3rd edition).** Only the table of contents could be checked. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication.
 - [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
-- [ ] **Lei et al. (2014).** Read the conclusion in the original. The metadata are confirmed.
+- [ ] **Van de Vyvere et al. (2020).** The full text was read in a manuscript version with its own page numbers. Take the page numbers from the Springer version if single passages are cited.
+- [ ] **Appelqvist & Örnmyr (2017).** Spot-check the page references in the entry.
+- [ ] **Bigestans (2014).** Confirm the institution on the DiVA record. It is taken from the address of the repository.
 - [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis. Confirm the pages derived from the PDF.
 - [ ] **Hoefler & Belli (2015).** Confirm in the ACM version whether the page of rule 6 is labeled 73:5 or 5.
 - [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
@@ -31,6 +32,8 @@ The author checks these points in the original before they appear in the text. E
 
 - [ ] **Online sources.** Access them once more and update `urldate`. Documentation changes, and the addresses of Laravel and Mercure have already moved since the first access.
 - [ ] **Proposals.** Resolve the section "Proposals, not read yet" after reading. Whatever is not cited does not appear in the bibliography anyway.
+
+**Completed on 2026-11-09.** The search in IEEE Xplore, the ACM Digital Library and Google Scholar and the citation tracking of seven key works are documented. They are limited as stated below the research gap. Lei et al. (2014), Chaniotis et al. (2015), Van de Vyvere et al. (2020) and Murley et al. (2021) were checked in the full text.
 
 **Confirmed on 2026-11-07.** The author checked Hoefler & Belli (2015, rules 5 to 8), the warm-up passages of Georges et al. (2007) and RFC 5905 (Section 1, p. 4) in the original. The sections of the cgroup v2 documentation and of the Node.js event loop page were confirmed online. Crossref lists the pages of Hoefler & Belli as 1-12 without an article number, see that entry.
 
@@ -42,14 +45,17 @@ The author checks these points in the original before they appear in the text. E
 
 ### Classification and research gap (draft)
 
-The related work falls into four lines:
+The related work falls into five lines:
 
 1. **Concurrency models of servers.** One process or thread per connection versus event-driven processing (Lauer & Needham 1979, Welsh et al. 2001, von Behren et al. 2003, Pariag et al. 2007). These works provide the theoretical basis for comparing PHP-FPM (one worker per connection) and Node.js (event loop). They study web servers with short requests, not long-lived push connections.
-2. **PHP versus Node.js.** Existing comparisons (for example Lei, Ma & Tan 2014) measure classic request-response loads. There, Node.js is described as an event-driven platform for I/O-heavy applications (Tilkov & Vinoski 2010).
-3. **Event-driven architecture.** Terms and patterns (Fowler 2017, Hohpe & Woolf 2003), effects on modularity (Farias & Lazzari 2023) and performance (Cabane & Farias 2024), challenges in monitoring and debugging (Laigner et al. 2026), performance models (Woodside 2021). These works consider communication between services, not delivery to many permanently connected clients.
-4. **Real time on the web.** WebSockets are widespread, but polling is still more common (Murley et al. 2021). The searches on 2026-10-16 and 2026-11-03 (web search, OpenAlex) found no peer-reviewed study that compares SSE and WebSocket under controlled conditions. Closest are a peer-reviewed paper on HTTP polling versus SSE (Van de Vyvere et al. 2020), a measurement of WebSocket versus polling (Pimentel & Nickerson 2012) and a student thesis that compares SSE and WebSocket directly (Appelqvist & Örnmyr 2017). Beyond these there are blog posts and vendor articles.
+2. **PHP versus Node.js.** Most comparisons measure short-lived HTTP requests (Lei, Ma & Tan 2014, Mufid et al. 2024), including PHP-FPM stacks on one test server with up to 30,000 concurrent connections (Chaniotis et al. 2015). Node.js is described as an event-driven platform for I/O-heavy applications (Tilkov & Vinoski 2010). Comparisons in real-time settings also exist. A non-peer-reviewed developer report with public result files measures event-loop PHP libraries and Node.js for SSE and WebSocket with up to 100 browser clients (Van Berkel & Ali 2021). A preliminary test in an IoT system compares a publish-subscribe model in Node.js with a request-response model in PHP, and language, communication model and software stack change together (Thirunavukkarasu et al. 2018).
+3. **PHP real-time servers.** Workerman, Ratchet and Swoole prototypes have been load-tested against each other on one virtual core and 2 GB of memory, without a Node.js variant and without SSE (Tsindeliani et al. 2022).
+4. **Event-driven architecture.** Terms and patterns (Fowler 2017, Hohpe & Woolf 2003), effects on modularity (Farias & Lazzari 2023) and performance (Cabane & Farias 2024), challenges in monitoring and debugging (Laigner et al. 2026), performance models (Woodside 2021). These works consider communication between services, not delivery to many permanently connected clients.
+5. **Real time on the web.** In a crawl of May 2020, WebSocket was observed on 6.3% of the websites and SSE on 0.05%, and polling remained more common according to the authors (Murley et al. 2021). SSE and WebSocket have been compared directly in peer-reviewed work and in theses. On Java servlet containers, Słodziak & Nowak (2016) report similar server-to-client transmission times. On Node.js, Appelqvist & Örnmyr (2017) find very similar results with 100 clients, and Bigestans (2014) and Fladvad & Khans (2021) compare WebSocket with SSE combined with client-to-server HTTP requests. SSE has been measured against polling with up to 25,000 clients on Node.js (Van de Vyvere et al. 2020), WebSocket against polling at 4 Hz (Pimentel & Nickerson 2012).
 
-**CHECK BY HAND.** **Gap (preliminary, to be confirmed by a search in IEEE Xplore, ACM Digital Library and Google Scholar).** A controlled comparison of PHP and Node.js for delivering server-push messages over long-lived connections (SSE and WebSocket), where the concurrency model matters most, separated by language, framework and queue, with an analysis plan fixed in advance, does not exist in this form.
+**Gap (draft, searches of 2026-11-08).** In documented searches of IEEE Xplore, the ACM Digital Library and Google Scholar, complemented by forward and backward citation tracking of seven key works and based on the titles, abstracts and bibliographic data of the screened records and on the full texts of selected candidates rather than on all hits or full texts, no study was identified that measures PHP-FPM with one worker per open SSE connection, event-loop PHP WebSocket servers and Node.js for server push over long-lived connections under the same explicit CPU and memory limits per variant, including framework and queue variants and using planned pairwise contrasts, paired runs and an analysis plan fixed before data collection. This does not show that no such study exists. Because the transport is tied to the execution model in PHP and the queue was studied only in framework-based SSE variants, these contrasts are not independent effects of language, framework, transport and queue.
+
+**Limits of the search.** 2,018 displayed ACM positions and the papers inside 171 proceedings volumes were not screened. Mostly titles and abstracts were read. Citation tracking went one level deep, and no forward citations could be determined for Van Berkel & Ali (2021). DiVA and BASE were not searched specifically.
 
 ### Lauer & Needham (1979), duality of the message and procedure models
 
@@ -160,11 +166,9 @@ Stefan Tilkov, Steve Vinoski. "Node.js: Using JavaScript to Build High-Performan
 
 Kai Lei, Yining Ma, Zhi Tan. "Performance Comparison and Evaluation of Web Development Technologies in PHP, Python, and Node.js." In *Proceedings of the 2014 IEEE 17th International Conference on Computational Science and Engineering (CSE)*, 661–668, 2014. DOI 10.1109/CSE.2014.142 (confirmed through Crossref on 2026-11-03).
 
-**Content (per conclusion).** Node.js is said to be lightweight and efficient and suited to I/O-heavy applications, PHP rather to small and medium applications.
+**Content (per full text).** PHP 5.5.12 on Apache 2.4.9 in prefork mode, Python 2.7 with WebPy and Node.js 0.10 with Express on one server with an Intel i3 and 4 GB of memory (pp. 662–663). ApacheBench sends 10,000 requests at 10 to 1,000 users for Hello World, Fibonacci and a database query. LoadRunner simulates login and encryption with up to 500 virtual users (p. 663). After three control runs for PHP, one run per comparison is evaluated (p. 663). There is no statistical test. According to the authors, Node.js performs much better than PHP at high concurrency (p. 667).
 
-**Relevance and distinction.** The most direct predecessor of the language comparison. However, it measures request-response loads, not server push over long-lived connections, and does not separate by framework.
-
-**CHECK BY HAND.** Read the conclusion in the original.
+**Relevance and distinction.** A direct predecessor of the language comparison with short HTTP requests. It measures no server push, uses no PHP-FPM and states no CPU or memory limits per variant. The general statements of the authors about PHP are not adopted. For Fibonacci(10), the text reports a higher peak for PHP than for Node.js and still rates Node.js as better (p. 664).
 
 ```bibtex
 @inproceedings{lei2014performance,
@@ -182,9 +186,9 @@ Kai Lei, Yining Ma, Zhi Tan. "Performance Comparison and Evaluation of Web Devel
 
 Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. "WebSocket Adoption and the Landscape of the Real-Time Web." In *Proceedings of the Web Conference 2021 (WWW '21)*, 1192–1203, 2021. DOI 10.1145/3442381.3450063.
 
-**Content (per abstract).** Analysis of the one million most visited websites. Polling is far more common than WebSockets, whose adoption has recently stagnated. Recommended security practices are often not followed.
+**Content (per full text, PDF pages).** Crawl of the Tranco top 1 million from 8 to 11 May 2020 with 60 s per website and 88.1% of the websites reached (p. 3). WebSocket was found on 55,805 websites, which is 6.3% (p. 4). SSE was found on 0.05% of the top million and 0.4% of the top thousand (p. 4). Polling was examined in a separate sample of 4,000 websites with one hour per website and found on 14.8% of them, long polling on a single website (pp. 3–4). According to the authors, polling remains more common than WebSocket (p. 1). Recommended security practices are often not followed.
 
-**Relevance.** Places the relevance of real-time communication on the web. Shows that push techniques cannot be taken for granted in practice.
+**Relevance and distinction.** Places the relevance of real-time communication on the web. It reports adoption in 2020 and no performance values. The shares for polling and WebSocket come from different samples and are not directly comparable.
 
 ```bibtex
 @inproceedings{murley2021websocket,
@@ -195,6 +199,266 @@ Paul Murley, Zane Ma, Joshua Mason, Michael Bailey, Amin Kharraz. "WebSocket Ado
   date      = {2021},
   doi       = {10.1145/3442381.3450063},
   langid    = {english}
+}
+```
+
+### Słodziak & Nowak (2016), XHR, SSE and WebSocket compared
+
+Wojciech Słodziak, Ziemowit Nowak. "Performance Analysis of Web Systems Based on XMLHttpRequest, Server-Sent Events and WebSocket." In *Information Systems Architecture and Technology, Proceedings of ISAT 2015, Part II*, Advances in Intelligent Systems and Computing 430, 71–83, Springer, 2016. DOI 10.1007/978-3-319-28561-0_6 (confirmed through Crossref on 2026-11-09). According to the preface of the volume, each paper was reviewed by at least two reviewers.
+
+**Content (per full text).** Java servlets on Apache Tomcat and GlassFish (pp. 74–75), four browsers, one server and one client computer, LAN and WAN, 1,000 messages per sequence (p. 76). From server to client, SSE and WebSocket perform similarly according to the summary (p. 82). Over WAN, SSE on Tomcat becomes much slower above 7,500 bytes (p. 78). In bidirectional use, the authors name WebSocket as the fastest (p. 82). The authors state that the server-to-client measurements were disrupted because the server was too weak for large random messages (p. 81).
+
+**Relevance and distinction.** Peer-reviewed direct comparison of SSE and WebSocket. Tests with many concurrent connections, the number of repetitions and statistical tests are not documented. It covers neither PHP nor Node.js. 1,000 messages are not 1,000 clients. In Fig. 8, SSE with XHR lies below WebSocket for most sizes in the LAN with Firefox, so the summary does not hold for every combination.
+
+```bibtex
+@inproceedings{slodziak2016performance,
+  author    = {S{\l}odziak, Wojciech and Nowak, Ziemowit},
+  editor    = {Grzech, Adam and Borzemski, Leszek and {\'S}wi{\k{a}}tek, Jerzy and Wilimowska, Zofia},
+  title     = {Performance Analysis of Web Systems Based on {XMLHttpRequest}, {Server-Sent Events} and {WebSocket}},
+  booktitle = {Information Systems Architecture and Technology: Proceedings of 36th International Conference on Information Systems Architecture and Technology -- ISAT 2015 -- Part II},
+  series    = {Advances in Intelligent Systems and Computing},
+  volume    = {430},
+  publisher = {Springer},
+  pages     = {71--83},
+  date      = {2016},
+  doi       = {10.1007/978-3-319-28561-0_6},
+  langid    = {english}
+}
+```
+
+### Appelqvist & Örnmyr (2017), SSE and WebSocket on Node.js
+
+Bachelor's thesis in software engineering, Blekinge Institute of Technology, urn:nbn:se:bth-14497.
+
+**Content (per full text).** Four servers in Node.js with the `http` and `ws` modules (p. 17), 100 simultaneous clients as Firefox tabs (pp. 18, 22, 44), tests of 40 to 60 minutes, each run twice (p. 22). Measured are CPU, memory, network traffic, messages per second and TCP connections, but not latency (p. 16). SSE and WebSocket are very similar (pp. 40–41, 43).
+
+**Relevance and distinction.** Direct comparison of SSE and WebSocket over long-lived connections, with little load (at most about 4% CPU, p. 44), only on Node.js and without a statistical test.
+
+**CHECK BY HAND.** Spot-check the page references above.
+
+```bibtex
+@thesis{appelqvist2017performance,
+  author      = {Appelqvist, Rasmus and {\"O}rnmyr, Oliver},
+  title       = {Performance Comparison of {XHR} Polling, Long Polling, Server Sent Events and {WebSockets}},
+  type        = {Bachelor's thesis},
+  institution = {Blekinge Institute of Technology},
+  date        = {2017},
+  url         = {http://urn.kb.se/resolve?urn=urn:nbn:se:bth-14497},
+  urldate     = {2026-11-03},
+  langid      = {english}
+}
+```
+
+### Bigestans (2014), WebSocket, SSE with Ajax and short polling
+
+Elof Bigestans. *Real-Time Full Duplex Communication over the Web: A Performance Comparison between Different Web Technologies*. Bachelor's thesis, 2014.
+
+**Content (per full text, PDF pages).** Three chat applications on Node.js with Express, one each with WebSocket, SSE with Ajax POST for the return path, and short polling (pp. 12, 20, 41). 100 messages per measurement on the local machine, in a LAN and over 4G, three rounds for LAN and 4G (pp. 13, 14, 35, 37). Mean latency of WebSocket is 4 ms locally, 7, 7 and 15 ms in the LAN and 65, 53 and 67 ms over 4G. For SSE with Ajax it is 7 ms locally, 119, 106 and 30 ms in the LAN and 239, 182 and 247 ms over 4G (pp. 39–40).
+
+**Relevance and distinction.** The values apply to a bidirectional chat with HTTP POST and not to pure server push. The author considers SSE possibly better suited for pure server push and names CPU load as not examined (p. 43). It covers no PHP and no queue.
+
+**CHECK BY HAND.** Confirm the institution on the DiVA record.
+
+```bibtex
+@thesis{bigestans2014realtime,
+  author      = {Bigestans, Elof},
+  title       = {Real-Time Full Duplex Communication over the Web: A Performance Comparison between Different Web Technologies},
+  type        = {Bachelor's thesis},
+  institution = {University of Sk{\"o}vde},
+  date        = {2014},
+  url         = {https://his.diva-portal.org/smash/get/diva2%3A730563/FULLTEXT01.pdf},
+  urldate     = {2026-11-08},
+  langid      = {english}
+}
+```
+
+### Fladvad & Khans (2021), SSE with XHR over HTTP/2 versus WebSocket
+
+Anton Fladvad, Anders Khans. *Real-Time Synchronization of Multi-Window Web-Applications: Combining SSE & XHR over HTTP/2 as an Alternative to WebSockets*. Bachelor's thesis, Dalarna University, 2021.
+
+**Content (per full text, PDF pages).** Two variants of one collaborative editor on Node.js with Koa, one with `koa-websocket`, one with SSE and XHR over HTTP/2 (pp. 16–17), and SSE with XHR over HTTP/1.1 in addition (p. 19). 200 automated keystrokes in a LAN (p. 18). Mean transmission times are 198.45 ms for SSE over HTTP/1.1, 79.889 ms for SSE over HTTP/2 and 88.171 ms for WebSocket (p. 20, Table 1).
+
+**Relevance and distinction.** Measures bidirectional synchronization and not pure server push. CPU and memory were not collected and the number of clients is small according to the authors (pp. 22–23). There is no measure of spread and no statistical test, so the difference of about 8 ms is not secured.
+
+```bibtex
+@thesis{fladvad2021realtime,
+  author      = {Fladvad, Anton and Khans, Anders},
+  title       = {Real-Time Synchronization of Multi-Window Web-Applications: Combining {SSE} \& {XHR} over {HTTP/2} as an Alternative to {WebSockets}},
+  type        = {Bachelor's thesis},
+  institution = {Dalarna University},
+  date        = {2021-06-08},
+  url         = {https://www.diva-portal.org/smash/get/diva2%3A1577339/FULLTEXT01.pdf},
+  urldate     = {2026-11-08},
+  langid      = {english}
+}
+```
+
+### Van de Vyvere, Colpaert & Verborgh (2020), polling versus SSE
+
+Brecht Van de Vyvere, Pieter Colpaert, Ruben Verborgh. "Comparing a Polling and Push-Based Approach for Live Open Data Interfaces." In *Web Engineering (ICWE 2020)*, Lecture Notes in Computer Science, 87–101, Springer, 2020. DOI 10.1007/978-3-030-50578-3_7.
+
+**Content (per full text, manuscript pages 1 to 16, not Springer pages).** A JSON update of 5.2 kB every 5 s, polling 500 ms after the previous response (p. 7). Node.js with Express on a single thread, nginx with one worker and an optional cache (pp. 7–8). 200 CloudLab machines for the clients (pp. 8–9). Polling without nginx works well up to 2,000 clients and fails above 5,000 (p. 9). With the nginx cache, polling reaches 8,000 clients and SSE 25,000 (pp. 10, 13). SSE uses less CPU and more memory with every connection (pp. 11–12). A pause of 1 ms per 1,000 clients was needed for SSE (pp. 11–12).
+
+**Relevance and distinction.** The closest study on scaling SSE. It does not compare SSE with WebSocket or PHP with Node.js. No limits per variant are stated, a clear number of independent repetitions and statistical tests are missing. 25,000 is not a general limit. It also fits Lokato, which distributes by polling every 500 ms (DECISIONS.md 5.4).
+
+```bibtex
+@inproceedings{vandevyvere2020polling,
+  author    = {Van de Vyvere, Brecht and Colpaert, Pieter and Verborgh, Ruben},
+  title     = {Comparing a Polling and Push-Based Approach for Live Open Data Interfaces},
+  booktitle = {Web Engineering (ICWE 2020)},
+  series    = {Lecture Notes in Computer Science},
+  publisher = {Springer},
+  pages     = {87--101},
+  date      = {2020},
+  doi       = {10.1007/978-3-030-50578-3_7},
+  langid    = {english}
+}
+```
+
+### Chaniotis, Kyriakou & Tselikas (2015), PHP-FPM stacks versus Node.js
+
+Ioannis K. Chaniotis, Kyriakos-Ioannis D. Kyriakou, Nikolaos D. Tselikas. "Is Node.js a Viable Option for Building Modern Web Applications? A Performance Evaluation Study." *Computing*, 97(10), 1023–1044, 2015. DOI 10.1007/s00607-014-0394-9.
+
+**Content (per full text).** Apache 2.2.22 and Nginx 1.4.3 with the same PHP-FPM server, PHP 5.4.6, and Node.js 0.10.21 with `cluster`, on one server with a Core i7 920 and 9 GB (pp. 1031–1032). `weighttp` (p. 1033), Hello World, geohashing and a static file of 13.5 kB, 100 to 30,000 connections in steps of 250, HTTP keep-alive, each test repeated three times and averaged (pp. 1034–1035). In the Hello World test, Nginx is more than 2.5 times faster than Apache and Node.js is faster than both (p. 1035), with about 1.5 times the CPU use (p. 1036). In geohashing, Node.js is more than 2.5 times ahead of PHP (p. 1038). For the static file, Nginx uses about a quarter of the CPU of Node.js (p. 1040).
+
+**Relevance and distinction.** The closest predecessor for PHP-FPM versus Node.js, so that comparison alone is no contribution of this thesis. It measures short HTTP requests and no server push. WebSocket appears only in the example architecture (p. 1031). It states no CPU or memory limits per variant and has no statistical test.
+
+```bibtex
+@article{chaniotis2015nodejs,
+  author       = {Chaniotis, Ioannis K. and Kyriakou, Kyriakos-Ioannis D. and Tselikas, Nikolaos D.},
+  title        = {Is {Node.js} a Viable Option for Building Modern Web Applications? {A} Performance Evaluation Study},
+  journaltitle = {Computing},
+  volume       = {97},
+  number       = {10},
+  pages        = {1023--1044},
+  date         = {2015},
+  doi          = {10.1007/s00607-014-0394-9},
+  langid       = {english}
+}
+```
+
+### Mufid et al. (2024), PHP with Swoole versus Express
+
+Mohammad Robihul Mufid, Yogi Pratama, Arna Fariza, Saniyatul Mawaddah, Yunia Ikawati, Darmawan Aditama, Muhlis Tahir. "Design MicroServer Framework Library with Swoole for Real-time Application Development." *Jurnal Teknologi Informasi dan Terapan*, 11(2), 107–114, 2024. DOI 10.25047/jtit.v11i2.437 (confirmed through Crossref on 2026-11-09, Crossref gives 2025 as the publication date, the article itself 30 December 2024).
+
+**Content (per full text).** The authors' PHP framework Xel Async on Swoole against an Express server, `wrk`, 60 s, GET and POST with Hello World JSON, 100 to 1,000 connections, one worker per variant, one Ryzen 3 machine with 8 GB (pp. 110–111). With GET at 1,000 connections, Xel reaches a 90th percentile latency of 44.91 ms and 29,999.52 requests per second, Express 199.83 ms and 4,990.23 (p. 111).
+
+**Relevance and distinction.** Shows that PHP with an event loop need not be slower for HTTP. It compares the authors' own framework with another product, measures neither SSE nor WebSocket, and documents no repetitions or statistics.
+
+```bibtex
+@article{mufid2024design,
+  author       = {Mufid, Mohammad Robihul and Pratama, Yogi and Fariza, Arna and Mawaddah, Saniyatul and Ikawati, Yunia and Aditama, Darmawan and Tahir, Muhlis},
+  title        = {Design {MicroServer} Framework Library with {Swoole} for Real-time Application Development},
+  journaltitle = {Jurnal Teknologi Informasi dan Terapan},
+  volume       = {11},
+  number       = {2},
+  pages        = {107--114},
+  date         = {2024},
+  doi          = {10.25047/jtit.v11i2.437},
+  langid       = {english}
+}
+```
+
+### Van Berkel & Ali (2021), PHP and Node.js with SSE and WebSocket
+
+Daan van Berkel, Bader Ali. "Performance Testing Real-Time Data in JavaScript." iO tech_hub, 11 May 2021. Developer blog, grey literature, no peer review stated. Result files in the public repository `iodigital-com/techhub-performance-testing-real-time-data-examples`.
+
+**Content (per article, README and the 16 public result files).** 2, 10, 50 and 100 clients with 10, 50, 100 and 1,000 messages, 10 tests per variant, browser tabs through Puppeteer. PHP with Ratchet, ReactPHP and Swoole, Node.js with Express, the `http` module, `Websockets` and Socket.IO. The measure is the time between the first and the last received message. With 100 clients and 1,000 messages, SSE with ReactPHP takes 11,579 ms on average and SSE with Express 22,050 ms. In the mean, SSE with ReactPHP is ahead of both Node.js SSE variants in all 16 scenarios, without a statistical test.
+
+**Relevance and distinction.** The closest source to this thesis, named openly as grey literature. It uses PHP only with an event loop and reports no PHP-FPM configuration, no resource limits per variant, no hardware and no statistical tests. The variants run in a fixed order. The README lists the Mercure hub as Node.js, but it is a Go program.
+
+```bibtex
+@online{vanberkel2021performance,
+  author       = {van Berkel, Daan and Ali, Bader},
+  title        = {Performance Testing Real-Time Data in {JavaScript}},
+  organization = {iO tech\_hub},
+  date         = {2021-05-11},
+  url          = {https://techhub.iodigital.com/articles/performance-testing-real-time-data-in-javascript},
+  urldate      = {2026-11-08},
+  langid       = {english}
+}
+```
+
+### Thirunavukkarasu et al. (2018), publish-subscribe in Node.js versus request-response in PHP
+
+Gokul Sidarth Thirunavukkarasu, Benjamin Champion, Ben Horan, Mehdi Seyedmahmoudian, Alex Stojcevski. "IoT-Based System Health Management Infrastructure as a Service." In *Proceedings of the 2018 International Conference on Cloud Computing and Internet of Things (CCIOT 2018)*, 55–61, ACM, 2018. DOI 10.1145/3291064.3291070 (confirmed through Crossref on 2026-11-09).
+
+**Content (per full text).** A preliminary test to choose the architecture of an IoT vehicle-monitoring system, with 1 to 1,000 simulated users (p. 60). The authors report better values for a publish-subscribe model in Node.js than for a request-response model in PHP (pp. 55, 60).
+
+**Relevance and distinction.** Language, communication model and software stack change together (p. 58), so it shows no isolated effect of the language. SSE, WebSocket, repetitions, statistics and resources are not documented. Fig. 9 and Fig. 10 contain the same image, so no response times are taken from this paper (p. 59).
+
+```bibtex
+@inproceedings{thirunavukkarasu2018iot,
+  author    = {Thirunavukkarasu, Gokul Sidarth and Champion, Benjamin and Horan, Ben and Seyedmahmoudian, Mehdi and Stojcevski, Alex},
+  title     = {{IoT}-Based System Health Management Infrastructure as a Service},
+  booktitle = {Proceedings of the 2018 International Conference on Cloud Computing and Internet of Things (CCIOT 2018)},
+  pages     = {55--61},
+  date      = {2018},
+  doi       = {10.1145/3291064.3291070},
+  langid    = {english}
+}
+```
+
+### Tsindeliani et al. (2022), PHP WebSocket frameworks compared
+
+Davyd Tsindeliani, Yuliia Povstyana, Nataliia Lishchyna, Andrii Yashchuk. "Latency Reduction in Real-time GPS Tracking in Android and the Web-based GPS Monitoring System." In *2022 12th International Conference on Dependable Systems, Services and Technologies (DESSERT)*, 1–7, IEEE, 2022. DOI 10.1109/DESSERT58054.2022.10018609 (confirmed through Crossref on 2026-11-09).
+
+**Content (per full text, PDF pages).** Minimal prototypes with Workerman, Ratchet and Swoole on one virtual core of a Xeon E5-2680 v3 with 2 GB (pp. 5–6). 200 simultaneous connections with 50 messages per second each (p. 5). All prototypes handle more than 10,000 requests per second, but only Workerman opens more than 1,000 simultaneous connections before the others run out of memory (p. 5). The processing delay is 0.2 to 0.5 ms for all (p. 6).
+
+**Relevance and distinction.** The closest study on PHP WebSocket servers. It has no Node.js variant, no SSE and no Reverb. Repetitions and statistics are not documented. The text switches between requests and messages per second.
+
+```bibtex
+@inproceedings{tsindeliani2022latency,
+  author    = {Tsindeliani, Davyd and Povstyana, Yuliia and Lishchyna, Nataliia and Yashchuk, Andrii},
+  title     = {Latency Reduction in Real-time {GPS} Tracking in {Android} and the Web-based {GPS} Monitoring System},
+  booktitle = {2022 12th International Conference on Dependable Systems, Services and Technologies (DESSERT)},
+  pages     = {1--7},
+  date      = {2022},
+  doi       = {10.1109/DESSERT58054.2022.10018609},
+  langid    = {english}
+}
+```
+
+### Estep (2013), persistent connections on mobile devices (optional)
+
+Eliot Estep. *Mobile HTML5: Efficiency and Performance of WebSockets and Server-Sent Events*. Master's thesis, Aalto University and KTH Royal Institute of Technology, 2013. TRITA-ICT-EX-2013:198.
+
+**Content (per full text, PDF pages 52–60 and 99–104).** A WebSocket chat and a separate SSE clock on Node.js 0.8.18, mobile devices over 3G, 4G and WiFi. Long keep-alive intervals save energy but delay the detection of broken connections (p. 102). Estep justifies Node.js by stating that servers with one operating system thread per request are quickly overburdened by persistent SSE connections (p. 59).
+
+**Relevance and distinction.** Context for long-lived connections. The statement on threads is a reference to another source and no measurement. It covers no PHP and no server load.
+
+```bibtex
+@thesis{estep2013mobile,
+  author      = {Estep, Eliot},
+  title       = {Mobile {HTML5}: Efficiency and Performance of {WebSockets} and {Server-Sent Events}},
+  type        = {Master's thesis},
+  institution = {Aalto University and KTH Royal Institute of Technology},
+  date        = {2013},
+  url         = {https://www.diva-portal.org/smash/get/diva2%3A874674/FULLTEXT01.pdf},
+  urldate     = {2026-11-08},
+  langid      = {english}
+}
+```
+
+### Gracia Orejuela, Gorozabel Bazurto & Chango Sailema (2024), long polling, WebSocket and SSE (optional)
+
+Kevin José Gracia Orejuela, Melvin Bolívar Gorozabel Bazurto, Wilson Gustavo Chango Sailema. "Long polling, websockets y server-sent events: comunicación para el envío de datos en tiempo real." *Mikarimin. Revista Científica Multidisciplinaria*, 10(3), 101–120, 2024. DOI 10.61154/mrcm.v10i3.3272 (confirmed through Crossref on 2026-11-09).
+
+**Content (per full text).** 2,000 requests per protocol on one computer. WebSocket has a mean of 2,781.77 ms and 284.86 transactions per second (pp. 107–109), SSE 1,889.92 ms and 399.68 (pp. 113–114). The abstract names WebSocket as the most suitable protocol for a scalable backend (p. 102).
+
+**Relevance and distinction.** At most a methodological remark. Server language, load tool and concurrency are not stated, and the measurement targets differ per protocol, so no ranking follows from it. 2,000 requests are not 2,000 connections.
+
+```bibtex
+@article{graciaorejuela2024longpolling,
+  author       = {Gracia Orejuela, Kevin Jos{\'e} and Gorozabel Bazurto, Melvin Bol{\'i}var and Chango Sailema, Wilson Gustavo},
+  title        = {Long polling, websockets y server-sent events: comunicaci{\'o}n para el env{\'i}o de datos en tiempo real},
+  journaltitle = {Mikarimin. Revista Cient{\'i}fica Multidisciplinaria},
+  volume       = {10},
+  number       = {3},
+  pages        = {101--120},
+  date         = {2024},
+  doi          = {10.61154/mrcm.v10i3.3272},
+  langid       = {spanish}
 }
 ```
 
@@ -1509,26 +1773,6 @@ United Nations General Assembly. "Transforming our World: The 2030 Agenda for Su
 
 The metadata of these sources are confirmed through Crossref unless noted otherwise. The content comes from the abstracts. **CHECK BY HAND.** Read all sources here in the original first, then either move them to the matching section or delete them. None of them is cited unread.
 
-### Van de Vyvere, Colpaert & Verborgh (2020), polling versus SSE
-
-**Content (per abstract).** Peer-reviewed comparison of HTTP polling and SSE with up to 25,000 clients, measuring scalability, server CPU load and client latency. SSE is better on all three as long as updates should arrive as fast as possible. If users accept a delay of about 10 s, polling serves as many clients.
-
-**Intended for.** Related work, Chapter 3 and the research gap. Closest to this thesis, but it does not compare SSE with WebSocket or PHP with Node.js. It also fits Lokato, which distributes by polling every 500 ms (DECISIONS.md 5.4). Full text freely available.
-
-```bibtex
-@inproceedings{vandevyvere2020polling,
-  author    = {Van de Vyvere, Brecht and Colpaert, Pieter and Verborgh, Ruben},
-  title     = {Comparing a Polling and Push-Based Approach for Live Open Data Interfaces},
-  booktitle = {Web Engineering (ICWE 2020)},
-  series    = {Lecture Notes in Computer Science},
-  publisher = {Springer},
-  pages     = {87--101},
-  date      = {2020},
-  doi       = {10.1007/978-3-030-50578-3_7},
-  langid    = {english}
-}
-```
-
 ### Pimentel & Nickerson (2012), WebSocket versus polling
 
 **Content (per abstract).** Measures the one-way latency of sensor data at 4 Hz over WebSocket, HTTP polling and long polling.
@@ -1545,45 +1789,6 @@ The metadata of these sources are confirmed through Crossref unless noted otherw
   pages        = {45--53},
   date         = {2012},
   doi          = {10.1109/MIC.2012.64},
-  langid       = {english}
-}
-```
-
-### Appelqvist & Örnmyr (2017), SSE and WebSocket compared directly
-
-Blekinge Institute of Technology, found through OpenAlex. The record in the DiVA database could not be retrieved during the review. **CHECK BY HAND.** The type of work and the content are not confirmed yet, only title, authors, year and university.
-
-**Intended for.** Research gap. By its title the most direct comparison of polling, long polling, SSE and WebSocket. Student theses are not peer-reviewed, but the gap must be worded so that it also holds against this one.
-
-```bibtex
-@thesis{appelqvist2017performance,
-  author      = {Appelqvist, Rasmus and {\"O}rnmyr, Oliver},
-  title       = {Performance Comparison of {XHR} Polling, Long Polling, Server Sent Events and {WebSockets}},
-  type        = {Thesis},
-  institution = {Blekinge Institute of Technology},
-  date        = {2017},
-  url         = {http://urn.kb.se/resolve?urn=urn:nbn:se:bth-14497},
-  urldate     = {2026-11-03},
-  langid      = {english}
-}
-```
-
-### Chaniotis, Kyriakou & Tselikas (2015), performance of Node.js
-
-No abstract available, the content is known only from the title.
-
-**Intended for.** Related work, PHP versus Node.js, as a peer-reviewed addition to Lei et al. (2014), if the full text confirms the comparison with PHP.
-
-```bibtex
-@article{chaniotis2015nodejs,
-  author       = {Chaniotis, Ioannis K. and Kyriakou, Kyriakos-Ioannis D. and Tselikas, Nikolaos D.},
-  title        = {Is {Node.js} a Viable Option for Building Modern Web Applications? {A} Performance Evaluation Study},
-  journaltitle = {Computing},
-  volume       = {97},
-  number       = {10},
-  pages        = {1023--1044},
-  date         = {2015},
-  doi          = {10.1007/s00607-014-0394-9},
   langid       = {english}
 }
 ```
@@ -1672,13 +1877,17 @@ Low visibility or little relevance. They do show that related measurements exist
 - Fernando & Engel (2025). WebSocket libraries on Node.js and Go, up to 1,000 clients with broadcast latency. *Sinkron*, 9(4), 2051–2060. DOI 10.33395/sinkron.v9i4.15266.
 - Sanjaya & Wibhowo (2026). Real-time architectures on the ESP32, including WebSocket and MQTT with SSE. *SISFORMA*, 13(1), 86–92. DOI 10.24167/sisforma.v13i1.15565.
 - "Node.js or PHP?" (2023). Compares sorting algorithms, no network load. *Issues in Information Systems*. DOI 10.48009/1_iis_2023_128.
+- Shuang & Feng (2013). Polling, long polling, HTTP streaming and WebSocket on Java servers. *Journal of Software*, 8(10), 2644–2651. DOI 10.4304/jsw.8.10.2644-2651. HTTP streaming is not counted as SSE here.
+- Raab (2017). Master's thesis, FH Hagenberg, on integrating a Node.js real-time service into a PHP CMS. The original PDF could not be accessed, so the metadata and content are not confirmed.
 
 ## Overview, source per decision
 
 | DECISIONS.md | Decision | Source(s) |
 | ------------ | -------- | --------- |
 | Related work | Concurrency models of servers | Lauer & Needham (1979), Welsh et al. (2001), von Behren et al. (2003), Pariag et al. (2007) |
-| Related work | PHP and Node.js | Tilkov & Vinoski (2010) and Lei, Ma & Tan (2014) |
+| Related work | PHP and Node.js | Tilkov & Vinoski (2010), Lei, Ma & Tan (2014), Chaniotis et al. (2015), Mufid et al. (2024), Van Berkel & Ali (2021), Thirunavukkarasu et al. (2018) |
+| Related work | PHP real-time servers | Tsindeliani et al. (2022) |
+| Related work | SSE and WebSocket compared | Słodziak & Nowak (2016), Appelqvist & Örnmyr (2017), Bigestans (2014), Fladvad & Khans (2021), Van de Vyvere et al. (2020) |
 | Related work | Real time on the web, messaging | Murley et al. (2021), Hohpe & Woolf (2003) |
 | 5.18 | Fixing hypotheses in advance | Kerr (1998) |
 | 5.8 | k6 run as the unit of analysis | Hurlbert (1984) |
