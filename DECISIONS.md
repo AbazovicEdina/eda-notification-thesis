@@ -1123,7 +1123,7 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 |---|---|---|
 | Titel | zwei Vorschläge (5.23). Der Betreuer hat die Abweichungen bestätigt, aber keinen der beiden gewählt | Autorin |
 | Abbildungen | Einbindung im Overleaf-Dokument prüfen (Querformat mit `pdflscape`, Platz für die Bildunterschrift). Skalierung und Sättigung nach den Messungen aus echten Daten erzeugen (5.24, 5.25) | Autorin |
-| Forschungslücke | in IEEE Xplore, ACM Digital Library und Google Scholar bestätigen (LITERATUR.md, Verwandte Arbeiten) | vor dem Schreiben des Kapitels |
+| Forschungslücke | Systematische Literaturrecherche abgeschlossen, einschließlich der dokumentierten Suche in IEEE Xplore, ACM Digital Library und Google Scholar sowie des Citation-Trackings. Die Lücke beruht auf dem dokumentierten Suchstand und der Prüfung ausgewählter Volltexte. Es wurde keine identische Untersuchung identifiziert, daraus folgt aber kein Nachweis, dass weltweit keine solche Untersuchung existiert (LITERATUR.md, Verwandte Arbeiten) | abgeschlossen am 2026-11-09 |
 | Wiederholung des Ansturms | alle zehn Zellen auf Commit `ac47cb7`, unter Aufsicht, rund 30 Minuten (5.14) | nach Block 2 |
 
 ## 7. Konventionen
