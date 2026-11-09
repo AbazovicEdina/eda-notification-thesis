@@ -913,6 +913,8 @@ Die Testlast bildet Lokato an zentralen Stellen nach und vereinfacht an anderen.
 | Zeitmuster | gleichmäßige Rate (1 Event/s, Sättigungstest höher) | stoßweise Last (viele Scans gleichzeitig an einem Tor) nicht abgebildet |
 | Anmeldung | keine (öffentlicher Kanal) | in Produktion üblich. Zusätzlicher Aufwand beim Verbindungsaufbau nicht erfasst |
 | Verbindungsabbrüche | keine | Wiederverbindung (SSE mit `Last-Event-ID`, WS mit eigener Logik) nicht erfasst |
+| Freigabe der FPM-Worker (ergänzt am 2026-11-09) | nach dem Ende einer Verbindung | Die SSE-Endpunkte prüfen `connection_aborted()` erst in der Verarbeitung eines Events (`prototypes/php-minimal/sse.php`, `prototypes/php-laravel/routes/web.php`). Ein Worker bleibt deshalb mindestens bis zum nächsten Event belegt. Bei 1 Event/s ist das kurz. Bei seltenen Events kann es länger dauern, gesondert gemessen ist das nicht |
+| Heartbeats (ergänzt am 2026-11-09) | keine eigenen | Die SSE-Endpunkte senden nur beim Verbindungsaufbau den Kommentar `: connected`, die k6-Skripte senden keine Pings. Für Reverb stehen in `config/reverb.php` die Standardwerte `ping_interval` 60 und `activity_timeout` 30. Verhalten bei längerer Inaktivität nicht untersucht |
 
 ### 5.22 Komplexität und Wartbarkeit — ENTSCHIEDEN (beschlossen am 2026-10-16)
 
@@ -1022,6 +1024,8 @@ Zehn Varianten, dreizehn Vergleiche, elf Hypothesen, Replikation, Skalierung, S�
 | Ergänzung | Komplexität und Wartbarkeit (RQ3, 5.13, 5.22) | ein Abschnitt mit einer Tabelle der Kennzahlen und dem qualitativen Vergleich |
 | Ergänzung | Messbetrieb, Zustellung, Replikation, Ansturm (5.10) | knapp, Zusammenfassung im Text, der Ansturm in höchstens einem Absatz |
 | Anhang | vollständige Tabellen aller 39 Tests je Messgröße, rangbiseriale Korrelation, Replikation je Vergleich, Stufen von Skalierung und Sättigung je Variante, Verlauf von Pilot und Kontrollmessung, alle 20 Boxplots und die Detailabbildung zur Streuung des Working Set (5.25) | Tabellen und Abbildungen, im Text verwiesen |
+
+**Präzisierung (2026-11-09).** Die Tabelle bleibt in ihrem vor der Datenerhebung festgelegten Wortlaut bestehen. „Sprache und Laufzeitmodell unter Last“ meint die Vergleiche bei steigender Clientzahl, keine Ressourcenbelastung (5.9) und keine isolierte Wirkung von Sprache oder Laufzeitmodell (5.23). Die Zuordnung zu Kern und Ergänzung ändert sich dadurch nicht.
 
 Regeln:
 
@@ -1197,3 +1201,4 @@ Nach der Regel ausgeschlossen waren unter anderem Node.js 26.12.1 (Sicherheitsup
 | 2026-11-09 | **Zeitliche Abhängigkeit der gepaarten Läufe festgelegt (5.8), Aussage zum Speicher nach dem Vorlauf präzisiert (5.5).** Beim Working Set liegt die Autokorrelation der Paardifferenzen in Block 1 im Median bei 0,81, überwiegend durch den Verlauf innerhalb der Prozesslaufzeit. Wilcoxon, Holm, Hypothesenregeln und Replikationsregel bleiben als vorab festgelegte Entscheidungsregel unverändert, ohne dass das ihre statistische Gültigkeit nachweist. Neu ist eine rein beschreibende Diagnose für 156 Tests je Block, also 312 über beide Blöcke, mit festgelegter Behandlung fehlender Paare. Bootstrap-Intervalle wurden geprüft und verworfen. Die 128 Testentscheidungen von Block 1 sind unverändert. Festgelegt vor dem Öffnen der Daten von Block 2, Rechnungen in `results/2026-11-09_temporal-dependence-check/`. |
 | 2026-11-09 | **Forschungsfragen präzisiert (5.23), Einordnung der Vergleichsbezeichnungen ergänzt (5.15).** Die Hauptfrage vergleicht jetzt zehn ausgewählte Prototyp-Varianten unter identischen Limits je Variante, statt Wirkungen einzelner Faktoren zu benennen. RQ1 bezieht sich auf die dreizehn geplanten Vergleiche, RQ2 trennt Clientzahl und Event-Rate, RQ3 spricht von Implementierungskomplexität. Varianten, Hypothesen, Messungen und Auswertungsregeln sind unverändert. |
 | 2026-11-09 | **Einordnung der Laststufen ergänzt (5.9), Stand der Information an den Betreuer nachgetragen (5.23).** Die internen Namen der Laststufen bedeuten keine Ressourcenbelastung. Der Betreuer wurde über die präzisierte Forschungsfrage informiert, eine Rückmeldung ist nicht dokumentiert. |
+| 2026-11-09 | **Dokumentation ergänzt (5.21, 5.24).** Freigabe der FPM-Worker und fehlende Heartbeats beschrieben. „Unter Last“ in 5.24 mit einer datierten Präzisierung eingeordnet, die Tabelle selbst bleibt unverändert. |
