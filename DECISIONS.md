@@ -1005,7 +1005,7 @@ Ein lokaler Prüflauf im Produktionsbetrieb mit allen drei Laravel-Zellen (10 un
 
 Der Bezug zu Lokato bleibt über das Ereignisformat, die Ereignisquelle und das Szenario (Broadcast an Dashboards) erhalten.
 
-**12. Queue in den Varianten.** Das Exposé sieht die Queue als Bestandteil der vollständigen Umsetzungen in allen vier Konfigurationen vor. Umgesetzt ist sie als eigene Achse in je einer Variante pro Sprache (5.19). So bleibt der Effekt der Queue messbar, statt sich mit dem Framework-Effekt zu vermischen. Die ausführliche Begründung steht in 5.7 und 5.19.
+**12. Queue in den Varianten.** Das Exposé sieht die Queue als Bestandteil der vollständigen Umsetzungen in allen vier Konfigurationen vor. Umgesetzt ist sie als eigene Achse in je einer Variante pro Sprache (5.19). So bleibt der Effekt der Queue messbar, statt sich mit dem Framework-Effekt zu vermischen. Die ausführliche Begründung steht in 5.7 und 5.19. Präzisierung vom 2026-11-09. Die Queue wurde nur in zwei Framework-Varianten mit SSE gemessen. Sprache, Framework, Transport und Queue sind keine unabhängigen, isoliert geschätzten Faktoren, und der hier genannte Effekt der Queue ist als Unterschied in den geplanten Vergleichen 9 bis 11 zu lesen.
 
 **13. Erwartung zur Latenz.** Das Exposé erwartet, dass Node.js unter hoher Last eine geringere Latenz und einen höheren Durchsatz erreicht. H3 lässt die Richtung offen, weil zwei Mechanismen gegeneinander wirken. PHP-FPM verteilt ein Ereignis parallel in vielen Prozessen, Node.js nacheinander in einem Thread (5.18). Die Erwartung des Exposés wird in der Diskussion den Ergebnissen gegenübergestellt. Die Tests sind ohnehin zweiseitig. Die Erwartung zum Ressourcenverbrauch je Verbindung bei PHP ist in H1 und H10 enthalten.
 
