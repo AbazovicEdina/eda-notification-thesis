@@ -10,7 +10,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `status.js` | Statusbericht für den Dauerbetrieb (Fortschritt, ungültige Läufe, Temperatur, Drift der Kontrollmessung, Speicherplatz), optional mit Benachrichtigung |
 | `notify.js` | Benachrichtigung per HTTP-POST an `NOTIFY_URL` (z. B. ntfy), von `schedule.js` und `status.js` genutzt |
 | `pilot.js` | Auswertung des Pilots nach dem vorab festgelegten Stabilitätskriterium, ergibt die Wiederholungszahl je Laststufe und schätzt die Dauer eines Blocks |
-| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2), beschreibender Sensitivitätsanalyse des gepaarten Tests für beide Blöcke (Schiefe der Differenzen, Hodges-Lehmann-Schätzer, Vorzeichentest, DECISIONS.md 5.8) und Bewertung der Hypothesen |
+| `evaluate.js` | Gesamtauswertung der Hauptkampagnen mit Holm-Korrektur je Messgröße (Block 1), Replikationsabgleich (Block 2), beschreibender Sensitivitätsanalyse des gepaarten Tests für beide Blöcke (Schiefe der Differenzen, Hodges-Lehmann-Schätzer, Vorzeichentest, DECISIONS.md 5.8), beschreibender zeitlicher Diagnose der Paardifferenzen und Bewertung der Hypothesen |
 | `assessment.js` | Auswertungslogik von `evaluate.js` als reine Funktionen, darunter die Entscheidungsregeln G1 bis G4 und die Regel jeder Hypothese |
 | `descriptive.js` | beschreibende Auswertung eines Blocks der Hauptmessung aus den Laufprotokollen, ohne Tests, darunter Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null und Messbetrieb |
 | `series.js` | beschreibende Auswertung von Skalierungsreihe, Sättigungstest und Ansturm über alle Zellen, SSE und WebSocket je Variante nebeneinander |
@@ -20,7 +20,7 @@ Führt Messkampagnen aus, plant und reiht sie und wertet sie aus (DECISIONS.md 5
 | `cells.json` | die zehn Messzellen mit Container, Front-Nginx (Modus, Ziel), Ereignisquelle, k6-Skript und Messgröße |
 | `plan.json` | vorab festgelegter Auswerteplan mit Vergleichen, Laststufen, Testfamilien und Hypothesen |
 | `campaign*.example.json` | Vorlagen für Haupt-, Pi- und Sättigungskampagnen |
-| `test/` | Tests der Statistik, der Paarbildung, der Holm-Korrektur über alle geplanten Tests, der Replikation, der Entscheidungsregeln und der Bedingungen des Sättigungstests |
+| `test/` | Tests der Statistik, der Paarbildung, der Holm-Korrektur über alle geplanten Tests, der Replikation, der Entscheidungsregeln, der Bedingungen des Sättigungstests und der zeitlichen Diagnose |
 
 ## Verwendung
 
@@ -230,5 +230,6 @@ Die Messgrößen eines Laufs (`measures`) beschreibt DECISIONS.md 5.16. Statisti
 - **Effektmaße.** Cliff's Delta mit Einordnung nach Romano et al. (2006), zusätzlich die rangbiseriale Korrelation für gepaarte Daten.
 - **Konfidenzintervall.** 95-%-Bootstrap-Intervall (Perzentil-Methode) für den Median der gepaarten Differenzen, mit festem Startwert.
 - **Mehrfachtests.** Holm-Korrektur je Messgröße über alle 39 geplanten Tests in `evaluate.js` (Block 1). Block 2 wird beschreibend abgeglichen.
+- **Zeitliche Diagnose (beschreibend, kein Signifikanznachweis).** Je Test und Block, also 156 Diagnosen je Block, Autokorrelation erster Ordnung der Paardifferenzen vor und nach Entfernen eines linearen Trends, Varianzanteil des Trends, Änderung des Medians zwischen den Läufen 6 bis 50 und 51 bis 95 und eine Einordnung in „ohne Befund“, „nur linearer Trend“, „Reststruktur“ oder „nicht bestimmbar“. Die Grenze 2/√n mit der tatsächlichen Zahl gültiger Paare ist eine Heuristik und kein Test auf Unabhängigkeit. Fehlende Paare bleiben Lücken in den echten Laufnummern, in die Autokorrelation gehen nur tatsächlich benachbarte Paare ein. Die Ausgabe nennt gültige Paare, Nachbarpaare, fehlende Läufe und Beobachtungen je Hälfte. Die Diagnose erzeugt keine Intervalle und bestätigt keine Testentscheidung (Feld `temporal_dependence` in `evaluation.json`, DECISIONS.md 5.8).
 
 **Vorzeichenkonvention.** Differenzen und Effektmaße beziehen sich auf A − B in der Reihenfolge des Vergleichs. Negative Werte bedeuten, dass A kleinere Werte hat (bei Latenz, CPU und Speicher besser).

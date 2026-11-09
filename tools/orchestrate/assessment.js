@@ -12,7 +12,7 @@
 // case shows the opposite, and undecided otherwise. What counts as the
 // opposite for each kind of case is fixed in DECISIONS.md 5.18 and below.
 
-import { holmCorrection, signTest, hodgesLehmann, skewness } from './stats.js';
+import { holmCorrection, signTest, hodgesLehmann, skewness, linearTrendByRun, lag1AutocorrelationByRun, halfMediansByRun } from './stats.js';
 
 export const VERDICT = { supported: 'bestätigt', notSupported: 'nicht bestätigt', undecided: 'unentschieden' };
 export const OUTCOME = { holds: 'erfüllt', opposite: 'gegenteil', unclear: 'unklar' };
@@ -198,6 +198,202 @@ export function sensitivityFamilies(plan, found, block) {
         strongly_skewed_all_same_sign: count((r) => r.skew_bowley != null && Math.abs(r.skew_bowley) >= 0.5 && r.all_same_sign),
       },
       rows,
+    };
+  });
+}
+
+// Temporal diagnosis of the paired differences (DECISIONS.md 5.8, fixed on
+// 2026-11-09 before block 2 was opened). Descriptive only. The classes are
+// diagnostic labels. They are no test of independence and confirm no decision
+// of the Wilcoxon test. The limit 2 / √n is a heuristic. A missing pair stays
+// a gap (stats.js), and whatever cannot be determined is labeled as such
+// instead of counting as unremarkable.
+export const DIAGNOSIS = {
+  none: 'ohne Befund',
+  trend: 'nur linearer Trend',
+  residual: 'Reststruktur',
+  undetermined: 'nicht bestimmbar',
+};
+export const TEMPORAL_MIN_ADJACENT = 19;
+export const TEMPORAL_HALF_BOUNDARY = 50;
+export const TEMPORAL_MIN_PER_HALF = 10;
+
+// Diagnosis of one paired result. Null if the result holds no paired values.
+export function temporalDiagnosisOf(result) {
+  const a = result?.pairs?.a;
+  const b = result?.pairs?.b;
+  const runs = result?.pairs?.run_indices;
+  if (!a?.length || a.length !== b?.length || a.length !== runs?.length) return null;
+  const diffs = a.map((v, i) => v - b[i]);
+  const n = diffs.length;
+  const expectedRuns = runs[n - 1] - runs[0] + 1;
+  const counts = {
+    n_pairs: n,
+    run_first: runs[0],
+    run_last: runs[n - 1],
+    missing_runs_inside: expectedRuns - n,
+    n_adjacent_pairs: lag1AutocorrelationByRun(diffs, runs).adjacentPairs,
+  };
+  const halves = halfMediansByRun(diffs, runs, TEMPORAL_HALF_BOUNDARY, TEMPORAL_MIN_PER_HALF);
+  const halfCounts = { n_first_half: halves.n_first, n_second_half: halves.n_second };
+  const blank = { limit: null, r1: null, r1_detrended: null, trend_share: null, median_change_between_halves: null };
+  if (n < MIN_PAIRS) return { ...counts, ...halfCounts, ...blank, diagnosis: DIAGNOSIS.undetermined, reason: 'weniger als 20 gültige Paare' };
+  if (counts.n_adjacent_pairs < TEMPORAL_MIN_ADJACENT) return { ...counts, ...halfCounts, ...blank, diagnosis: DIAGNOSIS.undetermined, reason: 'zu wenige Nachbarpaare' };
+
+  const limit = 2 / Math.sqrt(n);
+  const scale = diffs.reduce((max, v) => Math.max(max, Math.abs(v)), 0);
+  const trend = linearTrendByRun(diffs, runs);
+  const r1 = lag1AutocorrelationByRun(diffs, runs).r;
+  const r1Detrended = trend.residualsFlat ? null : lag1AutocorrelationByRun(trend.residuals, runs, scale).r;
+  let diagnosis;
+  let reason = null;
+  if (r1 == null) {
+    diagnosis = DIAGNOSIS.undetermined;
+    reason = 'konstante Reihe';
+  } else if (r1Detrended == null) {
+    diagnosis = DIAGNOSIS.undetermined;
+    reason = 'keine Reste nach dem linearen Trend';
+  } else if (r1Detrended > limit) {
+    diagnosis = DIAGNOSIS.residual;
+  } else if (r1 > limit) {
+    diagnosis = DIAGNOSIS.trend;
+  } else {
+    diagnosis = DIAGNOSIS.none;
+  }
+  return {
+    ...counts,
+    ...halfCounts,
+    limit,
+    r1,
+    r1_detrended: r1Detrended,
+    trend_share: trend.trendShare,
+    median_change_between_halves: halves.change,
+    diagnosis,
+    reason,
+  };
+}
+
+// All planned tests of one block per measure. For the confirmatory block the
+// overlap with the Holm decisions is counted as a plain count, for no other
+// purpose than to make the numbers in DECISIONS.md 5.8 traceable.
+export function temporalDiagnosisFamilies(plan, found, block) {
+  return plan.families.map((family) => {
+    const tests = testsFor(plan, found, family.measure, block);
+    const holm = block === plan.confirmatoryBlock ? holmCorrection(tests, plan.alpha) : null;
+    const rows = tests.map((t, i) => {
+      const d = temporalDiagnosisOf(t.result);
+      return {
+        comparison_id: t.comparison_id,
+        a: t.a,
+        b: t.b,
+        scenario: t.scenario,
+        status: t.status,
+        ...(d ?? { diagnosis: null }),
+        ...(holm ? { holm_decision_of_main_analysis: holm[i].significant } : {}),
+      };
+    });
+    const measured = rows.filter((r) => r.diagnosis);
+    const countOf = (list) => Object.fromEntries(Object.values(DIAGNOSIS).map((k) => [k, list.filter((r) => r.diagnosis === k).length]));
+    return {
+      measure: family.measure,
+      block,
+      diagnoses: measured.length,
+      with_gaps: measured.filter((r) => r.missing_runs_inside > 0).length,
+      by_class: countOf(measured),
+      by_class_among_holm_decisions: holm ? countOf(measured.filter((r) => r.holm_decision_of_main_analysis)) : null,
+      rows,
+    };
+  });
+}
+
+// Median of one cell per campaign of a block and its range over the campaigns.
+export function campaignSpread(plan, found, block) {
+  const medians = new Map();
+  for (const family of plan.families) {
+    for (const cmp of plan.comparisons) {
+      for (const scenario of plan.scenarios) {
+        const hit = found.get(`${cmp.id}|${scenario}|${block}`);
+        if (!hit) continue;
+        for (const config of Object.values(hit.campaign.scenarios?.[scenario]?.configs ?? {})) {
+          const value = config.describe?.[family.measure]?.median;
+          if (value == null) continue;
+          const key = `${config.cell}|${scenario}|${family.measure}`;
+          if (!medians.has(key)) medians.set(key, []);
+          medians.get(key).push(value);
+        }
+      }
+    }
+  }
+  return new Map([...medians].map(([key, list]) => [key, { campaigns: list.length, range: Math.max(...list) - Math.min(...list) }]));
+}
+
+// Descriptive comparison of the two blocks. Difference of the estimates in
+// units and in percent of block 1, and its ratio to the sum of the ranges of
+// both cells over the campaigns of block 1, because the difference contains
+// both cells. No decision follows from it, the replication rule is unchanged.
+export function blockComparison(plan, found) {
+  const spread = campaignSpread(plan, found, plan.confirmatoryBlock);
+  return plan.families.map((family) => {
+    const first = testsFor(plan, found, family.measure, plan.confirmatoryBlock);
+    const second = testsFor(plan, found, family.measure, plan.replicationBlock);
+    const rows = first.map((t, i) => {
+      const r1 = t.result;
+      const r2 = second[i].result;
+      const base = { comparison_id: t.comparison_id, scenario: t.scenario };
+      if (!r1 || !r2 || r1.median_diff == null || r2.median_diff == null) return { ...base, status: !r1 ? 'Block 1 fehlt' : 'Block 2 fehlt' };
+      const difference = r2.median_diff - r1.median_diff;
+      const rangeA = spread.get(`${t.a}|${t.scenario}|${family.measure}`)?.range ?? null;
+      const rangeB = spread.get(`${t.b}|${t.scenario}|${family.measure}`)?.range ?? null;
+      const rangeSum = rangeA == null || rangeB == null ? null : rangeA + rangeB;
+      return {
+        ...base,
+        status: 'verglichen',
+        median_block1: r1.median_diff,
+        median_block2: r2.median_diff,
+        difference,
+        difference_percent_of_block1: r1.median_diff === 0 ? null : (100 * difference) / Math.abs(r1.median_diff),
+        range_between_campaigns_a: rangeA,
+        range_between_campaigns_b: rangeB,
+        difference_to_range_sum: rangeSum ? Math.abs(difference) / rangeSum : null,
+      };
+    });
+    return { measure: family.measure, compared: rows.filter((r) => r.status === 'verglichen').length, rows };
+  });
+}
+
+// Process lifetimes per block. entries: { block, campaign, started_at, cell,
+// services: { service: [start times] } }. A campaign counts as continued for a
+// cell if a process of the cell has a start time that an earlier campaign of
+// the same block already had.
+export function processContinuity(entries) {
+  const blocks = [...new Set(entries.map((e) => e.block))].sort((x, y) => x - y);
+  return blocks.map((block) => {
+    const list = entries.filter((e) => e.block === block).sort((x, y) => x.started_at.localeCompare(y.started_at));
+    const seen = new Map();
+    const cells = {};
+    const continuedCampaigns = new Set();
+    let restartedInside = 0;
+    for (const e of list) {
+      cells[e.cell] ??= { campaigns: 0, continued: 0 };
+      cells[e.cell].campaigns++;
+      let continued = false;
+      for (const [service, starts] of Object.entries(e.services)) {
+        if (starts.length > 1) restartedInside++;
+        if (!seen.has(service)) seen.set(service, new Set());
+        if (starts.some((s) => seen.get(service).has(s))) continued = true;
+      }
+      for (const [service, starts] of Object.entries(e.services)) starts.forEach((s) => seen.get(service).add(s));
+      if (continued) {
+        cells[e.cell].continued++;
+        continuedCampaigns.add(e.campaign);
+      }
+    }
+    return {
+      block,
+      campaigns: new Set(list.map((e) => e.campaign)).size,
+      campaigns_with_continued_process: continuedCampaigns.size,
+      services_restarted_inside_a_campaign: restartedInside,
+      cells,
     };
   });
 }

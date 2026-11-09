@@ -1,0 +1,21 @@
+latency_mean_ms                Q1 1.00 Q2 1.29 Q3 exakt 1.993 Max 24.67 => L 2 | Roh-b Q3 1.74
+cpu_seconds_total              Q1 1.00 Q2 1.42 Q3 exakt 1.939 Max 11.42 => L 2 | Roh-b Q3 2.23
+working_set_peak_bytes_total   Q1 2.14 Q2 5.53 Q3 exakt 12.987 Max 17.21 => L 13 | Roh-b Q3 23.30
+connect_mean_ms                Q1 1.12 Q2 1.58 Q3 exakt 2.778 Max 20.25 => L 3 | Roh-b Q3 2.39
+
+Klassifikation je Familie, signifikant nach Holm
+latency_mean_ms                L=2 signifikant 26 | ohne Hinweis 26 | nur Trend 0 | Abhaengigkeit nach Trendentfernung 0 | 95-KI schliesst 0 ein 0 | Niveau 1-a/39 schliesst 0 ein 0 | Breite gegen iid Q1/Med/Q3/Max 0.96/1.02/1.18/1.87 | nicht signifikant, aber Niveau-KI schliesst 0 aus 0
+cpu_seconds_total              L=2 signifikant 36 | ohne Hinweis 31 | nur Trend 4 | Abhaengigkeit nach Trendentfernung 1 | 95-KI schliesst 0 ein 0 | Niveau 1-a/39 schliesst 0 ein 0 | Breite gegen iid Q1/Med/Q3/Max 0.92/0.99/1.26/1.94 | nicht signifikant, aber Niveau-KI schliesst 0 aus 0
+working_set_peak_bytes_total   L=13 signifikant 39 | ohne Hinweis 7 | nur Trend 5 | Abhaengigkeit nach Trendentfernung 27 | 95-KI schliesst 0 ein 0 | Niveau 1-a/39 schliesst 0 ein 0 | Breite gegen iid Q1/Med/Q3/Max 0.60/0.97/1.76/3.69 | nicht signifikant, aber Niveau-KI schliesst 0 aus 0
+connect_mean_ms                L=3 signifikant 27 | ohne Hinweis 27 | nur Trend 0 | Abhaengigkeit nach Trendentfernung 0 | 95-KI schliesst 0 ein 0 | Niveau 1-a/39 schliesst 0 ein 2 | Breite gegen iid Q1/Med/Q3/Max 0.86/1.00/1.11/1.69 | nicht signifikant, aber Niveau-KI schliesst 0 aus 0
+{ sig: 128, none: 91, trend: 9, dep: 28, lostH: 2, lost95: 0 }
+Signifikant, aber Niveau-KI schliesst 0 ein:
+  connect_mean_ms c1 baseline md 0.1000 KI95 [0.0229,0.2006] KIH [-0.0148,0.2374] r1 -0.10 det -0.11
+  connect_mean_ms c10 medium md 0.1200 KI95 [0.0401,0.2603] KIH [-0.0388,0.3281] r1 -0.04 det -0.09
+Formen {
+  '12|medium': '7.8 6.4 4.3 3.2 4.6 4.2 4.0 3.0 3.0',
+  '1|baseline': '-324.5 -326.3 -328.0 -329.6 -331.2 -331.3 -331.1 -331.4 -331.4',
+  '2|medium': '8.5 10.4 12.3 13.9 13.4 14.1 14.5 14.6 14.3',
+  '13|baseline': '340.1 341.7 343.6 345.3 346.8 347.0 346.8 347.0 346.9'
+}
+WS Drift |MiB| Median/Max 3.2 22.2

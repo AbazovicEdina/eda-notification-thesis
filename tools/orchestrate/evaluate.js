@@ -19,7 +19,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses, sensitivityFamilies } from './assessment.js';
+import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses, sensitivityFamilies, temporalDiagnosisFamilies, blockComparison, processContinuity, DIAGNOSIS, MIN_PAIRS, TEMPORAL_MIN_ADJACENT, TEMPORAL_HALF_BOUNDARY, TEMPORAL_MIN_PER_HALF } from './assessment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -103,6 +103,46 @@ if (seriesDir) {
 }
 const assessment = assessHypotheses({ plan, families, found, redis, series });
 
+// Temporal diagnosis, descriptive only (DECISIONS.md 5.8, fixed on 2026-11-09
+// before block 2 was opened). It adds fields and changes no result above.
+const processEntries = [];
+for (const agg of campaigns) {
+  const runsDir = path.join(agg.dir, 'runs');
+  if (!existsSync(runsDir)) continue;
+  const byCell = new Map();
+  for (const f of readdirSync(runsDir).filter((x) => x.endsWith('.json') && !x.startsWith('.'))) {
+    const r = JSON.parse(readFileSync(path.join(runsDir, f), 'utf-8'));
+    if (!byCell.has(r.run?.cell)) byCell.set(r.run?.cell, new Map());
+    const services = byCell.get(r.run?.cell);
+    for (const c of r.containers ?? []) {
+      if (!services.has(c.service)) services.set(c.service, new Set());
+      services.get(c.service).add(c.started_at);
+    }
+  }
+  for (const [cell, services] of byCell) {
+    processEntries.push({
+      block: agg.block ?? 1,
+      campaign: agg.campaign_dir,
+      started_at: agg.started_at,
+      cell,
+      services: Object.fromEntries([...services].map(([s, starts]) => [s, [...starts]])),
+    });
+  }
+}
+const temporal = {
+  note: 'Beschreibend. Keine Bestätigung von Testentscheidungen, kein Test auf Unabhängigkeit. Die Grenze 2/√n ist eine Heuristik.',
+  parameters: {
+    limit: '2 / sqrt(n) mit der tatsächlichen Zahl gültiger Paare',
+    min_pairs: MIN_PAIRS,
+    min_adjacent_pairs: TEMPORAL_MIN_ADJACENT,
+    first_half_up_to_run: TEMPORAL_HALF_BOUNDARY,
+    min_observations_per_half: TEMPORAL_MIN_PER_HALF,
+  },
+  blocks: [plan.confirmatoryBlock, plan.replicationBlock].map((block) => ({ block, families: temporalDiagnosisFamilies(plan, found, block) })),
+  block_comparison: blockComparison(plan, found),
+  process_continuity: processContinuity(processEntries),
+};
+
 // Descriptive overview per cell and load level. A cell that appears in two
 // campaigns is listed twice (separately per campaign), because the values
 // come from different measurement periods.
@@ -127,6 +167,7 @@ const evaluation = {
   families,
   replication,
   sensitivity,
+  temporal_dependence: temporal,
   hypotheses: plan.hypotheses,
   assessment,
   redis_share_stress: redis,
@@ -226,6 +267,66 @@ for (const { block, families: fams } of sensitivity) {
       }
       const flag = r.wilcoxon_significant !== r.sign_significant ? ' **(abweichend)**' : '';
       lines.push(`| ${r.comparison_id} | ${r.scenario} | ${fu(r.median_diff)} | ${fu(r.hodges_lehmann)} | ${fmtS(r.skew_bowley)} | ${fmtS(r.skew_moment)} | ${signLabel(r)} | ${fmtP(r.sign_p_holm)} | ${yesNo(r.sign_significant)}${flag} | ${fmtP(r.wilcoxon_p_holm)} | ${yesNo(r.wilcoxon_significant)} | ${fmtS(r.cliffs_delta)} |`);
+    }
+    lines.push('');
+  }
+}
+
+lines.push('## Zeitliche Diagnose der Paardifferenzen (beschreibend, kein Signifikanznachweis)', '');
+lines.push('Die Diagnose beschreibt den zeitlichen Verlauf der gepaarten Differenzen innerhalb einer Kampagne (DECISIONS.md 5.8). Sie ist kein Test auf Unabhängigkeit und bestätigt keine Testentscheidung. Die Wilcoxon-Tests mit Holm-Korrektur bleiben unverändert die vorab festgelegte Entscheidungsregel, bei serieller Abhängigkeit liefern ihre p-Werte aber keine gesichert kalibrierte Inferenz. '
+  + 'Die Grenze 2/√n mit der tatsächlichen Zahl gültiger Paare ist eine Heuristik. „Reststruktur“ heißt, die Autokorrelation erster Ordnung liegt auch nach Entfernen eines linearen Trends über der Grenze, was auch ein nichtlinearer Verlauf auslösen kann. „Nur linearer Trend“ heißt, sie liegt nur vor der Trendbereinigung darüber. „Ohne Befund“ ist kein Nachweis von Unabhängigkeit. '
+  + 'Fehlende Paare bleiben Lücken in den echten Laufnummern. In die Autokorrelation gehen nur Paare mit aufeinanderfolgender Laufnummer ein. Die Hälften trennt die feste Laufnummer ' + TEMPORAL_HALF_BOUNDARY + '. „Nicht bestimmbar“ steht bei konstanten Reihen, unter ' + MIN_PAIRS + ' gültigen Paaren und unter ' + TEMPORAL_MIN_ADJACENT + ' Nachbarpaaren.', '');
+const classColumns = Object.values(DIAGNOSIS);
+for (const { block, families: fams } of temporal.blocks) {
+  if (!fams.some((f) => f.diagnoses > 0)) continue;
+  lines.push(`### Block ${block}, Übersicht`, '');
+  lines.push(`| Messgröße | Diagnosen | ${classColumns.join(' | ')} | mit Lücken |`);
+  lines.push(`|---|---|${classColumns.map(() => '---').join('|')}|---|`);
+  for (const f of fams) lines.push(`| ${f.measure} | ${f.diagnoses} | ${classColumns.map((k) => f.by_class[k]).join(' | ')} | ${f.with_gaps} |`);
+  lines.push('');
+  if (fams[0].by_class_among_holm_decisions) {
+    lines.push('Überschneidung mit den nach Holm signifikanten Tests der Hauptauswertung. Das ist nur eine Zählung und bestätigt keine Entscheidung.', '');
+    lines.push(`| Messgröße | ${classColumns.join(' | ')} |`);
+    lines.push(`|---|${classColumns.map(() => '---').join('|')}|`);
+    for (const f of fams) lines.push(`| ${f.measure} | ${classColumns.map((k) => f.by_class_among_holm_decisions[k]).join(' | ')} |`);
+    lines.push('');
+  }
+  for (const f of fams.filter((x) => x.diagnoses > 0)) {
+    const u = unitOf(f.measure);
+    const fu = (v) => (v == null ? '–' : fmt(v * u.scale, u.digits));
+    const f2 = (v) => (v == null ? '–' : fmt(v, 2));
+    lines.push(`### Block ${block}, je Test, ${f.measure}`, '');
+    lines.push(`| Nr. | Laststufe | gültige Paare | Nachbarpaare | fehlende Läufe | Grenze | Autokorrelation roh | trendbereinigt | Trendanteil | Beobachtungen 1. Hälfte | Beobachtungen 2. Hälfte | Änderung des Medians (${u.label}) | Einordnung |`);
+    lines.push('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+    for (const r of f.rows) {
+      if (!r.diagnosis) {
+        lines.push(`| ${r.comparison_id} | ${r.scenario} | ${r.status} | – | – | – | – | – | – | – | – | – | – |`);
+        continue;
+      }
+      lines.push(`| ${r.comparison_id} | ${r.scenario} | ${r.n_pairs} | ${r.n_adjacent_pairs} | ${r.missing_runs_inside} | ${f2(r.limit)} | ${f2(r.r1)} | ${f2(r.r1_detrended)} | ${f2(r.trend_share)} | ${r.n_first_half} | ${r.n_second_half} | ${fu(r.median_change_between_halves)} | ${r.diagnosis}${r.reason ? ` (${r.reason})` : ''} |`);
+    }
+    lines.push('');
+  }
+}
+for (const pc of temporal.process_continuity) {
+  lines.push(`### Block ${pc.block}, Prozesslaufzeiten`, '');
+  lines.push(`Von ${pc.campaigns} Kampagnen liefen ${pc.campaigns_with_continued_process} mit mindestens einem Prozess weiter, der schon in einer früheren Kampagne dieses Blocks lief. Dienste mit mehr als einem Start innerhalb einer Kampagne: ${pc.services_restarted_inside_a_campaign}.`, '');
+}
+if (temporal.block_comparison.some((f) => f.compared > 0)) {
+  lines.push('### Vergleich der Blöcke (beschreibend)', '');
+  lines.push('Differenz der Median-Differenzen von Block 2 und Block 1. Der Bezug ist die Summe der Spannweiten beider Zellen über die Kampagnen von Block 1. Daraus folgt keine Entscheidung, die Replikationsregel bleibt unverändert.', '');
+  for (const f of temporal.block_comparison.filter((x) => x.compared > 0)) {
+    const u = unitOf(f.measure);
+    const fu = (v) => (v == null ? '–' : fmt(v * u.scale, u.digits));
+    lines.push(`#### ${f.measure}`, '');
+    lines.push(`| Nr. | Laststufe | Block 1 (${u.label}) | Block 2 (${u.label}) | Differenz (${u.label}) | Differenz in % von Block 1 | Spannweite A (${u.label}) | Spannweite B (${u.label}) | Betrag der Differenz zur Summe der Spannweiten |`);
+    lines.push('|---|---|---|---|---|---|---|---|---|');
+    for (const r of f.rows) {
+      if (r.status !== 'verglichen') {
+        lines.push(`| ${r.comparison_id} | ${r.scenario} | ${r.status} | – | – | – | – | – | – |`);
+        continue;
+      }
+      lines.push(`| ${r.comparison_id} | ${r.scenario} | ${fu(r.median_block1)} | ${fu(r.median_block2)} | ${fu(r.difference)} | ${r.difference_percent_of_block1 == null ? '–' : fmt(r.difference_percent_of_block1, 1)} | ${fu(r.range_between_campaigns_a)} | ${fu(r.range_between_campaigns_b)} | ${r.difference_to_range_sum == null ? '–' : fmt(r.difference_to_range_sum, 2)} |`);
     }
     lines.push('');
   }

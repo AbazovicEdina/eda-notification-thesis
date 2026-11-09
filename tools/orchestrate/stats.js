@@ -338,3 +338,100 @@ export function comparePaired(a, b, { resamples = 10000, seed = 1, minPairs = 10
     bootstrap: { resamples: ci.resamples, seed: ci.seed },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Temporal diagnostics of the paired differences (DECISIONS.md 5.8, fixed on
+// 2026-11-09 before block 2 was opened). Descriptive only. These functions
+// neither test independence nor produce intervals or p-values. All of them
+// work on the real run numbers, so a missing pair stays a gap and the runs are
+// never renumbered as if they had been contiguous.
+// ---------------------------------------------------------------------------
+
+// Relative tolerance below which a series counts as constant. Rounding errors
+// of a mean or of a fitted line must not look like variation.
+const FLAT_TOLERANCE = 1e-10;
+
+function assertSeries(values, runIndices) {
+  if (values.length !== runIndices.length) throw new Error('Werte und Laufnummern müssen gleich lang sein');
+  for (let i = 1; i < runIndices.length; i++) {
+    if (runIndices[i] <= runIndices[i - 1]) throw new Error('Laufnummern müssen streng aufsteigen');
+  }
+}
+
+function largestMagnitude(values) {
+  return values.reduce((max, v) => Math.max(max, Math.abs(v)), 0);
+}
+
+// Least-squares line over the real run numbers. trendShare is the share of the
+// variance the line explains, null for a constant series. residualsFlat says
+// that nothing but rounding error is left after the line.
+export function linearTrendByRun(values, runIndices) {
+  assertSeries(values, runIndices);
+  if (values.length < 3) return null;
+  const meanX = mean(runIndices);
+  const meanY = mean(values);
+  let sxx = 0;
+  let sxy = 0;
+  let sst = 0;
+  for (let i = 0; i < values.length; i++) {
+    sxx += (runIndices[i] - meanX) ** 2;
+    sxy += (runIndices[i] - meanX) * (values[i] - meanY);
+    sst += (values[i] - meanY) ** 2;
+  }
+  const slope = sxy / sxx;
+  const residuals = values.map((v, i) => v - meanY - slope * (runIndices[i] - meanX));
+  const ssr = residuals.reduce((sum, r) => sum + r * r, 0);
+  const limit = (FLAT_TOLERANCE * largestMagnitude(values)) ** 2 * values.length;
+  const constant = sst <= limit;
+  return {
+    slope,
+    residuals,
+    trendShare: constant ? null : 1 - ssr / sst,
+    constant,
+    residualsFlat: ssr <= limit,
+  };
+}
+
+// Autocorrelation at lag 1 over the real run numbers. Only pairs whose run
+// numbers differ by exactly 1 enter the numerator, adjacentPairs counts them.
+// All values enter the mean and the denominator. The factor (n − 1) / m makes
+// up for the missing products and equals 1 for a series without gaps, where
+// this is the usual estimator. r is null for a constant series or without any
+// adjacent pair. flatScale is the magnitude that defines "constant", for
+// residuals the magnitude of the original values.
+export function lag1AutocorrelationByRun(values, runIndices, flatScale = largestMagnitude(values)) {
+  assertSeries(values, runIndices);
+  const n = values.length;
+  if (n === 0) return { r: null, adjacentPairs: 0 };
+  const center = mean(values);
+  let denominator = 0;
+  for (const v of values) denominator += (v - center) ** 2;
+  let numerator = 0;
+  let adjacentPairs = 0;
+  for (let i = 0; i + 1 < n; i++) {
+    if (runIndices[i + 1] === runIndices[i] + 1) {
+      numerator += (values[i] - center) * (values[i + 1] - center);
+      adjacentPairs++;
+    }
+  }
+  const flat = denominator <= (FLAT_TOLERANCE * flatScale) ** 2 * n;
+  if (flat || adjacentPairs === 0) return { r: null, adjacentPairs };
+  return { r: ((n - 1) / adjacentPairs) * (numerator / denominator), adjacentPairs };
+}
+
+// Medians of the two chronological halves, split at a fixed run number. The
+// halves may differ in size. change is the second median minus the first and
+// null if a half has fewer than minPerHalf observations.
+export function halfMediansByRun(values, runIndices, boundary, minPerHalf) {
+  assertSeries(values, runIndices);
+  const first = values.filter((_, i) => runIndices[i] <= boundary);
+  const second = values.filter((_, i) => runIndices[i] > boundary);
+  const usable = first.length >= minPerHalf && second.length >= minPerHalf;
+  return {
+    n_first: first.length,
+    n_second: second.length,
+    median_first: first.length ? median(first) : null,
+    median_second: second.length ? median(second) : null,
+    change: usable ? median(second) - median(first) : null,
+  };
+}
