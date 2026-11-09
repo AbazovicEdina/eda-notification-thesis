@@ -2,7 +2,7 @@
 
 Prototypen und Messumgebung zur Bachelorarbeit **„Event-driven Notification Systems: PHP vs. Node.js mit Server-Sent Events und WebSockets"** (Arbeitstitel, Titelvorschläge in DECISIONS.md 5.23). Ausgangspunkt ist das Semesterprojekt Lokato (RFID-Scan → MQTT → Backend → Push an Clients).
 
-Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue. Verglichen wird entlang von vier Achsen, nämlich Sprache, Framework, Transport und Queue (DECISIONS.md 5.15).
+Verglichen werden zehn Zellen. Acht davon bilden die Kombinationen aus zwei Sprachen, zwei Transportarten und zwei Varianten. Die Framework-Variante ist der Hauptvergleich PHP gegenüber Node.js, die Minimalvariante dient als Baseline ohne Framework. Zwei weitere Zellen messen den Weg über eine Queue. Dreizehn geplante Vergleiche sind nach den vier Dimensionen Sprache, Framework, Transport und Queue gegliedert (DECISIONS.md 5.15). Das Design ist nicht vollfaktoriell, die Vergleiche zeigen Unterschiede zwischen konkreten Varianten und keine isolierten Einzeleffekte (DECISIONS.md 5.23).
 
 | | SSE | WebSockets | SSE mit Queue |
 | --- | --- | --- | --- |
