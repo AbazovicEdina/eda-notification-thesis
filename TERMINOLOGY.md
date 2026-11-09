@@ -107,7 +107,7 @@ These limits follow from the study design and the documented decisions.
 |---|---|---|---|
 | the effect of language, framework, transport or queue | differences in the planned comparisons of the selected variants | The ten variants are not a full factorial design | `DECISIONS.md` 5.15, 5.23 |
 | independent factors, fully factorial | design dimensions, selected variants, planned comparisons | same reason | `DECISIONS.md` 5.23 |
-| stress, resource stress, under load for the main levels | at 500 clients, with increasing client counts | CPU use at 500 clients was 0.8 to 3.6 % of the budget in block 1 | `DECISIONS.md` 5.9 |
+| stress level, resource stress, saturation or overload at the main load levels without evidence | at 500 clients, with increasing client counts. "Under load" is acceptable when it refers to the number of clients and events | CPU use at 500 clients was 0.8 to 3.6 % of the budget in block 1 | `DECISIONS.md` 5.9 |
 | confirmed or proven for a hypothesis | supported under the pre-specified rule | An assessment is the result of a rule | `DECISIONS.md` 5.8, 5.23 |
 | significance secured, family-wise error rate controlled, for affected tests | decision of the pre-specified rule, p-values not securely calibrated under serial dependence | The paired runs share one process course | `DECISIONS.md` 5.8 |
 | robust confirmation by the diagnosis | descriptive diagnosis | The diagnosis confirms no test decision | `DECISIONS.md` 5.8 |

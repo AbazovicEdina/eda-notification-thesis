@@ -71,7 +71,7 @@ The study uses thirteen planned comparisons and not all possible pairs. The labe
 | Load generator | separate laptop, connected by wired LAN, runs k6 and the event sources | `DECISIONS.md` 5.14 |
 | Load tool | k6 1.2.1 with xk6-sse 0.1.12 | `DECISIONS.md` 5.26 |
 | Software | PHP 8.5.11, Node.js 26.11.1, Laravel 13.36.0, Reverb 1.12.0, Express 5.3.0, BullMQ 6.3.14, Redis 8.10.2, Nginx 1.30.5 and further components | `DECISIONS.md` 5.26 |
-| Event path | Redis Pub/Sub for all variants, HTTP/1.1, broadcast to all clients | `DECISIONS.md` 5.2, 5.4, 5.21 |
+| Event path | The eight variants without a queue receive events through Redis Pub/Sub on the channel `scan-events`. In the two queue variants the event source adds a job to BullMQ or Laravel Queue, both backed by Redis, and a worker publishes the processed event on a separate Redis Pub/Sub channel to which the SSE endpoint subscribes. HTTP/1.1, broadcast to all clients | `DECISIONS.md` 5.2, 5.4, 5.19, 5.21, `tools/event-simulator/simulate.js`, `prototypes/node-express/queue/worker.js`, `prototypes/php-laravel/app/Jobs/ProcessScanEvent.php` |
 | Event format | Lokato scan format plus `seq` and `ts`, about 140 bytes | `DECISIONS.md` 5.4, 5.21 |
 | Load levels | 10, 50 and 500 clients at 1 event per second | `tools/orchestrate/plan.json` |
 | One run | settling period of 10 s with clients connecting over the first 5 s, then 60 s hold time | `DECISIONS.md` 5.9 |
@@ -231,6 +231,8 @@ Block 1 outcome of the pre-specified rule. `unentschieden`, with 0 cases `erfül
 **Gap** (`LITERATUR.md`, Classification and research gap, marked there as a draft):
 
 > In documented searches of IEEE Xplore, the ACM Digital Library and Google Scholar, complemented by forward and backward citation tracking of seven key works and based on the titles, abstracts and bibliographic data of the screened records and on the full texts of selected candidates rather than on all hits or full texts, no study was identified that measures PHP-FPM with one worker per open SSE connection, event-loop PHP WebSocket servers and Node.js for server push over long-lived connections under the same explicit CPU and memory limits per variant, including framework and queue variants and using planned pairwise contrasts, paired runs and an analysis plan fixed before data collection. This does not show that no such study exists. Because the transport is tied to the execution model in PHP and the queue was studied only in framework-based SSE variants, these contrasts are not independent effects of language, framework, transport and queue.
+
+In this gap statement, "analysis plan fixed before data collection" applies only to the tests, test families, hypotheses and decision rules G1 to G4 fixed at that time (`tools/orchestrate/plan.json`, `DECISIONS.md` 5.8, 5.18). Later additions, among them the sensitivity analysis of 2026-11-08 and the temporal diagnosis of 2026-11-09, are documented separately with their dates (`DECISIONS.md` 5.8 and Section 9 of this file).
 
 **Limits of the search** (`LITERATUR.md`):
 
