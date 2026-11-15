@@ -25,7 +25,7 @@ Unter Git Bash auf Windows ist `MSYS_NO_PATHCONV=1` voranzustellen, damit die Pf
 | `box-<messgröße>-framework.pdf`, `-queue.pdf`, `-language-queue.pdf` | dasselbe für die Vergleiche 5–8, 9–10 und 11 (Anhang) |
 | `spread-working-set-peak-bytes-total.pdf` | Streuung des Working Set je Variante und Laststufe als Abweichung vom Median der eigenen Kampagne (Anhang) |
 | `scaling-served.pdf`, `scaling-latency.pdf`, `scaling-memory.pdf` | **Skalierungsreihe.** Bediente Clients, Latenz und Working Set über die Clientzahl, je Sprache und Framework-Wahl ein Feld |
-| `saturation.pdf` | höchste nachhaltige Event-Rate je Variante als Punktdiagramm auf den getesteten Stufen. Pfeile kennzeichnen Untergrenzen, Varianten ohne Wert stehen in einer eigenen Zeile unter der Achse |
+| `saturation.pdf` | höchste bestandene Teststufe je Variante als Punktdiagramm auf den getesteten Stufen. Pfeile kennzeichnen Untergrenzen, Varianten ohne Wert stehen in einer eigenen Zeile unter der Achse |
 
 `<messgröße>` steht für `latency-mean-ms`, `cpu-seconds-total`, `working-set-peak-bytes-total` und `connect-mean-ms`.
 

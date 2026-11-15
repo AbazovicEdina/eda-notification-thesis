@@ -380,9 +380,11 @@ def center_y_title(fig):
     title.set_y((min(p.y0 for p in panels) + max(p.y1 for p in panels)) / 2)
 
 
-def thin_tick_labels(ax, axis="y"):
+def thin_tick_labels(ax, axis="y", keep=()):
     """Leaves out tick labels that would touch their neighbor, the grid lines stay.
-    The highest and the lowest label are always kept."""
+    The highest and the lowest label are always kept. Labels whose text is in keep,
+    for example a rate at which a point sits, are kept as well, and the other labels
+    give way to them (added on 2026-11-15). Without keep the result is unchanged."""
     ax.figure.canvas.draw()
     renderer = ax.figure._get_renderer()
     labels = ax.get_yticklabels() if axis == "y" else ax.get_xticklabels()
@@ -392,14 +394,21 @@ def thin_tick_labels(ax, axis="y"):
     key = (lambda bb: (bb.y0, bb.y1)) if axis == "y" else (lambda bb: (bb.x0, bb.x1))
     spans = {i: key(labels[i].get_window_extent(renderer)) for i in shown}
     order = sorted(shown, key=lambda i: spans[i][0])
-    kept = [order[0]]
-    for i in order[1:-1]:
-        if spans[i][0] - spans[kept[-1]][1] >= 2:
-            kept.append(i)
-    last = order[-1]
-    while len(kept) > 1 and spans[last][0] - spans[kept[-1]][1] < 2:
-        kept.pop()
-    kept.append(last)
+    if keep:
+        kept = sorted({order[0], order[-1]} | {i for i in shown if labels[i].get_text() in keep})
+        apart = lambda i, k: spans[i][0] - spans[k][1] >= 2 or spans[k][0] - spans[i][1] >= 2
+        for i in order:
+            if i not in kept and all(apart(i, k) for k in kept):
+                kept.append(i)
+    else:
+        kept = [order[0]]
+        for i in order[1:-1]:
+            if spans[i][0] - spans[kept[-1]][1] >= 2:
+                kept.append(i)
+        last = order[-1]
+        while len(kept) > 1 and spans[last][0] - spans[kept[-1]][1] < 2:
+            kept.pop()
+        kept.append(last)
     texts = [t.get_text() if i in kept else "" for i, t in enumerate(labels)]
     (ax.set_yticklabels if axis == "y" else ax.set_xticklabels)(texts)
 
@@ -1087,11 +1096,28 @@ def saturation_figure(series, out_dir, notes):
 
     # A variant without a value has no position on the rate axis. It gets a row of its own
     # below the axis, which carries no scale and names its meaning.
+    def sensitivity_raises(cell_name, cell):
+        # The gray arrow marks only the case the caption describes. The post-hoc
+        # sensitivity analysis keeps the value and turns the end of the series into a
+        # lower bound because of the send rate. Any other difference is listed in the
+        # notes, so that it is neither drawn wrongly nor hidden (2026-11-15).
+        sens = cell.get("sensitivity_sent_rate") or {}
+        if not sens.get("differs"):
+            return False
+        if (sens.get("limit") == "source" and cell.get("limit") == "criterion"
+                and sens.get("max_sustainable_rate_per_s") == cell.get("max_sustainable_rate_per_s")):
+            return True
+        notes.append(f"Sättigung {cell_name}: nachträgliche Sensitivitätsanalyse weicht anders ab "
+                     f"({sens.get('limit')}, {sens.get('max_sustainable_rate_per_s')}), in der Abbildung nicht dargestellt")
+        return False
+
     present = {row_of(c) for c in saturation.values()} - {None}
     rows = [r for r in ("none", "not_evaluable", "not_attributable") if r in present]
     row_labels = {"none": "none sustained", "not_evaluable": "not evaluable", "not_attributable": "not attributable"}
     strip_height = 0.22 * len(rows) + 0.08 if rows else 0.0
-    height = 3.4 + strip_height
+    # Taller than the other figures since 2026-11-15, so that the labels of 400 and 500
+    # both fit on the logarithmic axis.
+    height = 4.2 + strip_height
     if rows:
         fig, (ax, strip) = plt.subplots(2, 1, figsize=(WIDTH, height), sharex=True, layout="constrained",
                                         height_ratios=[2.0, strip_height])
@@ -1101,6 +1127,7 @@ def saturation_figure(series, out_dir, notes):
     outer_padding(fig, WIDTH, height, hspace=0.01)
     offsets = {"sse": -0.22, "ws": 0.0, "sse-queue": 0.22}
     marks = set()
+    point_rates = set()
     for i, (fam, _) in enumerate(FAMILIES):
         for suffix in ("sse", "ws", "sse-queue"):
             cell_name = f"{fam}-{suffix}"
@@ -1116,8 +1143,12 @@ def saturation_figure(series, out_dir, notes):
                 strip.plot(x, rows.index(row), linestyle="none", marker=marker, markersize=5.5, markerfacecolor="none",
                            markeredgecolor=line, markeredgewidth=0.9, clip_on=False)
                 marks.add("empty")
+                if (cell.get("sensitivity_sent_rate") or {}).get("differs"):
+                    notes.append(f"Sättigung {cell_name}: nachträgliche Sensitivitätsanalyse weicht ab, "
+                                 "Variante ohne Wert, in der Abbildung nicht dargestellt")
                 continue
             ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
+            point_rates.add(f"{value:g}")
             # A value that is only a lower bound gets an upward arrow. Solid: all levels passed.
             # Dashed: the series ended at a level the load generator could not serve. Dotted:
             # the next level missed only the send rate of the source (DECISIONS.md 5.17).
@@ -1131,7 +1162,7 @@ def saturation_figure(series, out_dir, notes):
                 ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
                             arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7, "mutation_scale": 6,
                                         "shrinkA": 0, "shrinkB": 0, "linestyle": style})
-            elif (cell.get("sensitivity_sent_rate") or {}).get("differs"):
+            elif sensitivity_raises(cell_name, cell):
                 # Post-hoc sensitivity analysis of 2026-11-15 (DECISIONS.md 5.17): gray and dotted,
                 # so that it stays apart from the primary classification. The point keeps its
                 # primary value.
@@ -1146,7 +1177,7 @@ def saturation_figure(series, out_dir, notes):
         ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
         ax.set_ylim(rates[0] / 1.25, top * 2.2)
     ax.set_xlim(-0.6, len(FAMILIES) - 0.4)
-    ax.set_ylabel("Maximum sustainable\nevent rate (events/s)")
+    ax.set_ylabel("Highest passed test\nlevel (events/s)")
     ax.grid(axis="x", visible=False)
     bottom = strip if strip is not None else ax
     if strip is not None:
@@ -1168,26 +1199,35 @@ def saturation_figure(series, out_dir, notes):
                []]
     arrow = lambda linestyle, label: ArrowKey([], [], color=FLOW, linestyle=linestyle, label=label)
     if "highest" in marks:
-        columns[2].append(arrow("-", "at least, all rates sustained"))
+        columns[2].append(arrow("-", "at least, all levels passed"))
     if "loadgen" in marks:
         columns[2].append(arrow(DASHED, "at least, load generator limit"))
     if "source" in marks:
-        columns[2].append(arrow(DOTTED, "at least, next rate: source below 99 %"))
+        columns[2].append(arrow(DOTTED, "at least, next level: source below 99 %"))
     if "sensitivity" in marks:
         columns[2].append(ArrowKey([], [], color=INFRA_LINE, linestyle=DOTTED,
-                                   label="post hoc: next rate not assessable"))
+                                   label="post hoc: next level not assessable"))
     if "empty" in marks:
         columns[2].append(legend_marker("o", FLOW, "no rate, see the lowest rows", filled=False))
     figure_legend(fig, [c for c in columns if c])
     # Every tested rate keeps its grid line, labels that would touch their neighbor are left out.
-    thin_tick_labels(ax)
+    thin_tick_labels(ax, keep=point_rates)
     save(fig, out_dir, "saturation.pdf", notes)
     crit = next(iter(saturation.values())).get("criteria") or {}
     rule = ""
-    if crit.get("minDeliveryRatio") is not None and crit.get("maxP95LatencyMs") is not None:
-        rule = (f" Nachhaltig: mindestens {crit['minDeliveryRatio'] * 100:g} % zugestellte Events und p95-Latenz "
-                f"höchstens {crit['maxP95LatencyMs']:g} ms auf dieser und allen niedrigeren Stufen.")
-    caption = ("Gefülltes Symbol: höchste getestete Event-Rate, die eine Variante nachhaltig zustellt. y-Achse logarithmisch, "
+    keys = ("minDeliveryRatio", "maxP95LatencyMs", "minSourceRatio", "minServedRatio", "minTotalDeliveryRatio", "maxLoadgenUtil")
+    if all(crit.get(k) is not None for k in keys):
+        pct = lambda k: f"{crit[k] * 100:g}"
+        rule = (f" Bestanden ist eine Stufe, wenn im Median ihrer Läufe mindestens {pct('minDeliveryRatio')} % der Events "
+                f"zwischen dem ersten und dem letzten empfangenen Event ankamen, die p95-Latenz höchstens "
+                f"{crit['maxP95LatencyMs']:g} ms betrug, die Quelle mindestens {pct('minSourceRatio')} % der eingestellten Rate "
+                f"sendete, mindestens {pct('minServedRatio')} % der Clients bedient wurden und mindestens "
+                f"{pct('minTotalDeliveryRatio')} % aller vorgesehenen Events ankamen. War der Lastgenerator im Median über "
+                f"{pct('maxLoadgenUtil')} % ausgelastet, ist die Stufe nicht auswertbar. Ein Wert gilt nur, wenn auch alle "
+                f"niedrigeren Stufen bestanden wurden.")
+    else:
+        notes.append("Sättigung: Bedingungen in series.json unvollständig, Bildunterschrift ohne Regel")
+    caption = ("Gefülltes Symbol: höchste bestandene Teststufe einer Variante. y-Achse logarithmisch, "
                "waagrechte Linien bei den getesteten Stufen. Durchgezogener Pfeil nach oben: alle Stufen bestanden, die Grenze liegt mindestens beim gezeigten Wert. "
                "Gestrichelter Pfeil nach oben: die Reihe endete an einer Stufe, auf der der Lastgenerator über 80 % ausgelastet war, die Grenze liegt mindestens beim gezeigten Wert. "
                "Gepunkteter Pfeil nach oben: an der nächsten Stufe lag allein die Senderate der Quelle unter 99 %, alle anderen Bedingungen waren erfüllt. "
@@ -1200,7 +1240,7 @@ def saturation_figure(series, out_dir, notes):
                "die Ursache der niedrigen Senderate ist nicht bestimmt. Jeder Wert ist die höchste bestandene Teststufe, keine nachgewiesene technische Grenze." + rule + " SSE in der Farbe der Sprache, "
                "WebSocket petrol, SSE mit Queue apricot, dazu je Transport ein eigenes Symbol.")
     return {"file": "saturation.pdf", "tier": "Kern (6.3)", "caption": caption,
-            "what": "Sättigungstest, höchste nachhaltige Event-Rate je Variante"}
+            "what": "Sättigungstest, höchste bestandene Teststufe je Variante"}
 
 
 def main():
