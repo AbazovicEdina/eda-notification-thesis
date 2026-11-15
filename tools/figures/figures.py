@@ -1078,13 +1078,18 @@ def saturation_figure(series, out_dir, notes):
     def row_of(cell):
         if cell.get("max_sustainable_rate_per_s") is not None:
             return None
-        return "not_evaluable" if cell.get("limit") == "loadgen" else "none"
+        limit = cell.get("limit")
+        if limit == "loadgen":
+            return "not_evaluable"
+        if limit == "source":
+            return "not_attributable"
+        return "none"
 
     # A variant without a value has no position on the rate axis. It gets a row of its own
     # below the axis, which carries no scale and names its meaning.
     present = {row_of(c) for c in saturation.values()} - {None}
-    rows = [r for r in ("none", "not_evaluable") if r in present]
-    row_labels = {"none": "none sustained", "not_evaluable": "not evaluable"}
+    rows = [r for r in ("none", "not_evaluable", "not_attributable") if r in present]
+    row_labels = {"none": "none sustained", "not_evaluable": "not evaluable", "not_attributable": "not attributable"}
     strip_height = 0.22 * len(rows) + 0.08 if rows else 0.0
     height = 3.4 + strip_height
     if rows:
@@ -1114,15 +1119,26 @@ def saturation_figure(series, out_dir, notes):
                 continue
             ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
             # A value that is only a lower bound gets an upward arrow. Solid: all levels passed.
-            # Dashed: the series ended at a level the load generator could not serve.
+            # Dashed: the series ended at a level the load generator could not serve. Dotted:
+            # the next level missed only the send rate of the source (DECISIONS.md 5.17).
             limit = cell.get("limit")
             bounded_by_load = limit == "loadgen"
+            bounded_by_source = limit == "source"
             passed_all = limit == "highest_rate" or (limit is None and value >= top)
-            if bounded_by_load or passed_all:
-                marks.add("loadgen" if bounded_by_load else "highest")
+            if bounded_by_load or bounded_by_source or passed_all:
+                marks.add("loadgen" if bounded_by_load else "source" if bounded_by_source else "highest")
+                style = DASHED if bounded_by_load else DOTTED if bounded_by_source else "-"
                 ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
                             arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7, "mutation_scale": 6,
-                                        "shrinkA": 0, "shrinkB": 0, "linestyle": DASHED if bounded_by_load else "-"})
+                                        "shrinkA": 0, "shrinkB": 0, "linestyle": style})
+            elif (cell.get("sensitivity_sent_rate") or {}).get("differs"):
+                # Post-hoc sensitivity analysis of 2026-11-15 (DECISIONS.md 5.17): gray and dotted,
+                # so that it stays apart from the primary classification. The point keeps its
+                # primary value.
+                marks.add("sensitivity")
+                ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
+                            arrowprops={"arrowstyle": "-|>", "color": INFRA_LINE, "linewidth": 0.7, "mutation_scale": 6,
+                                        "shrinkA": 0, "shrinkB": 0, "linestyle": DOTTED})
     ax.set_yscale("log")
     if rates:
         ax.set_yticks(rates)
@@ -1155,6 +1171,11 @@ def saturation_figure(series, out_dir, notes):
         columns[2].append(arrow("-", "at least, all rates sustained"))
     if "loadgen" in marks:
         columns[2].append(arrow(DASHED, "at least, load generator limit"))
+    if "source" in marks:
+        columns[2].append(arrow(DOTTED, "at least, next rate: source below 99 %"))
+    if "sensitivity" in marks:
+        columns[2].append(ArrowKey([], [], color=INFRA_LINE, linestyle=DOTTED,
+                                   label="post hoc: next rate not assessable"))
     if "empty" in marks:
         columns[2].append(legend_marker("o", FLOW, "no rate, see the lowest rows", filled=False))
     figure_legend(fig, [c for c in columns if c])
@@ -1169,8 +1190,14 @@ def saturation_figure(series, out_dir, notes):
     caption = ("Gefülltes Symbol: höchste getestete Event-Rate, die eine Variante nachhaltig zustellt. y-Achse logarithmisch, "
                "waagrechte Linien bei den getesteten Stufen. Durchgezogener Pfeil nach oben: alle Stufen bestanden, die Grenze liegt mindestens beim gezeigten Wert. "
                "Gestrichelter Pfeil nach oben: die Reihe endete an einer Stufe, auf der der Lastgenerator über 80 % ausgelastet war, die Grenze liegt mindestens beim gezeigten Wert. "
+               "Gepunkteter Pfeil nach oben: an der nächsten Stufe lag allein die Senderate der Quelle unter 99 %, alle anderen Bedingungen waren erfüllt. "
+               "Diese Stufe ist nicht eindeutig bewertbar, die Grenze liegt mindestens beim gezeigten Wert, die Ursache der niedrigen Senderate ist nicht bestimmt. "
                "Die Zeilen unter der Achse haben keine Skala und zeigen keinen Messwert. Offenes Symbol in der Zeile none sustained: schon die niedrigste getestete Stufe wurde nicht bestanden. "
-               "Offenes Symbol in der Zeile not evaluable: schon die niedrigste Stufe ließ sich wegen des Lastgenerators nicht auswerten." + rule + " SSE in der Farbe der Sprache, "
+               "Offenes Symbol in der Zeile not evaluable: schon die niedrigste Stufe ließ sich wegen des Lastgenerators nicht auswerten. "
+               "Offenes Symbol in der Zeile not attributable: schon an der niedrigsten Stufe lag allein die Senderate der Quelle unter 99 %. "
+               "Grauer gepunkteter Pfeil: nachträgliche Sensitivitätsanalyse vom 2026-11-15, nicht Teil des Hauptergebnisses. Bezieht man die Gesamtzustellung "
+               "auf die tatsächlich gesendeten Events, ist die nächste Stufe wegen zu niedriger Senderate nicht eindeutig bewertbar. Der Punkt zeigt die primäre Einstufung, "
+               "die Ursache der niedrigen Senderate ist nicht bestimmt. Jeder Wert ist die höchste bestandene Teststufe, keine nachgewiesene technische Grenze." + rule + " SSE in der Farbe der Sprache, "
                "WebSocket petrol, SSE mit Queue apricot, dazu je Transport ein eigenes Symbol.")
     return {"file": "saturation.pdf", "tier": "Kern (6.3)", "caption": caption,
             "what": "Sättigungstest, höchste nachhaltige Event-Rate je Variante"}
