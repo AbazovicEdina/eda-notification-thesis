@@ -10,7 +10,7 @@
 // test per test, the resolution of the connection setup time, the
 // measurement operation, the skewness in the pilot and the front Nginx.
 //
-// Usage: node tools/orchestrate/descriptive.js [--block 1] [--prefix <prefix>] [--results results]
+// Usage: node tools/orchestrate/descriptive.js [--block 1] [--prefix <prefix>] [--rerun <name>,...] [--results results]
 // Output: results/<timestamp>_block<n>-descriptive/block<n>-descriptive.md and .json
 
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
@@ -48,22 +48,39 @@ const skewness = (a) => {
 
 // Campaigns of the block. Trial runs carry a prefix (smoke-, probe…, check-)
 // and the same phase and block, so only the plain names count.
+// --rerun names campaigns that were repeated with the prefix rerun- by a
+// documented decision. Only these are replaced, each by exactly its rerun
+// (DECISIONS.md 5.14, b2-c02-baseline). Any other rerun- campaign is ignored.
 const PREFIX = opt('prefix', '');
+const RERUN = (opt('rerun', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
 const NAME = new RegExp(`^${PREFIX}b${BLOCK}-c\\d{2}-(${plan.scenarios.join('|')})$`);
 const campaigns = [];
+const replaced = [];
 for (const dir of dirs) {
   const file = path.join(RESULTS, dir, 'aggregate.json');
   if (!existsSync(file)) continue;
   const agg = readJson(file);
-  if (agg.phase !== 'main' || (agg.block ?? 1) !== BLOCK || agg.aborted || !NAME.test(agg.name)) continue;
+  if (agg.phase !== 'main' || (agg.block ?? 1) !== BLOCK || agg.aborted) continue;
+  const isRerun = agg.name.startsWith('rerun-') && RERUN.includes(agg.name.slice('rerun-'.length)) && NAME.test(agg.name.slice('rerun-'.length));
+  if (!isRerun && (!NAME.test(agg.name) || RERUN.includes(agg.name))) {
+    if (RERUN.includes(agg.name)) replaced.push(`${dir} durch die Wiederholung ersetzt`);
+    continue;
+  }
   const config = readJson(path.join(RESULTS, dir, 'campaign.json'));
   const [a, b] = config.configs.map((c) => (typeof c === 'string' ? c : c.name));
   campaigns.push({ dir, name: agg.name, agg, a, b, runs: loadRuns(dir) });
+}
+for (const name of RERUN) {
+  if (campaigns.filter((c) => c.name === `rerun-${name}`).length !== 1) {
+    console.error(`--rerun ${name}: genau eine vollständige Kampagne rerun-${name} erwartet`);
+    process.exit(1);
+  }
 }
 if (!campaigns.length) {
   console.error(`Keine Kampagnen von Block ${BLOCK} in ${RESULTS}`);
   process.exit(1);
 }
+for (const r of replaced) console.log(`Hinweis: ${r}`);
 const all = campaigns.flatMap((c) => c.runs.map((r) => ({ ...r, _c: c })));
 const measured = all.filter((r) => !r.run.warmup);
 const valid = measured.filter((r) => r.run.valid);
@@ -80,7 +97,8 @@ const groups = (fn) => {
 };
 
 const lines = [`# Beschreibende Auswertung von Block ${BLOCK}`, ''];
-const json = { block: BLOCK, generated_at: new Date().toISOString(), campaigns: campaigns.length };
+if (RERUN.length) lines.push(`Ersetzt durch die dokumentierte Wiederholung (DECISIONS.md 5.14): ${RERUN.map((n) => `${n} durch rerun-${n}`).join(', ')}.`, '');
+const json = { block: BLOCK, generated_at: new Date().toISOString(), campaigns: campaigns.length, replaced_by_rerun: RERUN };
 lines.push(`Erzeugt am ${json.generated_at} mit \`tools/orchestrate/descriptive.js\` aus den Laufprotokollen. Nur beschreibend, ohne Tests. Tests und Bewertung der Hypothesen stehen in \`evaluation.md\`.`, '');
 lines.push('Werte je Variante und Laststufe über alle gültigen gewerteten Läufe von Block ' + BLOCK + '. Eine Variante, die in mehreren Vergleichen vorkommt, geht mit allen ihren Läufen ein. Perzentile nach der Methode des nächsten Rangs wie in `stats.js`.', '');
 
