@@ -107,7 +107,7 @@ docker compose --profile tools run --rm figures --evaluation results/<auswertung
 
 Format der Kampagnen, Phasen, Ergebnisdateien und Auswertung beschreibt [tools/orchestrate/README.md](tools/orchestrate/README.md). Die Messungen der Arbeit laufen auf dem Raspberry Pi mit separatem Lastgenerator ([infra/pi/README.md](infra/pi/README.md)).
 
-**Stand (2026-11-07).** Block 1 lief vom 2026-10-31 bis 2026-11-07 auf Commit `ac47cb7` und ist geprüft, Block 2 folgt auf demselben Commit (DECISIONS.md 5.14). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software. Nach Block 2 wird auf demselben Commit der Ansturm wiederholt (DECISIONS.md 5.14).
+**Stand (2026-11-15).** Die Messung ist abgeschlossen. Block 1 lief vom 2026-10-31 bis 2026-11-07, Block 2 vom 2026-11-07 bis 2026-11-14, beide auf Commit `ac47cb7` und vor ihrer Auswertung geprüft (DECISIONS.md 5.14). Die erste Kampagne von Block 2 nach einem Neustart des Testservers wurde als `rerun-b2-c02-baseline` wiederholt. Am 2026-11-14 und 2026-11-15 folgten auf demselben Commit der wiederholte Ansturm, die Vorprüfung, der Sättigungstest und die Skalierungsreihe (DECISIONS.md 5.17). Spätere Commits ändern nur Auswertung und Dokumentation, nicht die gemessene Software.
 
 Ein einzelner manueller k6-Lauf gegen den Front-Nginx:
 
@@ -219,13 +219,16 @@ Die wichtigsten Berichte:
 | Bericht | Inhalt |
 | --- | --- |
 | [Belastungstest](results/2026-10-22T13-43-23Z_burn-in.csv) | 24 Stunden Volllast auf dem Pi, Rohdaten (DECISIONS.md 5.14) |
-| [Ansturm](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle, erster Durchgang, Wiederholung nach Block 2 (DECISIONS.md 5.14) |
+| [Ansturm, erster Durchgang](results/2026-10-29T16-12-22-683Z_series/series.md) | 500 gleichzeitige Verbindungen direkt nach einem Neustart der Zelle, noch auf Commit `19faccf`. Gültig ist die Wiederholung nach Block 2 (DECISIONS.md 5.14) |
 | [Pilot](results/2026-10-31T13-20-12-224Z_pilot/pilot.md) | Stabilität der Effekte, Grundlage für 90 Läufe je Laststufe (DECISIONS.md 5.9) |
 | [Letzte Prüfung vor Block 1](results/2026-10-31T18-36-43Z_preflight-block1/report.md) | statische Prüfung mit dem Ergebnis „Freigabe mit Auflagen" (DECISIONS.md 5.14) |
 | [Block 1](results/2026-10-31T19-08-30-054Z_schedule_block1.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b1-c<Vergleich>-<Laststufe>` in `results/`, die Prüfung vor Block 2 steht in DECISIONS.md 5.14 |
-| [Auswertung Block 1](results/2026-11-08T14-31-16-334Z_evaluation/evaluation.md) | Tests, Effektstärken, Sensitivitätsanalyse und Bewertung der Hypothesen aus dem konfirmatorischen Block, ohne Replikation und Reihen (DECISIONS.md 5.8, 5.18) |
-| [Abbildungen Block 1](results/2026-11-08T14-59-00-947Z_figures/figures.md) | Übersichten der Unterschiede, Boxplots aller Vergleiche je Messgröße und Streuung des Working Set (DECISIONS.md 5.24, 5.25) |
+| [Block 2](results/2026-11-07T20-37-14-477Z_schedule_block2.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b2-c<Vergleich>-<Laststufe>` in `results/`, statt `b2-c02-baseline` gilt `rerun-b2-c02-baseline`. Die Prüfung vor der Auswertung steht in DECISIONS.md 5.14 |
+| [Auswertung](results/2026-11-15T12-18-19-281Z_evaluation/evaluation.md) | Tests, Effektstärken, Sensitivitätsanalyse, zeitliche Diagnose und Bewertung der Hypothesen aus Block 1, Replikation durch Block 2, H4 und H11 aus den Reihen, nachträgliche Sensitivitätsanalyse zu H11 (DECISIONS.md 5.8, 5.17, 5.18) |
+| [Skalierung, Sättigung und Ansturm](results/2026-11-15T12-18-08-204Z_series/series.md) | Skalierungsreihe bis 1 000 Clients, Sättigungstest bis 1 000 Events/s mit nachträglicher Sensitivitätsanalyse zur Senderate, wiederholter Ansturm. Vorprüfung als `…_probe-sat-…`, Protokoll des Ablaufs mit dem Leeren von Redis in [2026-11-15_series-run.log](results/2026-11-15_series-run.log) (DECISIONS.md 5.9, 5.17) |
+| [Abbildungen](results/2026-11-15T12-19-43-633Z_figures/figures.md) | Übersichten der Unterschiede, Boxplots aller Vergleiche je Messgröße, Streuung des Working Set, Skalierung und Sättigung (DECISIONS.md 5.24, 5.25) |
 | [Beschreibende Auswertung Block 1](results/2026-11-07T20-22-02-396Z_block1-descriptive/block1-descriptive.md) | Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null, Messbetrieb und Front-Nginx, ohne Tests |
+| [Beschreibende Auswertung Block 2](results/2026-11-15T12-18-39-442Z_block2-descriptive/block2-descriptive.md) | dieselben Inhalte für Block 2, mit der Wiederholung statt `b2-c02-baseline` |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |
 
 Die lokalen Funktionsprüfungen sind bewusst kurz und keine Messergebnisse der Arbeit:

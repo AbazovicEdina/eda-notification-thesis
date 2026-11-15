@@ -1,6 +1,6 @@
 # Project Context
 
-Created on 2026-11-09 at commit `45d1d14`. This file records the research and project state of the thesis on event-driven notification systems with PHP and Node.js. It is written in English as a documented, provisional exception to the language rule in `DECISIONS.md` Section 7, which remains unchanged.
+Created on 2026-11-09 at commit `45d1d14`. Sections 6, 7 and 9 to 13 were updated on 2026-11-15 after the end of the measurement. This file records the research and project state of the thesis on event-driven notification systems with PHP and Node.js. It is written in English as a documented, provisional exception to the language rule in `DECISIONS.md` Section 7, which remains unchanged.
 
 **How to read this file.** Important statements name their source file and section. Sources marked "outside this repository" are working files of the project that are not published here. Statements without a supporting project file are marked "unconfirmed". Dated decisions keep their original date, and later additions are named as such in Section 9. The binding wording of a decision remains the one in `DECISIONS.md`. Terms and literal German values are explained in `TERMINOLOGY.md`.
 
@@ -138,13 +138,15 @@ That is 156 tests per block. The temporal diagnosis covers 156 tests per block a
 - The diagnosis confirms no test decision and is not a test of independence. About 2 to 3 false alarms per 156 tests are expected under independent differences, and about 4 to 5 over both blocks (`DECISIONS.md` 5.8).
 - The replication rule can fail for small differences or narrow intervals. A reconstruction within block 1, stricter than the real replication, suggested about 18 % for the working set with the same direction in 92 % (`DECISIONS.md` 5.8, `results/2026-11-09_temporal-dependence-check/`).
 - Four tests of block 1 are decided differently by the Wilcoxon test and the sign test (`DECISIONS.md` 5.8).
+- Absolute values of variant and Redis are higher in block 2 than in block 1 because of a reboot of the Pi between the blocks. Within a campaign the Redis level of A and B differed by at most 2.4 MiB per pair, so the paired differences are not affected (`DECISIONS.md` 5.14).
+- The highest sustainable rate of the saturation test is the highest passed test level, not a measured technical limit. The true limit lies between it and the next tested level or above (`DECISIONS.md` 5.17).
 - Memory at 10 and 50 clients shows the size of the PHP-FPM pool and not the cost per connection (`DECISIONS.md` 5.5).
 - The H4 limit is partly set by the configuration of 550 workers. Further tensions between hypotheses are listed in `DECISIONS.md` 5.18.
 - The test load is a broadcast with a uniform rate, without authentication or connection loss. Worker release after the next event and the absence of own heartbeats are described in `DECISIONS.md` 5.21.
 
 ## 7. Hypotheses
 
-The wording and rules are taken unchanged from `tools/orchestrate/plan.json`. The hypotheses were fixed before data collection, and the general decision rules on 2026-10-17 (`DECISIONS.md` 5.18). The outcomes come from `results/2026-11-09T00-26-22-566Z_evaluation/evaluation.json`. They are results of the pre-specified rules for block 1 only. H4 and H11 need the scaling series and the saturation test.
+The wording and rules are taken unchanged from `tools/orchestrate/plan.json`. The hypotheses were fixed before data collection, and the general decision rules on 2026-10-17 (`DECISIONS.md` 5.18). The outcomes come from `results/2026-11-15T12-18-19-281Z_evaluation/evaluation.json`. H1 to H3 and H5 to H10 are results of the pre-specified rules for block 1 and are identical to the evaluation of 2026-11-09. H4 and H11 use the scaling series and the saturation test in `results/2026-11-15T12-18-08-204Z_series/`.
 
 General decision rules:
 
@@ -182,7 +184,7 @@ Block 1 outcome of the pre-specified rule. `bestätigt`, with 4 cases `erfüllt`
 
 Decision rule. The PHP-FPM variants with Server-Sent Events (php-minimal-sse, php-laravel-sse and php-laravel-sse-queue) have the lowest capacity limits of all variants, and their served ratio drops by at least 5 percentage points between two consecutive steps (hard limit). The Node.js variants and the PHP WebSocket servers show no such drop up to the same step.
 
-Block 1 outcome of the pre-specified rule. `unentschieden`, with 0 cases `erfüllt`, 0 `gegenteil` and 1 `unklar`.
+Outcome of the pre-specified rule with the scaling series. `bestätigt`, with 11 cases `erfüllt`, 0 `gegenteil` and 0 `unklar`. The PHP-FPM variants with SSE served 73 % of the clients at 750 and 55 % at 1,000, which matches the 550 configured workers (`DECISIONS.md` 5.5, 5.18).
 
 **H5.** The framework effect is small for the event latency. For the connection setup time and the memory, it is considerably larger with Laravel than with Express.
 
@@ -224,7 +226,7 @@ Block 1 outcome of the pre-specified rule. `bestätigt`, with 1 cases `erfüllt`
 
 Decision rule. In all four pairs of a Server-Sent Events variant and a WebSocket variant with the same language and framework choice, the WebSocket variant reaches the higher maximum sustainable event rate. Undecided in case of a tie, for example when both reach the highest step.
 
-Block 1 outcome of the pre-specified rule. `unentschieden`, with 0 cases `erfüllt`, 0 `gegenteil` and 1 `unklar`.
+Outcome of the pre-specified rule with the saturation test. `nicht bestätigt`, with 1 case `erfüllt`, 3 `gegenteil` and 0 `unklar`. A post-hoc sensitivity analysis of 2026-11-15 relates the total delivery to the events actually sent. It turns the pair php-minimal into `unklar` and leaves H11 `nicht bestätigt` (`DECISIONS.md` 5.17).
 
 ## 8. Research gap and literature status
 
@@ -271,24 +273,27 @@ Each row gives the date of the decision and its position relative to the data. L
 | 2026-11-08 | sensitivity analysis added, saturation conditions and levels released, overview figures | after block 1, before block 2 was evaluated and before saturation data | `DECISIONS.md` 5.8, 5.17, 5.24, 5.25 |
 | 2026-11-09 | descriptive temporal diagnosis | after block 1, before block 2 was opened | `DECISIONS.md` 5.8 |
 | 2026-11-09 | research questions refined, wording on load levels and queue comparisons clarified, memory after the priming run specified, worker release and heartbeats described | later clarifications, original text preserved where dated | `DECISIONS.md` 5.5, 5.9, 5.15, 5.21, 5.23, 5.24 |
+| 2026-11-14 | block 2 checked, repeat of `b2-c02-baseline`, Redis emptied before each schedule, order of the saturation schedules, unchanged rate levels, rule for series that end only at the send rate | after block 2, before its evaluation and before the saturation data | `DECISIONS.md` 5.14, 5.17 |
+| 2026-11-15 | send rate rule implemented, its gap found after the results were seen, post-hoc sensitivity analysis | after the saturation data, the gap and the sensitivity analysis after its results | `DECISIONS.md` 5.17, 5.25 |
 
 The tests, test families, hypotheses and rules G1 to G4 were fixed before data collection. There was no entry in a public registry. Other deviations from the proposal are listed in `DECISIONS.md` 5.23.
 
 ## 10. Measurement and evaluation status
 
-Status at commit `45d1d14` on 2026-11-09.
+Status on 2026-11-15, after the end of the measurement.
 
 | Item | Status | Source |
 |---|---|---|
 | Pilot | complete | `results/2026-10-31T13-20-12-224Z_pilot/` |
 | Block 1 | complete, 2026-10-31 to 2026-11-07, commit `ac47cb7`, 39 campaigns, 7,410 runs, 7,020 evaluated runs, all valid | `DECISIONS.md` 5.14 |
-| Block 1 evaluation | `results/2026-11-09T00-26-22-566Z_evaluation/` | `DECISIONS.md` 5.8 |
-| Block 1 figures | `results/2026-11-08T14-59-00-947Z_figures/` | `DECISIONS.md` 5.25 |
+| Evaluation of both blocks | `results/2026-11-15T12-18-19-281Z_evaluation/`, block 1 identical to `results/2026-11-09T00-26-22-566Z_evaluation/` | `DECISIONS.md` 5.8 |
+| Figures | `results/2026-11-15T12-19-43-633Z_figures/` | `DECISIONS.md` 5.25 |
+| Descriptive evaluation of block 2 | `results/2026-11-15T12-18-39-442Z_block2-descriptive/` | `DECISIONS.md` 5.14 |
 | Code metrics | `results/2026-10-31T18-44-47-671Z_code-metrics/` | `DECISIONS.md` 5.22 |
-| Block 2 | in progress since 2026-11-08. No block 2 data is in this repository at this commit | `Schreibleitfaden.md` Section 13 (outside this repository) |
-| Connection storm | first run of 2026-10-29 on commit `19faccf`. Repeat on commit `ac47cb7` after block 2 is pending and is the one that counts | `DECISIONS.md` 5.14 |
-| Scaling series, saturation test, `probe-sat-` | pending | `DECISIONS.md` 5.9, 5.17 |
-| Replication | not assessed | `DECISIONS.md` 5.8 |
+| Block 2 | complete, 2026-11-07 to 2026-11-14, commit `ac47cb7`, 39 campaigns, 7,410 runs, 7,020 evaluated runs, all valid. The first campaign after a reboot of the Pi, `b2-c02-baseline`, had a distorted working set and is replaced by `rerun-b2-c02-baseline` | `DECISIONS.md` 5.14 |
+| Connection storm | first run of 2026-10-29 on commit `19faccf`. The repeat of 2026-11-14 on commit `ac47cb7` is the one that counts | `DECISIONS.md` 5.14 |
+| Scaling series, saturation test, `probe-sat-` | complete on 2026-11-14 and 2026-11-15 on commit `ac47cb7`, Redis emptied before each schedule, results in `results/2026-11-15T12-18-08-204Z_series/` | `DECISIONS.md` 5.9, 5.17 |
+| Replication | assessed with the pre-specified rule. Replicated are 23, 24, 14 and 31 of 39 tests for latency, CPU time, working set and connection setup, with the same direction in 33, 37, 37 and 35 | `DECISIONS.md` 5.8 |
 
 Block 1 counts of the temporal diagnosis, from `results/2026-11-09T00-26-22-566Z_evaluation/evaluation.json`. The last column counts the tests that are significant after Holm correction under the pre-specified rule, 128 in total. This is a count and no confirmation.
 
@@ -301,14 +306,7 @@ Block 1 counts of the temporal diagnosis, from `results/2026-11-09T00-26-22-566Z
 
 In block 1, 8 of 39 campaigns ran with at least one process that an earlier campaign had already used.
 
-**To update after the measurements.**
-
-- Status of block 2 and of its data check in this section
-- Evaluation directory, replication results and temporal diagnosis of block 2
-- Connection storm, `probe-sat-`, scaling series and saturation test
-- Outcomes of H4 and H11, and all hypothesis outcomes where block 2 is reported
-- Figures for scaling and saturation
-- Commit and date at the top of this file
+**Updated on 2026-11-15.** Status of block 2, replication, storm, scaling and saturation, H4, H11 and the figures. The temporal diagnosis of block 2 is in the evaluation and is not repeated in the table above.
 
 ## 11. Open tasks
 
@@ -316,8 +314,7 @@ In block 1, 8 of 39 campaigns ran with at least one process that an earlier camp
 |---|---|
 | Choose the final title with the supervisor | `DECISIONS.md` Section 6 |
 | Receive the supervisor's feedback on the refined research question. No feedback is documented | `DECISIONS.md` 5.23 |
-| Complete block 2, the storm, `probe-sat-`, scaling and saturation | `DECISIONS.md` 5.9, 5.14, 5.17 |
-| Evaluate with the temporal diagnosis in `tools/orchestrate/evaluate.js`, generate the final figures | `DECISIONS.md` 5.8, 5.25 |
+| Interpret block 2, scaling, saturation and storm in the thesis, with the limits in `DECISIONS.md` 5.10, 5.14 and 5.17 | `DECISIONS.md` 5.10, 5.14, 5.17 |
 | Check figures in the thesis document | `DECISIONS.md` Section 6 |
 | Complete the checks by hand, among them Romano et al., Arcuri & Briand, Kalibera & Jones, Felter et al., Cabane & Farias | `LITERATUR.md` |
 
@@ -334,6 +331,7 @@ In block 1, 8 of 39 campaigns ran with at least one process that an earlier camp
 | Block 1 and block 2 show the same or a different direction and size | A difference holds in general across executions |
 | Differences between the concrete variants of this setup | Isolated effects of language, framework, transport or queue, general statements about PHP or Node.js |
 | In the documented searches no such study was identified | No such study exists |
+| The highest saturation level passed in this test | A measured technical saturation limit |
 
 Source is `DECISIONS.md` 5.8, 5.15, 5.23 and `LITERATUR.md`.
 
@@ -344,3 +342,5 @@ Source is `DECISIONS.md` 5.8, 5.15, 5.23 and `LITERATUR.md`.
 | The rise in PHP-FPM memory after the priming run comes from each worker using more memory at its second use | unconfirmed, the pattern fits 550 workers but the mechanism was not measured | `DECISIONS.md` 5.5 |
 | Cause of the slow Node.js runs at 500 clients | unconfirmed, not investigated | `DECISIONS.md` 5.14 |
 | Cause of the difference in comparison 6, where Express is not on the WebSocket path | unconfirmed, not investigated | `prototypes/node-express/ws.js`, `results/2026-11-09T00-26-22-566Z_evaluation/` |
+| The higher memory of Redis in block 2 and of both variants in the first campaign after the reboot comes from file pages charged to the cgroup that read them first | unconfirmed, fits the data but was not measured | `DECISIONS.md` 5.14 |
+| Cause of the send rate below 99 % at 1,000 events/s with `php-minimal-sse`, `php-laravel-sse` and `php-laravel-ws` | not determined, attributed neither to Redis nor to the variant | `DECISIONS.md` 5.17 |
