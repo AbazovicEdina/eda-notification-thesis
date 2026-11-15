@@ -10,21 +10,16 @@ The author checks these points in the original before they appear in the text. E
 
 **Important, the thesis relies on these:**
 
-- [ ] **Romano et al. (2006).** Check the four thresholds of Cliff's delta in the original. The full text was not available during this review. The earlier claim that the thresholds became established through Arcuri & Briand (2014) was wrong and has been removed.
 - [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
-- [ ] **Kalibera & Jones (2013).** Confirm in the original the use for DECISIONS.md 5.9, setting the number of repetitions from an initial experiment.
 - [ ] **Felter et al. (2015).** The source compares KVM and Docker, not PHP and Node.js. That the overhead affects both alike is a conclusion of this thesis and must be worded that way in the text.
 - [ ] **Cabane & Farias (2024).** Only the title is known so far, and there is no open access. Read it through the university library or do not cite it. Its placement in the research gap depends on this.
 
 **Read before citing:**
 
 - [ ] **Hollander, Wolfe & Chicken (3rd edition).** Only the table of contents could be checked. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication.
-- [ ] **Pariag et al. (2007).** The figure of about 18% comes from a summary, not from the abstract.
 - [ ] **Van de Vyvere et al. (2020).** The full text was read in a manuscript version with its own page numbers. Take the page numbers from the Springer version if single passages are cited.
 - [ ] **Appelqvist & Örnmyr (2017).** Spot-check the page references in the entry.
-- [ ] **Bigestans (2014).** Confirm the institution on the DiVA record. It is taken from the address of the repository.
-- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis. Confirm the pages derived from the PDF.
-- [ ] **Hoefler & Belli (2015).** Confirm in the ACM version whether the page of rule 6 is labeled 73:5 or 5.
+- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis.
 - [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
 - [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
 
@@ -32,6 +27,8 @@ The author checks these points in the original before they appear in the text. E
 
 - [ ] **Online sources.** Access them once more and update `urldate`. Documentation changes, and the addresses of Laravel and Mercure have already moved since the first access.
 - [ ] **Proposals.** Resolve the section "Proposals, not read yet" after reading. Whatever is not cited does not appear in the bibliography anyway.
+
+**Confirmed on 2026-11-09.** The author checked Pariag et al. (2007), Kalibera & Jones (2013) and Romano et al. (2006) in the original PDF. The list of authors of Pariag et al. was corrected, see that entry. The author also checked Bigestans (2014) in the original PDF and on the DiVA record, and the places of rules 5 to 8 of Hoefler & Belli (2015) in the ACM PDF.
 
 **Completed on 2026-11-09.** The search in IEEE Xplore, the ACM Digital Library and Google Scholar and the citation tracking of seven key works are documented. They are limited as stated below the research gap. Lei et al. (2014), Chaniotis et al. (2015), Van de Vyvere et al. (2020) and Murley et al. (2021) were checked in the full text.
 
@@ -120,17 +117,19 @@ Rob von Behren, Jeremy Condit, Eric Brewer. "Why Events Are A Bad Idea (for High
 
 ### Pariag et al. (2007), comparison of web server architectures
 
-David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla, David R. Cheriton. "Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI 10.1145/1272996.1273021 (confirmed through Crossref on 2026-10-17).
+David Pariag, Tim Brecht, Ashif Harji, Peter Buhr, Amol Shukla. "Comparing the Performance of Web Server Architectures." In *Proceedings of EuroSys 2007*, 231–243, 2007. DOI 10.1145/1272996.1273021 (DOI and pages confirmed through Crossref on 2026-10-17).
 
-**Content (per summary).** Compares an event-driven server, a thread-per-connection server and a pipeline server. The event-driven and pipeline variants achieved about 18% higher throughput than the thread variant.
+**Authors.** The title page names five authors. Crossref also lists David R. Cheriton as a sixth author, but that name belongs to the affiliation, David R. Cheriton School of Computer Science.
+
+**Content (full text, PDF pages).** Compares an event-driven server (µserver), a thread-per-connection server (Knot) and a pipeline server (WatPipe) after extensive tuning. On the workload of the study, µserver and WatPipe provide about 18% better throughput than Knot according to the abstract (p. 1). The conclusions say up to 18% compared with the best implementation and tuning of Knot (p. 12). In the results, `userver-shared-nb` is 18% above the best Knot server, `knot-b`, at 15,000 requests per second (p. 10). The figures apply to this workload and configuration.
 
 **Relevance.** Empirical comparison of the concurrency models under controlled conditions, but for short HTTP requests instead of long-lived push connections.
 
-**CHECK BY HAND.** The figure of about 18% is not in the abstract. Check it in the original before citing.
+**Checked by the author on 2026-11-09** in the [PDF copy on the course page of Tim Brecht](https://cs.uwaterloo.ca/~brecht/courses/epfl/Possible-Readings/web/eurosys-2007.pdf). This covers the authors, the figures above and their limitation to the workload of the study. The copy shows no printed page numbers, so the places are given as PDF pages.
 
 ```bibtex
 @inproceedings{pariag2007comparing,
-  author    = {Pariag, David and Brecht, Tim and Harji, Ashif and Buhr, Peter and Shukla, Amol and Cheriton, David R.},
+  author    = {Pariag, David and Brecht, Tim and Harji, Ashif and Buhr, Peter and Shukla, Amol},
   title     = {Comparing the Performance of Web Server Architectures},
   booktitle = {Proceedings of the 2nd ACM SIGOPS/EuroSys European Conference on Computer Systems},
   pages     = {231--243},
@@ -257,7 +256,9 @@ Elof Bigestans. *Real-Time Full Duplex Communication over the Web: A Performance
 
 **Relevance and distinction.** The values apply to a bidirectional chat with HTTP POST and not to pure server push. The author considers SSE possibly better suited for pure server push and names CPU load as not examined (p. 43). It covers no PHP and no queue.
 
-**CHECK BY HAND.** Confirm the institution on the DiVA record.
+**Type of thesis.** The title page reads "Examensarbete inom huvudområdet datalogi", "Grundnivå" and "30 Högskolepoäng", spring term 2014, and does not use the word bachelor. "Bachelor's thesis" follows a Swedish catalog that lists it as "Kandidat-uppsats".
+
+**Checked by the author on 2026-11-09** in the original PDF and on the DiVA record. The PDF covers the author, the title, the type as printed and the term. The DiVA record gives the institution (University of Skövde, School of Informatics) and the URN `urn:nbn:se:his:diva-9618`.
 
 ```bibtex
 @thesis{bigestans2014realtime,
@@ -816,11 +817,15 @@ Norman Cliff. "Dominance Statistics: Ordinal Analyses to Answer Ordinal Question
 
 ### Romano, Kromrey, Coraggio & Skowronek (2006), thresholds for Cliff's delta
 
-Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. "Appropriate Statistics for Ordinal Level Data: Should We Really Be Using t-test and Cohen's d for Evaluating Group Differences on the NSSE and Other Surveys?" Talk, Annual Meeting of the Florida Association of Institutional Research, 2006.
+Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. "Appropriate Statistics for Ordinal Level Data: Should We Really Be Using t-test and Cohen's d for Evaluating Group Differences on the NSSE and Other Surveys?" Paper presented at the Annual Meeting of the Florida Association of Institutional Research, 2006.
 
-**Use.** Thresholds fixed in advance (|δ| < 0.147 negligible, < 0.33 small, < 0.474 medium, otherwise large, DECISIONS.md 5.8). Note. Conference contribution without journal peer review. The thesis can mention this openly.
+**Use.** Thresholds fixed in advance (|δ| < 0.147 negligible, < 0.33 small, < 0.474 medium, otherwise large, DECISIONS.md 5.8). The four categories are an operationalization of this thesis.
 
-**CHECK BY HAND.** Check the four thresholds in the original, the full text was not available during the review on 2026-11-03. The earlier claim that the thresholds became established through Arcuri & Briand (2014) is not correct and has been removed.
+**Source (pp. 14–15).** Romano et al. assign Cliff's delta values of 0.147, 0.33 and 0.474 to Cohen's d of 0.20, 0.50 and 0.80 (small, medium, large) and justify this with the non-overlap of two normal distributions, citing Cohen (1988). The paper gives no four-level classification. Conference paper without journal peer review, presented on February 1–3, 2006, in Cocoa Beach, Florida. The thesis can mention this openly.
+
+**Qualification (own calculation, not a statement of the paper).** The three values approximately correspond to Cohen's non-overlap measure U1. A direct calculation of Cliff's delta for two normal distributions with equal variance, shifted by d, gives about 0.112, 0.276 and 0.428. The four effect classes of this thesis are therefore a fixed convention and not an exact conversion.
+
+**Checked by the author on 2026-11-09** on the printed pages 14–15 of the [PDF archived by the Internet Archive on 2007-07-16](https://web.archive.org/web/20070716131907/http://www.florida-air.org/romano06.pdf), originally on the website of the Florida Association of Institutional Research. A [reference record of the National Diet Library of Japan](https://crd.ndl.go.jp/reference/entry/index.php?id=1000315787&page=ref_view) documents the same archived file. The earlier claim that the thresholds became established through Arcuri & Briand (2014) is not correct and has been removed.
 
 ```bibtex
 @inproceedings{romano2006appropriate,
@@ -832,6 +837,8 @@ Jeanine Romano, Jeffrey D. Kromrey, Jesse Coraggio, Jeff Skowronek. "Appropriate
   booktitle = {Annual Meeting of the Florida Association of Institutional
                Research},
   date      = {2006},
+  url       = {https://web.archive.org/web/20070716131907/http://www.florida-air.org/romano06.pdf},
+  urldate   = {2026-11-09},
   langid    = {english}
 }
 ```
@@ -969,16 +976,17 @@ Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Perf
 
 **Use.** Warm-up runs (Section 4.2, also Sections 2.1.2 and 6.2.2, DECISIONS.md 5.9). Georges et al. recommend determining the end of the start-up phase from the coefficient of variation of the last iterations. The fixed number of 5 warm-up runs is a decision of this thesis. The paper refers to JVM benchmarks, and its abstract covers other runtimes only in part. The transfer to OPcache, the V8 JIT, connection setup and the file system cache is a conclusion of this thesis. In Section 6.1, a Kolmogorov-Smirnov test did not reject approximate normality for more than 90 % of the experiments, while a minority of the measurements was skewed or bimodal. A test that does not reject normality does not prove it. The paper is not cited for the choice of the test (DECISIONS.md 5.8).
 
-**Locations (full text searched on 2026-11-08).** The pages are derived from the position in the PDF of 20 pages, which covers pp. 57–76, because no printed page numbers could be read. The author still has to confirm them.
+**Locations (checked by the author on 2026-11-09).** The PDF of 20 pages covers pp. 57–76 and shows no printed page numbers. The page numbers are derived as PDF page plus 56.
 
-| Statement | Section | Page |
-|---|---|---|
-| In the first iterations a VM does class loading and most of the JIT compilation | 2.1.2 | 60 |
-| Steady state is reached once the coefficient of variation of the last k iterations falls below a threshold such as 0.01 or 0.02 | 4.2 | 66 |
-| A Kolmogorov-Smirnov test does not reject approximate normality for more than 90 % of the experiments | 6.1 | 68 |
-| Several iterations pass before steady state is reached, k = 10 iterations with a coefficient of variation below 0.02 are retained | 6.2.2 | 71–72 |
+| Statement | Section | PDF page | Page |
+|---|---|---|---|
+| In the first iteration a VM does class loading and most of the JIT compilation | 2.1.2 | 4 | 60 |
+| Steady state is reached once the coefficient of variation of the last k iterations falls below a threshold such as 0.01 or 0.02 | 4.2 | 10 | 66 |
+| A Kolmogorov-Smirnov test does not reject approximate normality for more than 90 % of the experiments. This does not prove normality | 6.1 | 12 | 68 |
+| In the measurements of Figure 11, more than ten iterations pass before steady state is reached, k = 10 iterations with a coefficient of variation below 0.02 are retained | 6.2.2 | 15–16 | 71–72 |
+| Confidence intervals do not require normally distributed data, because of the central limit theorem. Independence and further conditions remain required | 3.2.3 | 7 | 63 |
 
-**CHECK BY HAND.** Word the transfer to PHP and Node.js as a conclusion of this thesis. Its note on normality in Section 3.2 says that confidence intervals do not require normally distributed data, because of the central limit theorem, and the paper works with parametric methods. Corrected on 2026-11-04, warm-up passages checked by the author on 2026-11-07.
+**CHECK BY HAND.** Word the transfer to PHP and Node.js as a conclusion of this thesis when writing the text. The paper works with parametric methods. Corrected on 2026-11-04, warm-up passages checked by the author on 2026-11-07.
 
 ```bibtex
 @inproceedings{georges2007statistically,
@@ -998,9 +1006,11 @@ Andy Georges, Dries Buytaert, Lieven Eeckhout. "Statistically Rigorous Java Perf
 
 Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *Proceedings of the 2013 International Symposium on Memory Management (ISMM)*, 63–74, 2013. DOI 10.1145/2464157.2464160.
 
-**Use.** Fixing the number of repetitions from pilot data instead of across the board (DECISIONS.md 5.9). The actual nondeterminism of a benchmark is often lower than assumed. Repetitions belong where the uncertainty actually lies.
+**Use.** Fixing the number of repetitions from an initial experiment instead of across the board (DECISIONS.md 5.9). Sections 9 and 9.1 estimate the variances at the levels of an experiment from an initial experiment and derive optimal repetition counts for all levels except the highest. The counts stay optimal as long as the variances of the real experiments are similar. A benchmark on a given platform is typically prone to much less nondeterminism than the worst cases of published corner-case studies. Repetition is most needed where most uncertainty arises.
 
-**CHECK BY HAND.** Confirm the use above in the original. The paper is not cited for the choice of the test. The earlier claim "far fewer pairs suffice" in DECISIONS.md 5.9 went beyond the paper and has been reworded. Corrected on 2026-11-04 after a search of the full text.
+**Limits.** The 20 to 30 repetitions suggested in Section 9.1 refer to the initial experiment and not to the main measurement. The source does not validate the 90 runs of this thesis, which follow from the stability criterion in DECISIONS.md 5.9. It is not cited for the choice of the test.
+
+**Checked by the author on 2026-11-09** in the PDF of the Kent Academic Repository. The copy shows no printed page numbers. The bibliographic page range is 63–74, so the places are given by section.
 
 ```bibtex
 @inproceedings{kalibera2013rigorous,
@@ -1019,16 +1029,16 @@ Tomas Kalibera, Richard Jones. "Rigorous Benchmarking in Reasonable Time." In *P
 
 Torsten Hoefler, Roberto Belli. "Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses When Reporting Performance Results." In *Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC15)*, article 73, 73:1–73:12, 2015. DOI 10.1145/2807591.2807644.
 
-**Use.** Checked by the author in the original on 2026-11-07.
+**Use.** Rules 5 to 8 checked by the author in the original on 2026-11-07, and their places in the ACM PDF on 2026-11-09.
 
-- **Rule 5 (p. 73:4).** Report confidence intervals for nondeterministic measurement values. Use, confidence intervals of the median difference (DECISIONS.md 5.8).
-- **Rule 6 (p. 73:5).** "Do not assume normality of collected data (e.g., based on the number of samples) without diagnostic checking." The passage before the rule (p. 73:4) names the Shapiro-Wilk test and recommends checking its result with a Q-Q plot. For data that are not normally distributed, the paper names the median, quartiles, nonparametric confidence intervals of the median and the Kruskal-Wallis test. It names neither the Wilcoxon signed-rank test nor paired tests (full-text search on 2026-11-08). It therefore supports not assuming normality, but not the specific choice of the test, which rests on the paired design and on Wilcoxon (1945). Use, reason for not assuming a normal distribution (DECISIONS.md 5.8). The check of the skewness in the pilot is such a diagnostic check. Cited in the thesis as `\cite[p.~73:5]{hoefler2015scientific}`.
-- **Rule 7 (p. 73:6).** Compare nondeterministic data in a statistically sound way. Use, reason for comparing through tests and confidence intervals instead of single measured values (DECISIONS.md 5.8).
-- **Rule 8 (p. 73:6).** Check whether the mean, the median or other percentiles are meaningful to report. Use, reason for reporting the median, p95 and p99 in addition to the mean per run (DECISIONS.md 5.8, together with Dean & Barroso 2013).
+- **Rule 5 (PDF p. 4).** Report confidence intervals for nondeterministic measurement values. Use, confidence intervals of the median difference (DECISIONS.md 5.8).
+- **Rule 6 (PDF p. 5).** "Do not assume normality of collected data (e.g., based on the number of samples) without diagnostic checking." The passage before the rule (PDF p. 4) names the Shapiro-Wilk test and recommends checking its result with a Q-Q plot. For data that are not normally distributed, the paper names the median, quartiles, nonparametric confidence intervals of the median and the Kruskal-Wallis test. It names neither the Wilcoxon signed-rank test nor paired tests (full-text search on 2026-11-08). It therefore supports not assuming normality, but not the specific choice of the test, which rests on the paired design and on Wilcoxon (1945). Use, reason for not assuming a normal distribution (DECISIONS.md 5.8). The check of the skewness in the pilot is such a diagnostic check. Cited in the thesis as `\cite[Rule~6]{hoefler2015scientific}`.
+- **Rule 7 (PDF p. 6).** Compare nondeterministic data in a statistically sound way. Use, reason for comparing through tests and confidence intervals instead of single measured values (DECISIONS.md 5.8).
+- **Rule 8 (PDF p. 6).** Check whether the mean, the median or other percentiles are meaningful to report. Use, reason for reporting the median, p95 and p99 in addition to the mean per run (DECISIONS.md 5.8, together with Dean & Barroso 2013).
 
 The paper comes from high-performance computing. The transfer to measurements of web servers is a conclusion of this thesis and is worded that way in the text.
 
-**Note on the pages.** Crossref lists the pages as 1-12 and has no article number (checked on 2026-11-07). The entry follows the author's check of the original, article 73 with pages 73:1–73:12. The authors' version of the paper, which was searched on 2026-11-08, shows no page labels of the form 73:N, and the ACM Digital Library could not be read automatically. **CHECK BY HAND.** Confirm the label on the page of rule 6 in the ACM version. If it reads 5 instead of 73:5, the entry changes to pages 1--12 and the citation to p. 5.
+**Note on the pages.** The ACM version (copyright notice and DOI on p. 1) shows no printed page labels, as the author checked on 2026-11-09. Places are therefore given as PDF pages, and the thesis cites by rule number, for example `\cite[Rule~6]{hoefler2015scientific}`. Crossref lists pages 1-12 without an article number. Article 73 with pages 73:1–73:12 follows the [ETH Research Collection](https://www.research-collection.ethz.ch/entities/publication/3168b0c1-a308-4a57-8157-9d1764e58cd8) and the [publication list of Torsten Hoefler](https://htor.inf.ethz.ch/publications/index.php?pub=222).
 
 ```bibtex
 @inproceedings{hoefler2015scientific,
