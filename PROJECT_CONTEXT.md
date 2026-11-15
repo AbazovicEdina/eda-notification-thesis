@@ -106,7 +106,7 @@ The study uses thirteen planned comparisons and not all possible pairs. The labe
 | Production mode | production settings according to official documentation, checked by the orchestrator | `DECISIONS.md` 5.5, 5.16 |
 | Running services | only the two variants of the campaign and the shared services run. In comparisons 9 to 11 only the event source of the measured variant runs | `DECISIONS.md` 5.6.3 |
 | Clock | send and receive timestamps come from the load generator | `DECISIONS.md` 5.14 |
-| Budget use | at 500 clients the median CPU use per variant was 0.8 to 3.6 % of the 2 CPUs in block 1. The limit is a feature of the setup and not a bottleneck at the main load levels | `DECISIONS.md` 5.9 |
+| Budget use | at 500 clients the median CPU use per variant was 0.8 to 3.6 % of the 2 CPUs in block 1 and 0.7 to 3.5 % in block 2. The limit is a feature of the setup and not a bottleneck at the main load levels | `DECISIONS.md` 5.9 |
 
 ## 6. Measures and statistical analysis
 
@@ -138,7 +138,7 @@ That is 156 tests per block. The temporal diagnosis covers 156 tests per block a
 - The diagnosis confirms no test decision and is not a test of independence. About 2 to 3 false alarms per 156 tests are expected under independent differences, and about 4 to 5 over both blocks (`DECISIONS.md` 5.8).
 - The replication rule can fail for small differences or narrow intervals. A reconstruction within block 1, stricter than the real replication, suggested about 18 % for the working set with the same direction in 92 % (`DECISIONS.md` 5.8, `results/2026-11-09_temporal-dependence-check/`).
 - Four tests of block 1 are decided differently by the Wilcoxon test and the sign test (`DECISIONS.md` 5.8).
-- Absolute values of variant and Redis are higher in block 2 than in block 1 because of a reboot of the Pi between the blocks. Within a campaign the Redis level of A and B differed by at most 2.4 MiB per pair, so the paired differences are not affected (`DECISIONS.md` 5.14).
+- Absolute values of variant and Redis are higher in block 2 than in block 1 because of a reboot of the Pi between the blocks. Within a campaign the median Redis difference of A and B over the run pairs was at most 2.4 MiB, single pairs up to 4.9 MiB, and this median changed by at most 0.1 MiB from block 1, so the paired differences are not affected (`DECISIONS.md` 5.14).
 - The highest sustainable rate of the saturation test is the highest passed test level, not a measured technical limit. The true limit lies between it and the next tested level or above (`DECISIONS.md` 5.17).
 - Memory at 10 and 50 clients shows the size of the PHP-FPM pool and not the cost per connection (`DECISIONS.md` 5.5).
 - The H4 limit is partly set by the configuration of 550 workers. Further tensions between hypotheses are listed in `DECISIONS.md` 5.18.
@@ -275,6 +275,7 @@ Each row gives the date of the decision and its position relative to the data. L
 | 2026-11-09 | research questions refined, wording on load levels and queue comparisons clarified, memory after the priming run specified, worker release and heartbeats described | later clarifications, original text preserved where dated | `DECISIONS.md` 5.5, 5.9, 5.15, 5.21, 5.23, 5.24 |
 | 2026-11-14 | block 2 checked, repeat of `b2-c02-baseline`, Redis emptied before each schedule, order of the saturation schedules, unchanged rate levels, rule for series that end only at the send rate | after block 2, before its evaluation and before the saturation data | `DECISIONS.md` 5.14, 5.17 |
 | 2026-11-15 | send rate rule implemented, its gap found after the results were seen, post-hoc sensitivity analysis | after the saturation data, the gap and the sensitivity analysis after its results | `DECISIONS.md` 5.17, 5.25 |
+| 2026-11-15 | independent read-only check by a second AI model, corrections of numbers and wording, figures regenerated, an unknown send rate no longer counts as too low | after the evaluation, no result and no hypothesis decision changed | `DECISIONS.md` 5.17, 5.25 |
 
 The tests, test families, hypotheses and rules G1 to G4 were fixed before data collection. There was no entry in a public registry. Other deviations from the proposal are listed in `DECISIONS.md` 5.23.
 
@@ -287,7 +288,7 @@ Status on 2026-11-15, after the end of the measurement.
 | Pilot | complete | `results/2026-10-31T13-20-12-224Z_pilot/` |
 | Block 1 | complete, 2026-10-31 to 2026-11-07, commit `ac47cb7`, 39 campaigns, 7,410 runs, 7,020 evaluated runs, all valid | `DECISIONS.md` 5.14 |
 | Evaluation of both blocks | `results/2026-11-15T12-18-19-281Z_evaluation/`, block 1 identical to `results/2026-11-09T00-26-22-566Z_evaluation/` | `DECISIONS.md` 5.8 |
-| Figures | `results/2026-11-15T12-19-43-633Z_figures/` | `DECISIONS.md` 5.25 |
+| Figures | `results/2026-11-15T13-38-35-822Z_figures/` | `DECISIONS.md` 5.25 |
 | Descriptive evaluation of block 2 | `results/2026-11-15T12-18-39-442Z_block2-descriptive/` | `DECISIONS.md` 5.14 |
 | Code metrics | `results/2026-10-31T18-44-47-671Z_code-metrics/` | `DECISIONS.md` 5.22 |
 | Block 2 | complete, 2026-11-07 to 2026-11-14, commit `ac47cb7`, 39 campaigns, 7,410 runs, 7,020 evaluated runs, all valid. The first campaign after a reboot of the Pi, `b2-c02-baseline`, had a distorted working set and is replaced by `rerun-b2-c02-baseline` | `DECISIONS.md` 5.14 |
@@ -343,4 +344,4 @@ Source is `DECISIONS.md` 5.8, 5.15, 5.23 and `LITERATUR.md`.
 | Cause of the slow Node.js runs at 500 clients | unconfirmed, not investigated | `DECISIONS.md` 5.14 |
 | Cause of the difference in comparison 6, where Express is not on the WebSocket path | unconfirmed, not investigated | `prototypes/node-express/ws.js`, `results/2026-11-09T00-26-22-566Z_evaluation/` |
 | The higher memory of Redis in block 2 and of both variants in the first campaign after the reboot comes from file pages charged to the cgroup that read them first | unconfirmed, fits the data but was not measured | `DECISIONS.md` 5.14 |
-| Cause of the send rate below 99 % at 1,000 events/s with `php-minimal-sse`, `php-laravel-sse` and `php-laravel-ws` | not determined, attributed neither to Redis nor to the variant | `DECISIONS.md` 5.17 |
+| Cause of the send rate below 99 % at 1,000 events/s with `php-minimal-sse` and `php-laravel-sse` | not determined, attributed neither to Redis nor to the variant. The lower values of `php-laravel-ws` and `php-laravel-sse-queue` come from late events of an earlier level | `DECISIONS.md` 5.17 |

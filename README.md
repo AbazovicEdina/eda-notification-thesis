@@ -212,7 +212,7 @@ Strg-C beendet eine Kampagne nach dem laufenden Lauf geordnet. Bereits gemessene
 
 ## Ergebnisse
 
-`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Rohdaten, Auswertung und Abbildungen von Block 1 liegen seit 2026-11-07 im Repository. Block 2 mit der Replikation, die Reihen und die Gesamtauswertung folgen nach Abschluss der Messung.
+`results/` enthält pro Kampagne ein Verzeichnis mit Kampagnendefinition, Ereignisprotokoll, einem JSON-Protokoll pro Lauf und der Kampagnenauswertung (Aufbau in DECISIONS.md 5.16). Die Ergebnisse werden versioniert. Der größte Teil sind Rohdaten einzelner Läufe. Rohdaten, Auswertung und Abbildungen von Block 1 liegen seit 2026-11-07 im Repository. Block 2 mit der Replikation, die Reihen und die Gesamtauswertung liegen seit 2026-11-15 im Repository.
 
 Die wichtigsten Berichte:
 
@@ -226,7 +226,7 @@ Die wichtigsten Berichte:
 | [Block 2](results/2026-11-07T20-37-14-477Z_schedule_block2.jsonl) | Protokoll des Zeitplans. Die 39 Kampagnen liegen als `…_b2-c<Vergleich>-<Laststufe>` in `results/`, statt `b2-c02-baseline` gilt `rerun-b2-c02-baseline`. Die Prüfung vor der Auswertung steht in DECISIONS.md 5.14 |
 | [Auswertung](results/2026-11-15T12-18-19-281Z_evaluation/evaluation.md) | Tests, Effektstärken, Sensitivitätsanalyse, zeitliche Diagnose und Bewertung der Hypothesen aus Block 1, Replikation durch Block 2, H4 und H11 aus den Reihen, nachträgliche Sensitivitätsanalyse zu H11 (DECISIONS.md 5.8, 5.17, 5.18) |
 | [Skalierung, Sättigung und Ansturm](results/2026-11-15T12-18-08-204Z_series/series.md) | Skalierungsreihe bis 1 000 Clients, Sättigungstest bis 1 000 Events/s mit nachträglicher Sensitivitätsanalyse zur Senderate, wiederholter Ansturm. Vorprüfung als `…_probe-sat-…`, Protokoll des Ablaufs mit dem Leeren von Redis in [2026-11-15_series-run.log](results/2026-11-15_series-run.log) (DECISIONS.md 5.9, 5.17) |
-| [Abbildungen](results/2026-11-15T12-19-43-633Z_figures/figures.md) | Übersichten der Unterschiede, Boxplots aller Vergleiche je Messgröße, Streuung des Working Set, Skalierung und Sättigung (DECISIONS.md 5.24, 5.25) |
+| [Abbildungen](results/2026-11-15T13-38-35-822Z_figures/figures.md) | Übersichten der Unterschiede, Boxplots aller Vergleiche je Messgröße, Streuung des Working Set, Skalierung und Sättigung (DECISIONS.md 5.24, 5.25) |
 | [Beschreibende Auswertung Block 1](results/2026-11-07T20-22-02-396Z_block1-descriptive/block1-descriptive.md) | Verteilungen je Variante, Grundlast von Redis, auffällige Läufe, Paare mit Differenz null, Messbetrieb und Front-Nginx, ohne Tests |
 | [Beschreibende Auswertung Block 2](results/2026-11-15T12-18-39-442Z_block2-descriptive/block2-descriptive.md) | dieselben Inhalte für Block 2, mit der Wiederholung statt `b2-c02-baseline` |
 | [Code-Kennzahlen](results/2026-10-31T18-44-47-671Z_code-metrics/metrics.md) | Komplexität und Wartbarkeit je Zelle (DECISIONS.md 5.22) |

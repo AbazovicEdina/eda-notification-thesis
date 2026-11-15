@@ -44,7 +44,7 @@ The first column is the term to use. The second column shows the name that exist
 | connection storm | Ansturm | 500 clients connect at once after a restart of the variant, descriptive | `DECISIONS.md` 5.9, 5.10 |
 | control measurement | Kontrollmessung | Daily measurement of `node-minimal-sse` to show drift | `DECISIONS.md` 5.9 |
 | capacity limit | Kapazitätsgrenze | Smallest number of clients at which the median served ratio is below 99 % | `DECISIONS.md` 5.9 |
-| maximum sustainable event rate | höchste nachhaltige Event-Rate | Highest level up to which every level meets the five conditions | `DECISIONS.md` 5.17 |
+| maximum sustainable event rate | höchste nachhaltige Event-Rate | Highest level up to which every level meets the five conditions. It is the highest passed test level, not a measured technical limit | `DECISIONS.md` 5.17 |
 | decision rules G1 to G4 | Entscheidungsregeln | General rules for assessing hypotheses | `tools/orchestrate/plan.json`, `DECISIONS.md` 5.18 |
 | replication rule | Replikationsregel | Same direction of the median difference and overlapping 95 % intervals of both blocks | `tools/orchestrate/plan.json`, `DECISIONS.md` 5.8 |
 | temporal diagnosis | zeitliche Diagnose | Descriptive per-test diagnosis of the paired differences in run order | `DECISIONS.md` 5.8 |
@@ -107,12 +107,13 @@ These limits follow from the study design and the documented decisions.
 |---|---|---|---|
 | the effect of language, framework, transport or queue | differences in the planned comparisons of the selected variants | The ten variants are not a full factorial design | `DECISIONS.md` 5.15, 5.23 |
 | independent factors, fully factorial | design dimensions, selected variants, planned comparisons | same reason | `DECISIONS.md` 5.23 |
-| stress level, resource stress, saturation or overload at the main load levels without evidence | at 500 clients, with increasing client counts. "Under load" is acceptable when it refers to the number of clients and events | CPU use at 500 clients was 0.8 to 3.6 % of the budget in block 1 | `DECISIONS.md` 5.9 |
+| stress level, resource stress, saturation or overload at the main load levels without evidence | at 500 clients, with increasing client counts. "Under load" is acceptable when it refers to the number of clients and events | CPU use at 500 clients was 0.8 to 3.6 % of the budget in block 1 and 0.7 to 3.5 % in block 2 | `DECISIONS.md` 5.9 |
 | confirmed or proven for a hypothesis | supported under the pre-specified rule | An assessment is the result of a rule | `DECISIONS.md` 5.8, 5.23 |
 | significance secured, family-wise error rate controlled, for affected tests | decision of the pre-specified rule, p-values not securely calibrated under serial dependence | The paired runs share one process course | `DECISIONS.md` 5.8 |
 | robust confirmation by the diagnosis | descriptive diagnosis | The diagnosis confirms no test decision | `DECISIONS.md` 5.8 |
 | preregistered, unless limited to parts fixed before data collection | specified in advance and versioned in the repository | There was no entry in a public registry | `tools/orchestrate/plan.json`, `Schreibleitfaden.md` Section 2 (outside this repository) |
-| replicated, before the rule has been applied to block 2 | not yet assessed | Block 2 has not been evaluated | `DECISIONS.md` 5.8 |
+| replicated, for a test that does not meet the replication rule | same direction, not replicated under the rule | Replication requires the same direction and overlapping 95 % confidence intervals. Block 2 was assessed on 2026-11-15 | `DECISIONS.md` 5.8 |
+| saturation limit, measured capacity limit, technical limit of a variant | highest passed test level | The true limit lies between this level and the next tested one or above | `DECISIONS.md` 5.17 |
 | first study, no comparable work exists, no study exists | no study was identified in the documented searches | The gap is limited to the documented search | `LITERATUR.md`, Classification and research gap |
 | dominant way of running PHP | standard mode according to the documentation | No survey of actual use is available | `DECISIONS.md` 5.5 |
 | limit per container | shared limit per variant | Three variants consist of two application containers | `DECISIONS.md` 5.6.2 |
