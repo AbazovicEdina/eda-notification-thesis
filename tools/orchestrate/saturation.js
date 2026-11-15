@@ -80,13 +80,22 @@ export function assessLevel({ rate, vus, holdSeconds, describe, criteria = SATUR
 // Highest sustainable rate from the levels of one configuration.
 // limit: "criterion" (a level failed), "loadgen" (a level could not be
 // evaluated, the true limit is at least max), "highest_rate" (all levels
-// passed, the true limit is at least the highest tested rate).
+// passed, the true limit is at least the highest tested rate), "source" (the
+// first failed level missed only the send rate of the source, every other
+// condition held). For "source" the next level cannot be attributed to the
+// variant and the true limit is at least max. The cause of the low send rate
+// is not determined (DECISIONS.md 5.17, rule of 2026-11-14, implemented on
+// 2026-11-15).
 export function sustainableRate(levels) {
   const sorted = [...levels].sort((a, b) => a.rate_per_s - b.rate_per_s);
   let max = null;
   for (const level of sorted) {
     if (!level.evaluable) return { max_sustainable_rate_per_s: max, limit: 'loadgen', stopped_at_rate_per_s: level.rate_per_s };
-    if (!level.pass) return { max_sustainable_rate_per_s: max, limit: 'criterion', stopped_at_rate_per_s: level.rate_per_s };
+    if (!level.pass) {
+      const onlySource = level.checks && level.checks.source === false
+        && Object.entries(level.checks).every(([key, ok]) => key === 'source' || ok);
+      return { max_sustainable_rate_per_s: max, limit: onlySource ? 'source' : 'criterion', stopped_at_rate_per_s: level.rate_per_s };
+    }
     max = level.rate_per_s;
   }
   return { max_sustainable_rate_per_s: max, limit: sorted.length ? 'highest_rate' : null, stopped_at_rate_per_s: null };
@@ -108,14 +117,44 @@ export function assessSaturationConfig(agg, configName, summarySteps, campaignCr
     });
     return { scenario: s.scenario, ...assessed, pass_campaign: s.pass };
   });
-  return { criteria, steps, ...sustainableRate(steps) };
+  return { criteria, steps, ...sustainableRate(steps), sensitivity_sent_rate: sensitivitySentRate(steps, criteria) };
 }
 
-// Text for a table cell, for example "500", "≥ 700 (Lastgenerator)".
+// Post-hoc sensitivity analysis, defined on 2026-11-15 after the results were
+// seen (DECISIONS.md 5.17). Not part of the primary result. A send rate below
+// 99 % makes the total delivery, which is related to the set rate, fail as
+// well, so the rule of 2026-11-14 ("only the send rate missed") cannot apply.
+// Here the total delivery is related to the events the source actually sent.
+// A level that then misses only the send rate is not clearly assessable and the
+// result becomes a lower bound. Every other level keeps its primary assessment.
+// The cause of a low send rate stays undetermined.
+export function sensitivitySentRate(steps, criteria = SATURATION_CRITERIA) {
+  const c = { ...SATURATION_CRITERIA, ...criteria };
+  const alt = steps.map((s) => {
+    const sentTotal = s.total_delivery_ratio != null && s.source_ratio ? s.total_delivery_ratio / s.source_ratio : null;
+    const checks = { ...s.checks, total: sentTotal != null && sentTotal >= c.minTotalDeliveryRatio };
+    return { ...s, checks, total_delivery_sent_ratio: sentTotal, pass: s.evaluable && Object.values(checks).every(Boolean) };
+  });
+  const primary = sustainableRate(steps);
+  const result = sustainableRate(alt);
+  const stop = alt.find((s) => s.rate_per_s === result.stopped_at_rate_per_s) ?? null;
+  return {
+    ...result,
+    differs: result.max_sustainable_rate_per_s !== primary.max_sustainable_rate_per_s || result.limit !== primary.limit,
+    total_delivery_sent_ratio_at_stop: stop?.total_delivery_sent_ratio ?? null,
+  };
+}
+
+// Text for a table cell, for example "500", "≥ 700 (Lastgenerator)",
+// "≥ 700, 1000 wegen zu niedriger Senderate nicht eindeutig bewertbar".
 export function rateLabel(entry) {
   if (!entry) return '–';
   const max = entry.max_sustainable_rate_per_s;
   if (entry.limit === 'loadgen') return max == null ? 'nicht auswertbar (Lastgenerator)' : `≥ ${max} (Lastgenerator)`;
+  if (entry.limit === 'source') {
+    const at = entry.stopped_at_rate_per_s;
+    return max == null ? `${at} wegen zu niedriger Senderate nicht eindeutig bewertbar` : `≥ ${max}, ${at} wegen zu niedriger Senderate nicht eindeutig bewertbar`;
+  }
   if (entry.limit === 'highest_rate') return `≥ ${max} (höchste Stufe)`;
   return max == null ? 'keine' : String(max);
 }

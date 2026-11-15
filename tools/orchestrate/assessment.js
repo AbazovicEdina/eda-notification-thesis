@@ -643,11 +643,13 @@ export function assessH4(scaling, allCells) {
 // and framework choice, the WebSocket variant reaches the higher maximum
 // sustainable rate. A tie is undecided. No sustainable rate at all counts as 0.
 // A rate that is only a lower bound (series.js, saturation.js: all levels passed,
-// or the series ended at a level the load generator could not serve) decides
-// only if it already lies above the other rate. Otherwise the pair is undecided,
-// as the rule says for two variants that both reach the highest level.
+// the series ended at a level the load generator could not serve, or at a level
+// that missed only the send rate of the source) decides only if it already lies
+// above the other rate and that rate is an exact limit. Otherwise the pair is
+// undecided, as the rule says for two variants that both reach the highest level.
+// The send rate case was added on 2026-11-15 (DECISIONS.md 5.17).
 export const TRANSPORT_PAIRS = ['node-minimal', 'node-express', 'php-minimal', 'php-laravel'];
-const isLowerBound = (entry) => entry.limit === 'loadgen' || entry.limit === 'highest_rate';
+const isLowerBound = (entry) => entry.limit === 'loadgen' || entry.limit === 'highest_rate' || entry.limit === 'source';
 export function assessH11(saturation) {
   if (!saturation) return [{ label: 'Sättigungstest', outcome: OUTCOME.unclear, detail: 'series.json fehlt' }];
   return TRANSPORT_PAIRS.map((base) => {
@@ -665,6 +667,14 @@ export function assessH11(saturation) {
     if (rw === rs && !bs && !bw) return { label, outcome: OUTCOME.unclear, detail: `${detail}, Gleichstand` };
     return { label, outcome: OUTCOME.unclear, detail: `${detail}, Untergrenze, Reihenfolge offen` };
   });
+}
+
+// Post-hoc sensitivity analysis of H11 (2026-11-15, DECISIONS.md 5.17). The
+// saturation entries are replaced by their sensitivity_sent_rate where it
+// exists. The primary assessment stays as above.
+export function saturationSensitivityEntries(saturation) {
+  if (!saturation) return null;
+  return Object.fromEntries(Object.entries(saturation).map(([cell, e]) => [cell, e.sensitivity_sent_rate ? { ...e, ...e.sensitivity_sent_rate } : e]));
 }
 
 // ---------------------------------------------------------------------------

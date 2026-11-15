@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import {
   matchCampaigns, correctFamilies, replicationOf, replicationSummary, redisShares,
   directionalCase, smallCase, multipleCase, growthCase, largerEffectCase, combine,
-  firstDrop, assessH4, assessH11, assessHypotheses, OUTCOME, VERDICT, FPM_SSE_CELLS,
+  firstDrop, assessH4, assessH11, assessHypotheses, OUTCOME, VERDICT, FPM_SSE_CELLS, saturationSensitivityEntries,
   sensitivityOf, sensitivityFamilies,
 } from '../assessment.js';
 import { wilcoxonSignedRank } from '../stats.js';
@@ -295,6 +295,31 @@ test('H11: eine Untergrenze entscheidet nur, wenn sie über der anderen Rate lie
   assert.equal(combine(assessH11(sat(exact(700), atLeast(1000, 'highest_rate')))).verdict, VERDICT.supported);
 });
 
+test('H11: Untergrenze wegen der Senderate (source) nur bei eindeutiger Reihenfolge entschieden', () => {
+  const sat = (sse, ws) => Object.fromEntries(['node-minimal', 'node-express', 'php-minimal', 'php-laravel']
+    .flatMap((b) => [[`${b}-sse`, sse], [`${b}-ws`, ws]]));
+  const exact = (r) => ({ max_sustainable_rate_per_s: r, limit: 'criterion' });
+  const source = (r) => ({ max_sustainable_rate_per_s: r, limit: 'source' });
+  const highest = (r) => ({ max_sustainable_rate_per_s: r, limit: 'highest_rate' });
+  // SSE at least 700 because of the send rate, WebSocket exactly 500: SSE is surely higher.
+  assert.equal(combine(assessH11(sat(source(700), exact(500)))).verdict, VERDICT.notSupported);
+  // WebSocket at least 700 because of the send rate, SSE exactly 500: WebSocket is surely higher.
+  assert.equal(combine(assessH11(sat(exact(500), source(700)))).verdict, VERDICT.supported);
+  // Gegenbeispiele, which must stay undecided.
+  // SSE at least 700, WebSocket at least 1000 with all levels passed: SSE could still reach 1000.
+  assert.equal(combine(assessH11(sat(source(700), highest(1000)))).verdict, VERDICT.undecided);
+  // SSE at least 700, WebSocket exactly 700: a tie with a lower bound.
+  assert.equal(combine(assessH11(sat(source(700), exact(700)))).verdict, VERDICT.undecided);
+  // WebSocket at least 500, SSE exactly 700: WebSocket could still be higher.
+  assert.equal(combine(assessH11(sat(exact(700), source(500)))).verdict, VERDICT.undecided);
+  // Both at least 700 because of the send rate.
+  assert.equal(combine(assessH11(sat(source(700), source(700)))).verdict, VERDICT.undecided);
+  // SSE not attributable already at the first level, WebSocket without any sustained rate.
+  assert.equal(combine(assessH11(sat(source(null), exact(null)))).verdict, VERDICT.undecided);
+  // WebSocket at least 300 because of the send rate, SSE at least 1000 with all levels passed.
+  assert.equal(combine(assessH11(sat(highest(1000), source(300)))).verdict, VERDICT.undecided);
+});
+
 // --- Whole chain for single hypotheses ----------------------------------------------------
 
 test('H6 über die ganze Kette: Kampagnen zuordnen, Holm, Bewertung', () => {
@@ -379,4 +404,23 @@ test('Sensitivität je Familie: beide Tests über dieselben 39 Tests nach Holm, 
   const { found: f2 } = matchCampaigns(plan, [campaign({ cellA: c4.a, cellB: c4.b, block: 2, measures: { latency_mean_ms: r } })]);
   assert.equal(sensitivityFamilies(plan, f2, 1).find((f) => f.measure === 'latency_mean_ms').measured, 0);
   assert.equal(sensitivityFamilies(plan, f2, 2).find((f) => f.measure === 'latency_mean_ms').measured, 1);
+});
+
+test('H11 in der nachträglichen Sensitivitätsanalyse (2026-11-15)', () => {
+  const pairs = ['node-minimal', 'node-express', 'php-minimal', 'php-laravel'];
+  const sat = (sse, ws) => Object.fromEntries(pairs.flatMap((b) => [[`${b}-sse`, sse], [`${b}-ws`, ws]]));
+  // Primary: SSE exactly 700, the sensitivity analysis makes it a lower bound.
+  const sse = { max_sustainable_rate_per_s: 700, limit: 'criterion', sensitivity_sent_rate: { max_sustainable_rate_per_s: 700, limit: 'source', differs: true } };
+  const wsHighest = { max_sustainable_rate_per_s: 1000, limit: 'highest_rate', sensitivity_sent_rate: { max_sustainable_rate_per_s: 1000, limit: 'highest_rate', differs: false } };
+  const wsLow = { max_sustainable_rate_per_s: 400, limit: 'criterion', sensitivity_sent_rate: { max_sustainable_rate_per_s: 400, limit: 'criterion', differs: false } };
+  // WebSocket at least 1000 against SSE 700: decided in the primary assessment, undecided in the sensitivity analysis.
+  assert.equal(combine(assessH11(sat(sse, wsHighest))).verdict, VERDICT.supported);
+  assert.equal(combine(assessH11(saturationSensitivityEntries(sat(sse, wsHighest)))).verdict, VERDICT.undecided);
+  // Gegenbeispiel: WebSocket 400 against SSE 700 stays the opposite in both.
+  assert.equal(combine(assessH11(sat(sse, wsLow))).verdict, VERDICT.notSupported);
+  assert.equal(combine(assessH11(saturationSensitivityEntries(sat(sse, wsLow)))).verdict, VERDICT.notSupported);
+  // Without a sensitivity entry the primary entry is used unchanged.
+  const plain = { max_sustainable_rate_per_s: 500, limit: 'criterion' };
+  assert.deepEqual(saturationSensitivityEntries({ x: plain }).x, plain);
+  assert.equal(saturationSensitivityEntries(null), null);
 });

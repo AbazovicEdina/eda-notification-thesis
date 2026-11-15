@@ -19,6 +19,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assessH11, combine, saturationSensitivityEntries } from './assessment.js';
 import { matchCampaigns, correctFamilies, replicationSummary, redisShares, assessHypotheses, sensitivityFamilies, temporalDiagnosisFamilies, blockComparison, processContinuity, DIAGNOSIS, MIN_PAIRS, TEMPORAL_MIN_ADJACENT, TEMPORAL_HALF_BOUNDARY, TEMPORAL_MIN_PER_HALF } from './assessment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -102,6 +103,11 @@ if (seriesDir) {
   notes.push('ohne --series, H4 und H11 bleiben unentschieden');
 }
 const assessment = assessHypotheses({ plan, families, found, redis, series });
+// Post-hoc sensitivity analysis of H11 (2026-11-15, DECISIONS.md 5.17), not part of the assessment above.
+const h11Sensitivity = series?.saturation ? (() => {
+  const cases = assessH11(saturationSensitivityEntries(series.saturation));
+  return { defined: '2026-11-15, nach Sichtung der Ergebnisse', cases, ...combine(cases) };
+})() : null;
 
 // Temporal diagnosis, descriptive only (DECISIONS.md 5.8, fixed on 2026-11-09
 // before block 2 was opened). It adds fields and changes no result above.
@@ -171,6 +177,7 @@ const evaluation = {
   hypotheses: plan.hypotheses,
   assessment,
   redis_share_stress: redis,
+  sensitivity_h11: h11Sensitivity,
   series: seriesDir ? path.basename(path.resolve(seriesDir)) : null,
   descriptives,
 };
@@ -350,6 +357,14 @@ lines.push('');
 for (const a of assessment) {
   lines.push(`### ${a.id}: ${a.verdict}`, '', a.text, '', '| Fall | Ergebnis | Werte |', '|---|---|---|');
   for (const c of a.cases) lines.push(`| ${c.label} | ${c.outcome} | ${c.detail} |`);
+  lines.push('');
+}
+if (h11Sensitivity) {
+  lines.push('### H11, nachträgliche Sensitivitätsanalyse (2026-11-15)', '');
+  lines.push('Nicht Teil der Bewertung oben. Festgelegt nach Sichtung der Ergebnisse (DECISIONS.md 5.17). Die Gesamtzustellung im Sättigungstest ist hier auf die tatsächlich gesendeten Events bezogen. Endet eine Reihe dann allein an einer Senderate unter 99 %, gilt ihr Wert als Untergrenze. Die Ursache der niedrigen Senderate ist nicht bestimmt.', '');
+  lines.push(`Ergebnis: ${h11Sensitivity.verdict} (${h11Sensitivity.counts.erfüllt} erfüllt, ${h11Sensitivity.counts.gegenteil} Gegenteil, ${h11Sensitivity.counts.unklar} unklar).`, '');
+  lines.push('| Fall | Ergebnis | Werte |', '|---|---|---|');
+  for (const c of h11Sensitivity.cases) lines.push(`| ${c.label} | ${c.outcome} | ${c.detail} |`);
   lines.push('');
 }
 lines.push('### Wortlaut für die Arbeit (englisch)', '');
