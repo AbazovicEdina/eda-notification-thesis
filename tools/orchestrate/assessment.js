@@ -645,7 +645,8 @@ export function assessH4(scaling, allCells) {
 // A rate that is only a lower bound (series.js, saturation.js: all levels passed,
 // the series ended at a level the load generator could not serve, or at a level
 // that missed only the send rate of the source) decides only if it already lies
-// above the other rate and that rate is an exact limit. Otherwise the pair is
+// above the other rate and the series of the other variant ended at a failed
+// level, so its rate is the highest passed level and no bound. Otherwise the pair is
 // undecided, as the rule says for two variants that both reach the highest level.
 // The send rate case was added on 2026-11-15 (DECISIONS.md 5.17).
 export const TRANSPORT_PAIRS = ['node-minimal', 'node-express', 'php-minimal', 'php-laravel'];

@@ -129,6 +129,22 @@ test('ein nicht auswertbarer Lastgenerator hat Vorrang vor der Senderate', () =>
   assert.deepEqual(res, { max_sustainable_rate_per_s: 10, limit: 'loadgen', stopped_at_rate_per_s: 50 });
 });
 
+test('unbekannte Senderate gilt nicht als zu niedrige Senderate', () => {
+  // Gegenbeispiel added on 2026-11-15 after the independent check. Every other
+  // condition holds, only the send rate is missing.
+  const unknown = assessLevel({ rate: 100, vus: 50, holdSeconds: 60, describe: { ...describe({ rate: 100 }), source_rate_eps: { median: null } } });
+  assert.equal(unknown.source_ratio, null);
+  assert.deepEqual(unknown.reasons, ['Senderate']);
+  const res = sustainableRate([level(10), level(50), unknown]);
+  assert.deepEqual(res, { max_sustainable_rate_per_s: 50, limit: 'criterion', stopped_at_rate_per_s: 100 });
+  assert.equal(rateLabel(res), '50');
+  // The sensitivity analysis cannot relate the total delivery to the sent events either.
+  const sens = sensitivitySentRate([level(10), level(50), unknown]);
+  assert.equal(sens.limit, 'criterion');
+  assert.equal(sens.differs, false);
+  assert.equal(sens.total_delivery_sent_ratio_at_stop, null);
+});
+
 // Post-hoc sensitivity analysis of 2026-11-15 (DECISIONS.md 5.17).
 test('Sensitivitätsanalyse: alles Gesendete zugestellt, nur die Senderate zu niedrig', () => {
   const steps = [level(700), level(1000, { source: 900, delivered: 50 * 900 })];

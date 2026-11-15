@@ -81,18 +81,21 @@ export function assessLevel({ rate, vus, holdSeconds, describe, criteria = SATUR
 // limit: "criterion" (a level failed), "loadgen" (a level could not be
 // evaluated, the true limit is at least max), "highest_rate" (all levels
 // passed, the true limit is at least the highest tested rate), "source" (the
-// first failed level missed only the send rate of the source, every other
-// condition held). For "source" the next level cannot be attributed to the
-// variant and the true limit is at least max. The cause of the low send rate
-// is not determined (DECISIONS.md 5.17, rule of 2026-11-14, implemented on
-// 2026-11-15).
+// first failed level missed only the send rate of the source, which was
+// measured and below 99 %, every other condition held). For "source" the next
+// level cannot be attributed to the variant and the true limit is at least
+// max. The cause of the low send rate is not determined (DECISIONS.md 5.17,
+// rule of 2026-11-14, implemented on 2026-11-15). An unknown send rate is a
+// failed condition like any other missing value and gives "criterion", so it
+// is never reported as too low (changed on 2026-11-15 after the independent
+// check, no level of the main data is affected).
 export function sustainableRate(levels) {
   const sorted = [...levels].sort((a, b) => a.rate_per_s - b.rate_per_s);
   let max = null;
   for (const level of sorted) {
     if (!level.evaluable) return { max_sustainable_rate_per_s: max, limit: 'loadgen', stopped_at_rate_per_s: level.rate_per_s };
     if (!level.pass) {
-      const onlySource = level.checks && level.checks.source === false
+      const onlySource = level.checks && level.checks.source === false && level.source_ratio != null
         && Object.entries(level.checks).every(([key, ok]) => key === 'source' || ok);
       return { max_sustainable_rate_per_s: max, limit: onlySource ? 'source' : 'criterion', stopped_at_rate_per_s: level.rate_per_s };
     }
@@ -124,10 +127,13 @@ export function assessSaturationConfig(agg, configName, summarySteps, campaignCr
 // seen (DECISIONS.md 5.17). Not part of the primary result. A send rate below
 // 99 % makes the total delivery, which is related to the set rate, fail as
 // well, so the rule of 2026-11-14 ("only the send rate missed") cannot apply.
-// Here the total delivery is related to the events the source actually sent.
-// A level that then misses only the send rate is not clearly assessable and the
-// result becomes a lower bound. Every other level keeps its primary assessment.
-// The cause of a low send rate stays undetermined.
+// Here the total delivery of every level is related to the events the source
+// actually sent, all other conditions stay as in the primary assessment. A
+// level that then misses only the send rate is not clearly assessable and the
+// result becomes a lower bound. Where the source sent the set rate, the total
+// delivery stays practically the same. Where its send rate is unknown, the
+// total delivery counts as missed. The cause of a low send rate stays
+// undetermined.
 export function sensitivitySentRate(steps, criteria = SATURATION_CRITERIA) {
   const c = { ...SATURATION_CRITERIA, ...criteria };
   const alt = steps.map((s) => {
