@@ -1,0 +1,26 @@
+{
+  "name": "probe-sat-saturation-php-minimal-ws",
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "connectSpreadSeconds": 5,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
+  },
+  "phase": "saturation",
+  "configs": [
+    "php-minimal-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "rate-1000",
+      "vus": 50,
+      "holdSeconds": 60,
+      "runsPerConfig": 2,
+      "eventRatePerSecond": 1000
+    }
+  ]
+}

@@ -1,0 +1,473 @@
+{
+  "schema": "eda-thesis/run/2",
+  "run": {
+    "id": "clients-0750_php-laravel-sse_run0001",
+    "config": "php-laravel-sse",
+    "cell": "php-laravel-sse",
+    "scenario": "clients-0750",
+    "phase": "scaling",
+    "block": null,
+    "run_index": 1,
+    "warmup": true,
+    "valid": true,
+    "invalid_reason": null,
+    "started_at": "2026-11-15T08:32:29.177Z",
+    "ended_at": "2026-11-15T08:33:43.710Z"
+  },
+  "load": {
+    "vus": 750,
+    "settle_seconds": 10,
+    "connect_spread_seconds": 5,
+    "hold_seconds": 60,
+    "event_rate_nominal_per_s": 1,
+    "producer": "pubsub",
+    "script": "sse-feasibility.js",
+    "metric": "sse_event_latency_ms",
+    "target_base_url": "http://192.168.50.10:8080",
+    "front_mode": "fastcgi",
+    "extra_env_keys": []
+  },
+  "measures": {
+    "latency_mean_ms": 10.802181818181818,
+    "latency_min_ms": 1,
+    "latency_median_ms": 10,
+    "latency_p90_ms": 18,
+    "latency_p95_ms": 19,
+    "latency_p99_ms": 22,
+    "latency_max_ms": 24,
+    "connect_mean_ms": 18407.308,
+    "connect_median_ms": 7,
+    "connect_p95_ms": 69361.75,
+    "connect_max_ms": 69808,
+    "clients": 750,
+    "clients_connected_in_time": 550,
+    "clients_served": 550,
+    "connected_ratio": 0.7333333333333333,
+    "served_ratio": 0.7333333333333333,
+    "events_received": 33000,
+    "events_unique": 33000,
+    "events_expected": 33000,
+    "events_lost": 0,
+    "events_duplicate": 0,
+    "delivery_ratio": 1,
+    "delivered_events_per_s": 550,
+    "source_rate_eps": 1,
+    "connection_errors": 0,
+    "checks_passed": 750,
+    "checks_failed": 0,
+    "data_received_bytes": 7587310,
+    "data_received_bytes_per_s": 103209.32250302624,
+    "data_sent_bytes": 95250,
+    "data_sent_bytes_per_s": 1295.6750110926337,
+    "cpu_seconds": 6.910929,
+    "cpu_cores_avg": 0.09184080851572779,
+    "working_set_avg_bytes": 1117833799.205298,
+    "working_set_peak_bytes": 1119469568,
+    "mem_peak_bytes": 1119510528,
+    "mem_peak_kernel_bytes": 1120628736,
+    "mem_peak_kernel_new": true,
+    "cpu_seconds_redis": 0.999609,
+    "working_set_peak_bytes_redis": 26968064,
+    "cpu_seconds_total": 7.910538000000001,
+    "working_set_peak_bytes_total": 1145339904,
+    "cpu_seconds_nginx": 1.288816,
+    "working_set_peak_bytes_nginx": 34484224,
+    "loadgen_cpu_util_avg": 0.01047518339832132,
+    "loadgen_cpu_util_max": 0.19999999999999996
+  },
+  "resources": {
+    "wall_seconds": 75.249,
+    "interval_ms": 250,
+    "samples": 302,
+    "cells": {
+      "php-laravel-sse": {
+        "containers": 1,
+        "cpu_seconds": 6.910929,
+        "mem_peak_lifetime_bytes": 1120628736,
+        "mem_peak_lifetime_new": true,
+        "cpu_cores_avg": 0.09184080851572779,
+        "mem_avg_bytes": 1117874759.205298,
+        "mem_peak_bytes": 1119510528,
+        "working_set_avg_bytes": 1117833799.205298,
+        "working_set_peak_bytes": 1119469568
+      },
+      "redis": {
+        "containers": 1,
+        "cpu_seconds": 0.999609,
+        "mem_peak_lifetime_bytes": 417460224,
+        "mem_peak_lifetime_new": false,
+        "cpu_cores_avg": 0.01328401706334968,
+        "mem_avg_bytes": 62594190.41059603,
+        "mem_peak_bytes": 63266816,
+        "working_set_avg_bytes": 26295438.410596028,
+        "working_set_peak_bytes": 26968064
+      }
+    },
+    "total": {
+      "containers": 2,
+      "cpu_seconds": 7.910538000000001,
+      "mem_peak_lifetime_bytes": 1538088960,
+      "mem_peak_lifetime_new": true,
+      "cpu_cores_avg": 0.10512482557907749,
+      "mem_avg_bytes": 1180468949.615894,
+      "mem_peak_bytes": 1181679616,
+      "working_set_avg_bytes": 1144129237.615894,
+      "working_set_peak_bytes": 1145339904
+    },
+    "containers": {
+      "556b13e5f4e8": {
+        "cell": "php-laravel-sse",
+        "cgroup": "/sys/fs/cgroup/eda_php_laravel_sse.slice/docker-556b13e5f4e8e999e0cc45c098ddfcac8ccc3d7c18ba5f6859bf82fb9bf6ab0e.scope",
+        "cpu_seconds": 6.910929,
+        "cpu_cores_avg": 0.09184080851572779,
+        "mem_avg_bytes": 1117874759.205298,
+        "mem_peak_bytes": 1119510528,
+        "working_set_avg_bytes": 1117833799.205298,
+        "working_set_peak_bytes": 1119469568,
+        "mem_peak_lifetime_start_bytes": 1117966336,
+        "mem_peak_lifetime_end_bytes": 1120628736
+      },
+      "b419e3b79187": {
+        "cell": "redis",
+        "cgroup": "/sys/fs/cgroup/system.slice/docker-b419e3b79187fb77cb1b9dace452554fd8b3dd4e6abb4baf95134f799aeb4cfa.scope",
+        "cpu_seconds": 0.999609,
+        "cpu_cores_avg": 0.01328401706334968,
+        "mem_avg_bytes": 62594190.41059603,
+        "mem_peak_bytes": 63266816,
+        "working_set_avg_bytes": 26295438.410596028,
+        "working_set_peak_bytes": 26968064,
+        "mem_peak_lifetime_start_bytes": 417460224,
+        "mem_peak_lifetime_end_bytes": 417460224
+      }
+    },
+    "host": {
+      "temp_start_c": 46.85,
+      "temp_end_c": 47.4,
+      "temp_max_c": 49.6,
+      "throttled_start": "0x0",
+      "throttled_end": "0x0",
+      "cpu": null,
+      "throttled_source": "vcgencmd"
+    }
+  },
+  "loadgen": {
+    "wall_seconds": 75.369,
+    "interval_ms": 1000,
+    "samples": 77,
+    "cells": {},
+    "total": {
+      "containers": 0,
+      "cpu_seconds": 0,
+      "mem_peak_lifetime_bytes": 0,
+      "mem_peak_lifetime_new": false,
+      "cpu_cores_avg": 0,
+      "mem_avg_bytes": 0,
+      "mem_peak_bytes": 0,
+      "working_set_avg_bytes": 0,
+      "working_set_peak_bytes": 0
+    },
+    "containers": {},
+    "host": {
+      "temp_start_c": 30,
+      "temp_end_c": 30,
+      "temp_max_c": 30,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": {
+        "cpus": 12,
+        "util_avg": 0.01047518339832132,
+        "util_max_interval": 0.19999999999999996
+      }
+    }
+  },
+  "nginx": {
+    "wall_seconds": 74.834,
+    "interval_ms": 1000,
+    "samples": 76,
+    "cells": {
+      "nginx": {
+        "containers": 1,
+        "cpu_seconds": 1.288816,
+        "mem_peak_lifetime_bytes": 34660352,
+        "mem_peak_lifetime_new": true,
+        "cpu_cores_avg": 0.017222332095037013,
+        "mem_avg_bytes": 32035678.315789472,
+        "mem_peak_bytes": 34508800,
+        "working_set_avg_bytes": 32011102.315789472,
+        "working_set_peak_bytes": 34484224
+      }
+    },
+    "total": {
+      "containers": 1,
+      "cpu_seconds": 1.288816,
+      "mem_peak_lifetime_bytes": 34660352,
+      "mem_peak_lifetime_new": true,
+      "cpu_cores_avg": 0.017222332095037013,
+      "mem_avg_bytes": 32035678.315789472,
+      "mem_peak_bytes": 34508800,
+      "working_set_avg_bytes": 32011102.315789472,
+      "working_set_peak_bytes": 34484224
+    },
+    "containers": {
+      "3be6185b1633": {
+        "cell": "nginx",
+        "cgroup": "/sys/fs/cgroup/system.slice/docker-3be6185b1633fd428fe6efee7683f78023741aba310507ffa4201d57e9ef0bbd.scope",
+        "cpu_seconds": 1.288816,
+        "cpu_cores_avg": 0.017222332095037013,
+        "mem_avg_bytes": 32035678.315789472,
+        "mem_peak_bytes": 34508800,
+        "working_set_avg_bytes": 32011102.315789472,
+        "working_set_peak_bytes": 34484224,
+        "mem_peak_lifetime_start_bytes": 14729216,
+        "mem_peak_lifetime_end_bytes": 34660352
+      }
+    },
+    "host": {
+      "temp_start_c": 48.5,
+      "temp_end_c": 45.75,
+      "temp_max_c": 49.05,
+      "throttled_start": null,
+      "throttled_end": null,
+      "cpu": null
+    }
+  },
+  "containers": [
+    {
+      "id": "556b13e5f4e8e999e0cc45c098ddfcac8ccc3d7c18ba5f6859bf82fb9bf6ab0e",
+      "name": "eda-thesis-php-laravel-fpm-1",
+      "service": "php-laravel-fpm",
+      "image": "eda-thesis-php-laravel:latest",
+      "image_id": "sha256:1981ed6677b4762ff96efabe6ace664e76e5303fcd81cdf0c74ddf9a14d0d69f",
+      "status": "running",
+      "oom_killed": false,
+      "started_at": "2026-11-15T08:06:01.726143356Z",
+      "runtime_env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "NODE_ENV": null
+      },
+      "limits": {
+        "cpus": 2,
+        "memory_bytes": 1610612736,
+        "memory_swap_bytes": 1610612736,
+        "cgroup_parent": "eda_php_laravel_sse.slice",
+        "nofile": 8192
+      }
+    }
+  ],
+  "context": {
+    "campaign": {
+      "name": "scaling-php-laravel-sse",
+      "phase": "scaling",
+      "block": null,
+      "dir": "2026-11-15T08-05-50-450Z_scaling-php-laravel-sse",
+      "file": "campaigns/scaling/scaling-php-laravel-sse.json"
+    },
+    "topology": "zwei Rechner (SUT-Seite per ssh)",
+    "git": {
+      "load": {
+        "commit": "ac47cb7e8907e0ba31c73381220827554353daaf",
+        "dirty_files": 0,
+        "untracked_files": 16245
+      },
+      "sut": {
+        "commit": "ac47cb7e8907e0ba31c73381220827554353daaf",
+        "dirty_files": 0,
+        "untracked_files": 4
+      }
+    },
+    "k6_version": "k6 v1.2.1 (go1.26.4, linux/amd64)\nExtensions:\n  github.com/phymbert/xk6-sse v0.1.12, k6/x/sse [js]",
+    "sut_host": {
+      "model": "Raspberry Pi 5 Model B Rev 1.1",
+      "kernel": "6.18.50+rpt-rpi-v8",
+      "arch": "arm64",
+      "cpus": 4,
+      "mem_total_bytes": 4189671424,
+      "swap_total_bytes": 0,
+      "cgroup_v2": true,
+      "cgroup_controllers": [
+        "cpuset",
+        "cpu",
+        "io",
+        "memory",
+        "pids"
+      ],
+      "memory_controller": true,
+      "cpu_governor": "performance",
+      "cpu_freq_khz": 2400000,
+      "temp_c": 49.05,
+      "throttled": "0x0",
+      "docker_disk_free_bytes": 1878039834624,
+      "docker_disk_total_bytes": 1968554557440,
+      "sampled_at": "2026-11-15T08:06:04.088Z",
+      "throttled_source": "vcgencmd"
+    },
+    "containers": {
+      "php-laravel-fpm": {
+        "image": "eda-thesis-php-laravel:latest",
+        "image_id": "sha256:1981ed6677b4762ff96efabe6ace664e76e5303fcd81cdf0c74ddf9a14d0d69f",
+        "limits": {
+          "cpus": 2,
+          "memory_bytes": 1610612736,
+          "memory_swap_bytes": 1610612736,
+          "cgroup_parent": "eda_php_laravel_sse.slice",
+          "nofile": 8192
+        },
+        "runtime_env": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "NODE_ENV": null
+        },
+        "mode": {
+          "production": true,
+          "reasons": [],
+          "php_ini": {
+            "file": "/usr/local/etc/php/php.ini",
+            "display_errors": "0",
+            "opcache_enable_fpm": "On"
+          }
+        }
+      }
+    },
+    "orchestrator": {
+      "node": "v24.22.0",
+      "platform": "linux"
+    }
+  },
+  "k6_summary": {
+    "root_group": {
+      "path": "",
+      "id": "d41d8cd98f00b204e9800998ecf8427e",
+      "groups": {},
+      "checks": {
+        "SSE-Verbindung: HTTP 200": {
+          "path": "::SSE-Verbindung: HTTP 200",
+          "id": "aa6e68e31d1e0a5a7cf1f06674a8f810",
+          "passes": 750,
+          "fails": 0,
+          "name": "SSE-Verbindung: HTTP 200"
+        }
+      },
+      "name": ""
+    },
+    "metrics": {
+      "data_sent": {
+        "count": 95250,
+        "rate": 1295.6750110926337
+      },
+      "sse_events_received": {
+        "count": 33000,
+        "rate": 448.89527943366835
+      },
+      "sse_events_unique": {
+        "count": 33000,
+        "rate": 448.89527943366835
+      },
+      "vus_max": {
+        "min": 750,
+        "max": 750,
+        "value": 750
+      },
+      "sse_events_lost": {
+        "count": 0,
+        "rate": 0
+      },
+      "iterations": {
+        "count": 750,
+        "rate": 10.20216544167428
+      },
+      "sse_clients_connected_in_time": {
+        "count": 550,
+        "rate": 7.481587990561139
+      },
+      "sse_events_expected": {
+        "rate": 448.89527943366835,
+        "count": 33000
+      },
+      "data_received": {
+        "count": 7587310,
+        "rate": 103209.32250302624
+      },
+      "http_reqs": {
+        "count": 750,
+        "rate": 10.20216544167428
+      },
+      "sse_event": {
+        "count": 38960,
+        "rate": 529.96848747684
+      },
+      "http_req_sending": {
+        "p(90)": 69150.446162,
+        "p(95)": 69363.9986,
+        "p(99)": 69593.70436,
+        "avg": 18407.153918372005,
+        "min": 5.652322,
+        "med": 6.2666615,
+        "max": 69808.412857
+      },
+      "sse_source_rate_eps": {
+        "med": 1,
+        "max": 1,
+        "p(90)": 1,
+        "p(95)": 1,
+        "p(99)": 1,
+        "avg": 1,
+        "min": 1
+      },
+      "sse_events_duplicate": {
+        "count": 0,
+        "rate": 0
+      },
+      "http_req_duration": {
+        "avg": 68995.86180128534,
+        "min": 67142.99171,
+        "med": 69002.029561,
+        "max": 70821.253097,
+        "p(90)": 70333.7534163,
+        "p(95)": 70566.8152386,
+        "p(99)": 70759.16854108
+      },
+      "checks": {
+        "passes": 750,
+        "fails": 0,
+        "value": 1
+      },
+      "sse_connect_ms": {
+        "avg": 18407.308,
+        "min": 6,
+        "med": 7,
+        "max": 69808,
+        "p(90)": 69150.4,
+        "p(95)": 69361.75,
+        "p(99)": 69583.71
+      },
+      "sse_event_latency_ms": {
+        "p(99)": 22,
+        "avg": 10.802181818181818,
+        "min": 1,
+        "med": 10,
+        "max": 24,
+        "p(90)": 18,
+        "p(95)": 19
+      },
+      "sse_clients_served": {
+        "count": 550,
+        "rate": 7.481587990561139
+      },
+      "vus": {
+        "value": 194,
+        "min": 194,
+        "max": 750
+      },
+      "iteration_duration": {
+        "p(95)": 73478.17966985,
+        "p(99)": 73503.20157488,
+        "avg": 71493.37634172673,
+        "min": 70803.457278,
+        "med": 70827.387269,
+        "max": 73510.251969,
+        "p(90)": 73411.1564931
+      }
+    }
+  }
+}

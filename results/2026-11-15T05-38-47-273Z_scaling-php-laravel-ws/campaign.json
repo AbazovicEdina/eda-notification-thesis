@@ -1,0 +1,68 @@
+{
+  "name": "scaling-php-laravel-ws",
+  "warmupRuns": 1,
+  "settleSeconds": 10,
+  "connectSpreadSeconds": 5,
+  "sut": {
+    "ssh": "pi@192.168.50.10",
+    "repoDir": "/home/pi/eda-notification-thesis",
+    "pi": true,
+    "targetBaseUrl": "http://192.168.50.10:8080",
+    "redisHost": "192.168.50.10"
+  },
+  "phase": "scaling",
+  "configs": [
+    "php-laravel-ws"
+  ],
+  "scenarios": [
+    {
+      "name": "clients-0010",
+      "vus": 10,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-0050",
+      "vus": 50,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-0100",
+      "vus": 100,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-0250",
+      "vus": 250,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-0500",
+      "vus": 500,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-0750",
+      "vus": 750,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    },
+    {
+      "name": "clients-1000",
+      "vus": 1000,
+      "holdSeconds": 60,
+      "runsPerConfig": 4,
+      "eventRatePerSecond": 1
+    }
+  ]
+}
