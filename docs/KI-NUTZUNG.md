@@ -8,6 +8,7 @@ Die Commits tragen bewusst keinen KI-Vermerk. Die KI-Nutzung betrifft nahezu all
 
 - **Claude Code (Anthropic)** mit verschiedenen Claude-Modellen, für den gesamten praktischen Teil. Dazu gehören Recherche, Vorbereitung von Entscheidungen, Code, Einrichtung der Hardware, Fehlersuche, Auswertung und Dokumentation.
 - **Ein Claude-Projekt auf claude.ai,** eingerichtet als Unterstützung für die schriftliche Arbeit. Es prüfte am 2026-10-17 den Messaufbau aus Sicht der Arbeit, die Befunde wurden über Claude Code umgesetzt. Am 2026-10-31 formulierte die Autorin dort die Prüfaufträge vor Block 1.
+- **Claude Fable 5.2 in einer eigenen Sitzung von Claude Code,** für zwei unabhängige Prüfungen am 2026-11-15. Die Sitzung lief im Projektordner, kannte den bisherigen Gesprächsverlauf nicht und durfte am Repository nichts ändern. Nachrechnungen und die Neuerzeugung der Auswertung liefen in einer Kopie außerhalb des Repositorys.
 
 Weitere KI-Werkzeuge kamen nicht zum Einsatz.
 
@@ -16,6 +17,7 @@ Weitere KI-Werkzeuge kamen nicht zum Einsatz.
 1. **Überblick und erste Entscheidungen (ab Juli 2026, in den Semesterferien).** Ausgehend vom Exposé sammelte die Autorin mit Claude Code die Entscheidungen, die für einen fairen Vergleich zu treffen waren, und verschaffte sich einen Überblick über das Thema. Die Optionen recherchierte sie anschließend selbst und ließ auf dieser Grundlage erste Prototypen umsetzen, darunter die Machbarkeitsprüfung von xk6-sse (DECISIONS.md, Abschnitt 3). Was sich vor der Rückmeldung des Betreuers entscheiden ließ, wurde in dieser Zeit festgelegt (DECISIONS.md, Abschnitte 1 bis 4). Prüfberichte zum Grundaufbau (Juli) und zur Methodik (August) liegen in `docs/archive/`.
 2. **Abstimmung und Ausbau (Oktober 2026).** Nach der Abstimmung mit dem Betreuer am 2026-10-16 entstanden die zehn Prototypen in ihrer heutigen Form, der Orchestrator, die Ressourcenmessung und die statistische Auswertung. Zwei Überprüfungen des Messaufbaus mit zwölf und neun Befunden gingen in die Methodik ein.
 3. **Hardware und Probeläufe (ab 2026-10-22).** Die Autorin baute Raspberry Pi und Lastgenerator auf, führte alle Befehle selbst aus und gab die Ausgaben zur Auswertung zurück. Auffälligkeiten analysierte sie mit Claude Code und passte die Methode vor Beginn des Pilots an (Verlauf unten).
+4. **Hauptmessung, unabhängige Prüfung und zweiter Durchlauf (November 2026).** Nach Block 1, Block 2 und den übrigen Messphasen ließ die Autorin das Projekt von einem zweiten Modell in einer eigenen Sitzung prüfen. Die zweite Prüfung fand Fehler in der Messkette. Am 2026-11-16 entschied die Autorin, die Messung mit unverändertem Plan vollständig zu wiederholen. Ausgewertet wird nur der zweite Durchlauf, der erste bleibt in `results/run1/` erhalten (DECISIONS.md 5.14).
 
 ## Arbeitsteilung
 
@@ -39,6 +41,8 @@ Weitere KI-Werkzeuge kamen nicht zum Einsatz.
 - **Zielhardware.** Belastungstest, Probeläufe und ein Test der Festplatte unter Last liefen vor Beginn des Pilots auf dem Pi (DECISIONS.md 5.14).
 - **Gültigkeitsregeln.** Fehlerhafte Läufe werden automatisch als ungültig markiert, mit dem Grund im Protokoll (DECISIONS.md 5.9). Der erste, vollständig fehlerhafte Probelauf fiel dadurch sofort auf.
 - **Quellen.** Bibliografische Angaben sind über Crossref, arXiv und Open Library geprüft. Neue Quellen darf die KI nur vorschlagen, zitiert werden sie erst nach Prüfung im Original (LITERATUR.md).
+- **Unabhängige Prüfung.** Ein zweites Modell prüfte das Projekt in einer eigenen Sitzung ohne den bisherigen Gesprächsverlauf. Es rechnete alle 312 Tests beider Blöcke, den Sättigungstest und die Hypothesenentscheidungen mit einer eigenen Implementierung in Python aus den Laufdateien nach und erzeugte Auswertung und Abbildungen in einer Kopie neu. In einer zweiten Runde prüfte es die Messkette Zeile für Zeile, von den Ereignisquellen über die zehn Varianten bis zu den k6-Skripten. Jeder Befund wurde vor einer Änderung in der Arbeitssitzung an Code und Laufdateien nachgeprüft.
+- **Vorab-Check und Probelauf.** Seit dem zweiten Durchlauf prüft `tools/orchestrate/precheck.js` beide Rechner vor dem Start. Ein Probelauf über alle zehn Zellen prüft danach mit `smoke-check.js`, ob jede Änderung greift (DECISIONS.md 5.14).
 
 ## Hinterfragt und korrigiert
 
@@ -53,6 +57,7 @@ Beispiele, in denen die Autorin Ergebnisse der KI nicht ungeprüft übernommen h
 - **Quellen.** Sie fragte, ob die Literaturangaben aktuell sind und zum Stand des Projekts passen. Die Prüfung korrigierte drei Aussagen und markierte die Stellen, die sie im Original prüft (LITERATUR.md).
 - **Voraussetzung des Wilcoxon-Tests.** Sie wies darauf hin, dass „nichtparametrisch“ nicht „ohne Voraussetzung“ heißt und der Test für seine übliche Lesart symmetrische Paardifferenzen braucht. Daraus entstand die Prüfung aller 156 Tests von Block 1 und die Sensitivitätsanalyse. Sie verlangte außerdem, die Ergebnisse nicht pauschal als Aussagen über den Median zu lesen und die vier abweichenden Tests offen zu berichten (DECISIONS.md 5.8).
 - **Abbildungen.** Sie beurteilte die gerenderten Abbildungen von Block 1 selbst und verlangte einen einheitlichen Aufbau, einheitliche Legenden, genug Abstand und deutlich unterscheidbare Farben. Einen Entwurf mit heller und dunkler Tönung derselben Farbe wies sie zurück, Apricot für die Queue sollte bleiben. Daraus entstanden Palette A in Version 2 und der heutige Aufbau der Boxplots (DECISIONS.md 5.25).
+- **Zweites Modell und Wiederholung der Messung.** Die früheren Prüfungen hatte sie im Schreibprojekt formuliert und in der Arbeitssitzung ausführen lassen. Nach Abschluss aller Messphasen ließ sie das Projekt zusätzlich von einem anderen Modell in einer eigenen Sitzung prüfen, das den bisherigen Verlauf nicht kannte. Als die zweite Prüfung Fehler in der Messkette fand, entschied sie sich gegen einzelne Nachmessungen und gegen eine nachträgliche Begründung der Abweichungen. Stattdessen wird die Messung mit unverändertem Plan vollständig wiederholt, mit dem Ziel eines möglichst sauberen Ergebnisses. Vor dem Start verlangte sie einen Vorab-Check der Testumgebung und eine erneute Prüfung, ob die Wiederholung sinnvoll ist (DECISIONS.md 5.14).
 
 Fehler der KI, die dabei aufgefallen sind:
 
@@ -78,6 +83,10 @@ Fehler der KI, die dabei aufgefallen sind:
 - Der Vorschlag für den Sättigungstest vom 2026-11-07 übersah, dass ein Client, der früh keine Events mehr erhält, weder als unbedient noch als Verlust zählt, und dass die Grenze von 80 % für den Lastgenerator in dieser Phase nicht greift. Beides fiel auf, als die Bedingungen vor der Freigabe genau definiert wurden (DECISIONS.md 5.17).
 - Ein erster Entwurf zur zeitlichen Abhängigkeit der Paare nannte ein Block-Bootstrap „robust“ und als Bestätigung der Testentscheidungen. Das widersprach der eigenen Simulation und wurde nach einer Prüfung des Entwurfs korrigiert, die Intervalle wurden verworfen. Auch die erste Gegenprobe mit Blöcken zu 5 Läufen war zu schwach (DECISIONS.md 5.8).
 - Eine Zwischenfassung der präzisierten Forschungsfrage nannte die Limits je Anwendungscontainer. Das Budget gilt je Variante, auch bei zwei Containern (DECISIONS.md 5.6.2, 5.23).
+- Die Regel zur Senderate im Sättigungstest vom 2026-11-14 übersah, dass eine zu niedrige Senderate zwangsläufig auch die Gesamtzustellung verletzt, solange diese auf die eingestellte Rate bezogen ist. Die Regel konnte dadurch nie greifen. Aufgefallen ist das erst nach Sichtung der Ergebnisse. Im zweiten Durchlauf ist die Gesamtzustellung auf die gemessene Senderate bezogen (DECISIONS.md 5.17).
+- Die erste unabhängige Prüfung vom 2026-11-15 fand sechs falsche oder veraltete Angaben in den Dokumenten. Bei `php-laravel-ws` galt die Senderate im Sättigungstest als zu niedrig, obwohl die Clients nur verspätete Events einer früheren Stufe empfingen, und für das Working Set von `php-minimal-ws` stand 27 statt rund 21 MiB. Kein Ergebnis und keine Hypothesenentscheidung änderte sich (DECISIONS.md, Änderungsverlauf).
+- Die zweite unabhängige Prüfung fand Fehler in der Messkette, die bei keiner früheren Prüfung aufgefallen waren. `scan:produce` rundete den Zeitstempel, alle anderen Quellen schnitten ihn ab. Die Latenz von `php-laravel-sse-queue` war dadurch um rund 0,5 ms zu niedrig, und die Entscheidung zu H7 hing davon ab. Außerdem dauerten SSE-Läufe rund 0,4 s länger als WebSocket-Läufe, der Verbindungsaufbau bei PHP-FPM mit SSE endete vor der Verbindung zu Redis, und DECISIONS.md 5.20 nannte vier abweichende Laravel-Einstellungen nicht. Diese Befunde führten zum zweiten Durchlauf (DECISIONS.md 5.14, 5.20).
+- Die neuen Prüfwerkzeuge für den zweiten Durchlauf enthielten selbst Fehler. So verglich `smoke-check.js` jeden Lauf mit der Senderate des ersten Laufs. Diese Fehler fielen bei den Durchsichten vor dem Start auf, um die die Autorin gebeten hatte.
 
 ## Gelernt und selbst überprüft
 
@@ -96,7 +105,7 @@ Die Grundlagen waren aus der HTL, aus Lehrveranstaltungen an der FH Oberösterre
 
 ## Protokoll
 
-Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext in eine Markdown-Datei. Claude Code speichert die Verläufe zusätzlich vollständig. Dieses Protokoll liegt außerhalb des Repositorys, weil es persönliche Inhalte enthält, etwa Nachrichten an den Betreuer und einmal eingegebene Zugangsdaten. Dem Betreuer kann es auf Anfrage vorgelegt werden. Für die Zeit davor zeichnen der Änderungsverlauf in DECISIONS.md und die Git-Historie den Ablauf nach. Die wichtigsten Stationen fasst der folgende Verlauf zusammen.
+Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext in eine Markdown-Datei. Claude Code speichert die Verläufe zusätzlich vollständig. Dieses Protokoll liegt außerhalb des Repositorys, weil es persönliche Inhalte enthält, etwa Nachrichten an den Betreuer und einmal eingegebene Zugangsdaten. Dem Betreuer kann es auf Anfrage vorgelegt werden. Auch die Prüfsitzung mit Claude Fable lief im Projektordner und ist so festgehalten. Für die Zeit davor zeichnen der Änderungsverlauf in DECISIONS.md und die Git-Historie den Ablauf nach. Die wichtigsten Stationen fasst der folgende Verlauf zusammen.
 
 ## Verlauf
 
@@ -136,3 +145,7 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-11-09 | Gesamtaudit nach der Literaturprüfung, nur lesend | Block 1 aus den Laufdateien nachgerechnet, Befunde zu Forschungsfrage, Schreibmaterial und zeitlicher Abhängigkeit, Bericht außerhalb des Repositorys |
 | 2026-11-09 | Zeitliche Abhängigkeit der gepaarten Läufe | beschreibende Diagnose in die Auswertung eingebaut, getrennt in Python nachgerechnet, Festlegung nach einer Prüfung des Entwurfs überarbeitet, vor dem Öffnen von Block 2 (DECISIONS.md 5.8, `results/run1/2026-11-09_temporal-dependence-check/`) |
 | 2026-11-09 | Präzisierung der Forschungsfragen | Formulierungen mit KI-Unterstützung erarbeitet und geprüft, Wortlaut selbst freigegeben (DECISIONS.md 5.23) |
+| 2026-11-15 | Lücke der Regel zur Senderate, erkannt nach Sichtung der Ergebnisse | offengelegt, im zweiten Durchlauf durch den Bezug auf die gemessene Senderate behoben (DECISIONS.md 5.17) |
+| 2026-11-15 | Wunsch der Autorin nach einer unabhängigen Prüfung durch ein zweites Modell (Claude Fable 5.2) in einer eigenen Sitzung | Statistik, Sättigungstest und Hypothesen aus den Laufdateien nachgerechnet, Auswertung in einer Kopie reproduziert, sechs falsche oder veraltete Angaben korrigiert, kein Ergebnis geändert |
+| 2026-11-15 | zweite unabhängige Prüfung mit Schwerpunkt Messkette und Fairness der Prototypen | gerundeter Zeitstempel der Laravel-Queue mit Folge für H7, ungleich lange Läufe bei SSE und WebSocket, Verbindungsaufbau bei PHP-FPM vor der Verbindung zu Redis, vier nicht dokumentierte Laravel-Einstellungen |
+| 2026-11-16 | Entscheidung der Autorin für eine vollständige Wiederholung statt einzelner Nachmessungen | zweiter Durchlauf mit unverändertem Plan und korrigierter Messkette, Vorab-Check und Probelauf vor dem Start, erster Durchlauf unverändert in `results/run1/` (DECISIONS.md 5.14) |
