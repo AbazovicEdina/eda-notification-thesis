@@ -2,8 +2,12 @@
 # Runs the whole second measurement unattended on the load generator (second
 # run of 2026-11-16, DECISIONS.md 5.9, 5.14 and 5.17):
 #   0. pre-check of both machines (precheck.js), stops on any failure
-#   1. short trial run of comparisons 4, 10, 12 and 13 on all three load levels
-#      (prefix precheck-), checked by smoke-check.js, stops on any failure
+#   1. short trial run of comparisons 4, 9, 10, 12 and 13 on all three load
+#      levels (prefix precheck-), checked by smoke-check.js, stops on any
+#      failure. Together they use all ten cells once, so that the files of
+#      freshly built images are read for the first time here and not in block 1
+#      (Linux charges a page of the file cache to the cgroup that reads it
+#      first, DECISIONS.md 5.14)
 #   2. block 1 and 3. block 2, each with the daily control measurement
 #   4. saturation test, the eight cells without a queue, then the two queue cells
 #   5. scaling series
@@ -62,7 +66,7 @@ fi
 
 # Campaign files. Fixed seeds, so that a restart produces the same order.
 plan() { node tools/orchestrate/plan-campaigns.js "$@" --sut "$SUT" >> "$LOG" 2>&1 || fail "Kampagnen nicht erzeugt ($*)"; }
-plan main --block 1 --runs baseline=4,medium=4,stress=4 --warmup 1 --hold 20 --comparisons 4,10,12,13 --prefix precheck- --seed 20261116 --out "$OUT/precheck"
+plan main --block 1 --runs baseline=4,medium=4,stress=4 --warmup 1 --hold 20 --comparisons 4,9,10,12,13 --prefix precheck- --seed 20261116 --out "$OUT/precheck"
 plan main --block 1 --runs baseline=90,medium=90,stress=90 --seed 20261117 --out "$OUT/block1"
 plan main --block 2 --runs baseline=90,medium=90,stress=90 --seed 20261118 --out "$OUT/block2"
 plan saturation --clients 50 --rates "$RATES" --runs 3 --cells "$NOQUEUE" --seed 20261119 --out "$OUT/saturation"
@@ -77,6 +81,10 @@ line="0 * * * * cd $REPO && node tools/orchestrate/status.js --schedule $OUT/cur
 (crontab -l 2>/dev/null | grep -v 'tools/orchestrate/status.js'; echo "$line") | crontab - || log "Hinweis: cron-Eintrag nicht gesetzt"
 
 flush() {
+  # Before every step: the Pi has to be reachable and must not have been
+  # restarted since the start of the run.
+  now_boot=$(ssh -o BatchMode=yes -o ConnectTimeout=20 "$PI" uptime -s) || fail "Pi nicht erreichbar"
+  [ "$now_boot" = "$(cat "$STATE/pi-boot")" ] || fail "Der Pi wurde seit dem Start neu gestartet ($(cat "$STATE/pi-boot") gegenüber $now_boot)"
   log "Redis leeren"
   ssh -o BatchMode=yes "$PI" "cd $PIDIR && docker compose up -d redis && docker compose exec -T redis redis-cli FLUSHALL" >> "$LOG" 2>&1
   n=$(ssh -o BatchMode=yes "$PI" "cd $PIDIR && docker compose exec -T redis redis-cli DBSIZE" 2>> "$LOG" | tr -dc '0-9')

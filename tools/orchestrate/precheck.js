@@ -148,8 +148,14 @@ if (reach.ok) {
 
   const page = await ssh('getconf PAGESIZE');
   report('Pi: Kernel mit 4-KB-Seiten', page.stdout === '4096', page.stdout);
+  // Bits 0 to 3 describe the current state, bits 16 to 19 only whether it
+  // happened since the start. Only a current limit stops the run, because a
+  // restart to clear the history would shift the memory accounting (5.14).
+  // run.js marks every run with throttling as invalid anyway.
   const throttled = await ssh('vcgencmd get_throttled');
-  report('Pi: keine Drosselung seit dem Start', /throttled=0x0\b/.test(throttled.stdout), throttled.stdout);
+  const bits = parseInt((throttled.stdout.match(/throttled=(0x[0-9a-fA-F]+)/) ?? [])[1] ?? 'NaN', 16);
+  report('Pi: derzeit keine Unterspannung und keine Drosselung', Number.isFinite(bits) && (bits & 0xf) === 0,
+    Number.isFinite(bits) && bits & 0xf0000 ? `${throttled.stdout}, seit dem Start schon einmal aufgetreten` : throttled.stdout);
   const temp = await ssh('vcgencmd measure_temp');
   const celsius = Number((temp.stdout.match(/temp=([\d.]+)/) ?? [])[1]);
   report(`Pi: Temperatur unter ${MAX_TEMP_C} °C`, celsius < MAX_TEMP_C, Number.isFinite(celsius) ? `${celsius} °C` : temp.stdout);
