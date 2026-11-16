@@ -33,6 +33,9 @@ export default function () {
   const response = ws.connect(url, {}, (socket) => {
     socket.on('open', () => markConnected(delivery, tracker, window));
     socket.on('message', (raw) => {
+      // Receive time before any parsing, as in the other scripts (second run of
+      // 2026-11-16). Before, the Pusher envelope was parsed first.
+      const now = Date.now();
       const message = JSON.parse(raw);
 
       if (message.event === 'pusher:connection_established') {
@@ -41,8 +44,14 @@ export default function () {
       }
 
       if (message.event === 'scan') {
-        const now = Date.now();
-        if (now < window.start || now >= window.end) return;
+        // Close at the first event after the measurement window, exactly like the
+        // SSE script, so that both transports serve the same number of events
+        // per run (second run of 2026-11-16).
+        if (now >= window.end) {
+          socket.close();
+          return;
+        }
+        if (now < window.start) return;
         const data = JSON.parse(message.data); // Pusher envelope, "data" is a JSON string
         eventLatency.add(now - data.ts);
         eventsReceived.add(1);
@@ -50,7 +59,9 @@ export default function () {
       }
     });
 
-    socket.setTimeout(() => socket.close(), Math.max(0, window.end - Date.now()));
+    // Fallback only, in case no event arrives after the window. Normally the
+    // first event after the window closes the connection (see above).
+    socket.setTimeout(() => socket.close(), Math.max(0, window.end - Date.now()) + 5000);
   });
 
   flush(delivery, tracker);

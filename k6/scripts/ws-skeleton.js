@@ -24,13 +24,22 @@ export default function () {
     socket.on('open', () => markConnected(delivery, tracker, window));
     socket.on('message', (message) => {
       const now = Date.now();
-      if (now < window.start || now >= window.end) return;
+      // Close at the first event after the measurement window, exactly like the
+      // SSE script, so that both transports serve the same number of events per
+      // run (second run of 2026-11-16).
+      if (now >= window.end) {
+        socket.close();
+        return;
+      }
+      if (now < window.start) return;
       const data = JSON.parse(message);
       eventLatency.add(now - data.ts);
       eventsReceived.add(1);
       track(tracker, data);
     });
-    socket.setTimeout(() => socket.close(), Math.max(0, window.end - Date.now()));
+    // Fallback only, in case no event arrives after the window. Normally the
+    // first event after the window closes the connection (see above).
+    socket.setTimeout(() => socket.close(), Math.max(0, window.end - Date.now()) + 5000);
   });
 
   flush(delivery, tracker);
