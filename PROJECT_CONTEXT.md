@@ -318,7 +318,6 @@ In block 1, 8 of 39 campaigns ran with at least one process that an earlier camp
 | Receive the supervisor's feedback on the refined research question. No feedback is documented | `DECISIONS.md` 5.23 |
 | Complete the second run (about two weeks, `tools/orchestrate/run-all.sh`), then evaluate it and replace the numbers of the first run in this file | `DECISIONS.md` 5.14 |
 | Check figures in the thesis document | `DECISIONS.md` Section 6 |
-| Confirm the byline of Hodges & Lehmann (1963) in the PDF ("Jr."). Hollander, Wolfe & Chicken was replaced on 2026-11-16 by Hodges & Lehmann (1963) and the NIST Dataplot page | `LITERATUR.md` |
 
 ## 12. Claims that the data do and do not support
 

@@ -16,11 +16,10 @@ The author checks these points in the original before they appear in the text. E
 - [ ] **Dean & Barroso (2013).** The transfer to server push on a single Raspberry Pi is a conclusion of this thesis.
 - [ ] **Felter et al. (2015).** That the overhead affects both languages alike is a conclusion of this thesis. Cite only the two statements of the abstract.
 - [ ] **Hodges & Lehmann (1963) and NIST.** Neither source supports the term "pseudo-median" or the statement that median and pseudo-median can differ in sign. Write only that without symmetry a significant result is no direct statement about the median. Cite NIST as the source of its summary, not Conover. The order within a pair alternates in the second run and is not randomised, so p. 607 of Hodges & Lehmann does not apply directly. The possible serial dependence of the paired runs remains a limitation of this thesis.
-- [ ] **Hodges & Lehmann (1963), author name.** Crossref lists the first author as "J. L. Hodges". Check on the first page of the PDF whether the byline adds "Jr." and adjust the BibTeX entry if so.
 
 **Checked on 2026-11-16:**
 
-- [x] **Hodges & Lehmann (1963).** Checked by the author in the original PDF and cross-checked independently. p. 603, pp. 606–607 and p. 607, see the entry.
+- [x] **Hodges & Lehmann (1963).** Checked by the author in the original PDF and cross-checked independently. p. 603, pp. 606–607 and p. 607, see the entry. Byline "J. L. Hodges, Jr." checked on the title page.
 - [x] **NIST, Dataplot Reference Manual, "Signed Rank Test".** Online text checked, see the entry. Together with Hodges & Lehmann it replaces Hollander, Wolfe & Chicken, whose Chapter 3 was not accessible.
 
 **Checked by the author on 2026-11-15:**
@@ -686,7 +685,7 @@ Frank Wilcoxon. "Individual Comparisons by Ranking Methods." *Biometrics Bulleti
 
 ### Hodges & Lehmann (1963), estimator of location based on the signed-rank statistic
 
-J. L. Hodges, E. L. Lehmann. "Estimates of Location Based on Rank Tests." *The Annals of Mathematical Statistics*, 34(2), 598–611, 1963. Institute of Mathematical Statistics. DOI 10.1214/aoms/1177704172. Metadata confirmed in Crossref on 2026-11-16.
+J. L. Hodges, Jr., E. L. Lehmann. "Estimates of Location Based on Rank Tests." *The Annals of Mathematical Statistics*, 34(2), 598–611, 1963. Institute of Mathematical Statistics. DOI 10.1214/aoms/1177704172. Metadata confirmed in Crossref on 2026-11-16. Crossref lists the first author only as "J. L. Hodges", the title page reads "J. L. Hodges, Jr." (checked by the author on 2026-11-16).
 
 **Use.** Original source of the Hodges-Lehmann estimator, which the descriptive sensitivity analysis reports, and of the role of symmetry for reading the signed-rank test (DECISIONS.md 5.8).
 
@@ -700,7 +699,7 @@ J. L. Hodges, E. L. Lehmann. "Estimates of Location Based on Rank Tests." *The A
 
 ```bibtex
 @article{hodges1963estimates,
-  author       = {Hodges, J. L. and Lehmann, E. L.},
+  author       = {Hodges, Jr., J. L. and Lehmann, E. L.},
   title        = {Estimates of Location Based on Rank Tests},
   journaltitle = {The Annals of Mathematical Statistics},
   volume       = {34},
