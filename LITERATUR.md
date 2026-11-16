@@ -4,24 +4,29 @@ Sources for the related work and for the decisions in `DECISIONS.md`, ordered by
 
 **Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
 
-## To check by hand (as of 2026-11-09)
+## To check by hand (as of 2026-11-15)
 
-The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND.**
+The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND**, or a **Note for writing** where only the wording in the text remains open.
 
-**Important, the thesis relies on these:**
+**Still open:**
 
-- [ ] **Arcuri & Briand (2014).** The paper recommends the effect measure A12 by Vargha & Delaney and mentions neither Cliff's delta nor Romano. It supports only the statement that almost any difference becomes significant with enough runs, and the use of paired tests. Be prepared for the question "why not A12?" (δ = 2·A12 − 1).
-- [ ] **Felter et al. (2015).** The source compares KVM and Docker, not PHP and Node.js. That the overhead affects both alike is a conclusion of this thesis and must be worded that way in the text.
-- [ ] **Cabane & Farias (2024).** Only the title is known so far, and there is no open access. Read it through the university library or do not cite it. Its placement in the research gap depends on this.
+- [ ] **Hollander, Wolfe & Chicken (3rd edition).** Chapter 3 was not accessible on 2026-11-15. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication. Do not cite the book before that.
 
-**Read before citing:**
+**Only for writing:**
 
-- [ ] **Hollander, Wolfe & Chicken (3rd edition).** Only the table of contents could be checked. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication.
-- [ ] **Van de Vyvere et al. (2020).** The full text was read in a manuscript version with its own page numbers. Take the page numbers from the Springer version if single passages are cited.
-- [ ] **Appelqvist & Örnmyr (2017).** Spot-check the page references in the entry.
-- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis.
-- [ ] **Dean & Barroso (2013).** The paper deals with large distributed services. The transfer to server push is a conclusion of this thesis.
-- [ ] **Widrow & Kollár (2008).** Conditions for the uniform rounding error and a suitable chapter reference.
+- [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis. The fixed number of five warm-up runs is a decision of this thesis.
+- [ ] **Dean & Barroso (2013).** The transfer to server push on a single Raspberry Pi is a conclusion of this thesis.
+- [ ] **Felter et al. (2015).** That the overhead affects both languages alike is a conclusion of this thesis. Cite only the two statements of the abstract.
+
+**Checked by the author on 2026-11-15:**
+
+- [x] **Appelqvist & Örnmyr (2017).** Page references checked in the original PDF, two statements corrected (runs with and without a requested garbage collection, CPU as a mean and not a maximum).
+- [x] **Arcuri & Briand (2014).** Checked in the authors' version, the Wiley page numbers are not confirmed. Be prepared for the question "why not A12?". For the same direction of comparison, and with A12 counting ties as half, δ = 2·A12 − 1.
+- [x] **Dean & Barroso (2013).** Checked in the journal version, pp. 74–75.
+- [x] **Felter et al. (2015).** Abstract and the longer IBM research report checked, the two-page IEEE text itself was not seen.
+- [x] **Van de Vyvere et al. (2020).** Content confirmed in the authors' web version. The Springer page numbers were not available, so the paper is cited without page numbers.
+- [x] **Widrow & Kollár (2008).** Chapter 5, Section 5.6, pp. 107–108, with the condition stated in the entry.
+- [x] **Cabane & Farias (2024).** Read in the authors' version and not adopted, see "Checked and not adopted".
 
 **Before submission:**
 
@@ -47,7 +52,7 @@ The related work falls into five lines:
 1. **Concurrency models of servers.** One process or thread per connection versus event-driven processing (Lauer & Needham 1979, Welsh et al. 2001, von Behren et al. 2003, Pariag et al. 2007). These works provide the theoretical basis for comparing PHP-FPM (one worker per connection) and Node.js (event loop). They study web servers with short requests, not long-lived push connections.
 2. **PHP versus Node.js.** Several of the screened comparisons measure short-lived HTTP requests (Lei, Ma & Tan 2014, Mufid et al. 2024), including PHP-FPM stacks on one test server with up to 30,000 concurrent connections (Chaniotis et al. 2015). Node.js is described as an event-driven platform for I/O-heavy applications (Tilkov & Vinoski 2010). Comparisons in real-time settings also exist. A non-peer-reviewed developer report with public result files measures event-loop PHP libraries and Node.js for SSE and WebSocket with up to 100 browser clients (Van Berkel & Ali 2021). A preliminary test in an IoT system compares a publish-subscribe model in Node.js with a request-response model in PHP, and language, communication model and software stack change together (Thirunavukkarasu et al. 2018).
 3. **PHP real-time servers.** Workerman, Ratchet and Swoole prototypes have been load-tested against each other on one virtual core and 2 GB of memory, without a Node.js variant and without SSE (Tsindeliani et al. 2022).
-4. **Event-driven architecture.** Terms and patterns (Fowler 2017, Hohpe & Woolf 2003), effects on modularity (Farias & Lazzari 2023), challenges in monitoring and debugging (Laigner et al. 2026), performance models (Woodside 2021). These works consider communication between services, not delivery to many permanently connected clients. Cabane & Farias (2024) is listed as unverified. Only its title and bibliographic data are known, so no statement about its content is made here.
+4. **Event-driven architecture.** Terms and patterns (Fowler 2017, Hohpe & Woolf 2003), effects on modularity (Farias & Lazzari 2023), challenges in monitoring and debugging (Laigner et al. 2026), performance models (Woodside 2021). These works consider communication between services, not delivery to many permanently connected clients. Cabane & Farias (2024) was read on 2026-11-15 and not adopted, see the entry under "Checked and not adopted".
 5. **Real time on the web.** In a crawl of May 2020, WebSocket was observed on 6.3% of the websites and SSE on 0.05%, and polling remained more common according to the authors (Murley et al. 2021). SSE and WebSocket have been compared directly in peer-reviewed work and in theses. On Java servlet containers, Słodziak & Nowak (2016) report similar server-to-client transmission times. On Node.js, Appelqvist & Örnmyr (2017) find very similar results with 100 clients, and Bigestans (2014) and Fladvad & Khans (2021) compare WebSocket with SSE combined with client-to-server HTTP requests. SSE has been measured against polling with up to 25,000 clients on Node.js (Van de Vyvere et al. 2020), WebSocket against polling at 4 Hz (Pimentel & Nickerson 2012).
 
 **Gap (draft, searches of 2026-11-08).** In documented searches of IEEE Xplore, the ACM Digital Library and Google Scholar, complemented by forward and backward citation tracking of seven key works and based on the titles, abstracts and bibliographic data of the screened records and on the full texts of selected candidates rather than on all hits or full texts, no study was identified that measures PHP-FPM with one worker per open SSE connection, event-loop PHP WebSocket servers and Node.js for server push over long-lived connections under the same explicit CPU and memory limits per variant, including framework and queue variants and using planned pairwise contrasts, paired runs and an analysis plan fixed before data collection. This does not show that no such study exists. Because the transport is tied to the execution model in PHP and the queue was studied only in framework-based SSE variants, these contrasts are not independent effects of language, framework, transport and queue.
@@ -229,11 +234,9 @@ Wojciech Słodziak, Ziemowit Nowak. "Performance Analysis of Web Systems Based o
 
 Bachelor's thesis in software engineering, Blekinge Institute of Technology, urn:nbn:se:bth-14497.
 
-**Content (per full text).** Four servers in Node.js with the `http` and `ws` modules (p. 17), 100 simultaneous clients as Firefox tabs (pp. 18, 22, 44), tests of 40 to 60 minutes, each run twice (p. 22). Measured are CPU, memory, network traffic, messages per second and TCP connections, but not latency (p. 16). SSE and WebSocket are very similar (pp. 40–41, 43).
+**Content (checked by the author on 2026-11-15 in the original PDF, printed page numbers).** Four servers in Node.js, `http` for XHR polling, long polling and SSE, `ws` for WebSocket (p. 17). 100 simultaneous clients as Firefox tabs (pp. 18, 22), the load of the browsers is a methodological limitation. Three test configurations of 40 to 60 minutes each, each run twice, once with and once without a requested garbage collection, so the two runs are not identical repetitions (p. 22). Measured are CPU, memory, network traffic, sent messages per second and TCP connections. Latency is not measured, because according to the authors the response times of the four techniques are not directly comparable (p. 16). SSE and WebSocket perform similarly in the setup studied (pp. 40–42), which does not show a general equivalence.
 
-**Relevance and distinction.** Direct comparison of SSE and WebSocket over long-lived connections, with little load (at most about 4% CPU, p. 44), only on Node.js and without a statistical test.
-
-**CHECK BY HAND.** Spot-check the page references above.
+**Relevance and distinction.** Direct comparison of SSE and WebSocket over long-lived connections, with little load (mean CPU of XHR polling 4.23 % in test 1, p. 25, and 4.11 % in test 2, p. 32), only on Node.js and without a statistical test.
 
 ```bibtex
 @thesis{appelqvist2017performance,
@@ -298,7 +301,7 @@ Anton Fladvad, Anders Khans. *Real-Time Synchronization of Multi-Window Web-Appl
 
 Brecht Van de Vyvere, Pieter Colpaert, Ruben Verborgh. "Comparing a Polling and Push-Based Approach for Live Open Data Interfaces." In *Web Engineering (ICWE 2020)*, Lecture Notes in Computer Science, 87–101, Springer, 2020. DOI 10.1007/978-3-030-50578-3_7.
 
-**Content (per full text, manuscript pages 1 to 16, not Springer pages).** A JSON update of 5.2 kB every 5 s, polling 500 ms after the previous response (p. 7). Node.js with Express on a single thread, nginx with one worker and an optional cache (pp. 7–8). 200 CloudLab machines for the clients (pp. 8–9). Polling without nginx works well up to 2,000 clients and fails above 5,000 (p. 9). With the nginx cache, polling reaches 8,000 clients and SSE 25,000 (pp. 10, 13). SSE uses less CPU and more memory with every connection (pp. 11–12). A pause of 1 ms per 1,000 clients was needed for SSE (pp. 11–12).
+**Content (checked by the author on 2026-11-15 in the authors' web version).** The Springer page numbers were not available, so the paper is cited without page numbers. Page numbers of the web version are not transferred to the Springer edition. A JSON update of 5.2 kB every 5 s, polling with a pause of 500 ms after the previous response (section Evaluation design). Node.js with Express on one event-loop thread, nginx with one worker and an optional cache (Evaluation design). 200 CloudLab machines for the clients (Experiment setup). Polling without nginx still works at around 2,000 clients, degrades above that and no longer succeeds above 5,000 clients (Scalability). With the nginx cache, polling reaches 8,000 clients and SSE 25,000 in the tested setup. SSE uses less CPU but more memory per open connection. A pause of 1 ms per 1,000 SSE clients was needed to avoid problems when sending to many clients.
 
 **Relevance and distinction.** The closest study on scaling SSE. It does not compare SSE with WebSocket or PHP with Node.js. No limits per variant are stated, a clear number of independent repetitions and statistical tests are missing. 25,000 is not a general limit. It also fits Lokato, which distributes by polling every 500 ms (DECISIONS.md 5.4).
 
@@ -598,34 +601,17 @@ Murray Woodside. "Performance Models of Event-Driven Architectures." In *Compani
 }
 ```
 
-### Cabane & Farias (2024), event-driven architecture and performance (addition, not in the proposal)
-
-Hebert Cabane, Kleinner Farias. "On the impact of event-driven architecture on performance: An exploratory study." *Future Generation Computer Systems*, 153, 52–69, 2024. DOI 10.1016/j.future.2023.10.021.
-
-Found while checking Farias & Lazzari. Record confirmed through Crossref. The abstract could not be retrieved through the open interfaces. The content is therefore known only from the title and must be read before any use.
-
-**CHECK BY HAND.** Searched again on 2026-11-03, still no abstract and no open access. Read it through the university library or do not cite it.
-
-**Use (planned).** None until it has been read. Status unverified, only the title and bibliographic data are known. A distinction from the measurement in this thesis can only be stated after reading.
-
-```bibtex
-@article{cabane2024performance,
-  author       = {Cabane, Hebert and Farias, Kleinner},
-  title        = {On the impact of event-driven architecture on performance: An exploratory study},
-  journaltitle = {Future Generation Computer Systems},
-  volume       = {153},
-  pages        = {52--69},
-  date         = {2024},
-  doi          = {10.1016/j.future.2023.10.021},
-  langid       = {english}
-}
-```
-
 ### Checked and not adopted, Tzialla et al. (2024)
 
 Ioanna Tzialla, Jeffery Wang, Jingyi Zhu, Aurojit Panda. "Efficient Auditing of Event-driven Web Applications." In *Proceedings of the 19th European Conference on Computer Systems (EuroSys '24)*, 2024. DOI 10.1145/3627703.3650089.
 
 The proposal cites the paper for challenges in monitoring and auditing event-driven systems. There, however, "auditing" means checking whether a server executed a web application faithfully (record-replay for Node.js applications on untrusted servers). That is a question of integrity, not of observability in operation, and touches no statement of this thesis. For challenges in monitoring and debugging, Laigner et al. (2026) is the suitable source.
+
+### Checked and not adopted, Cabane & Farias (2024)
+
+Hebert Cabane, Kleinner Farias. "On the impact of event-driven architecture on performance: An exploratory study." *Future Generation Computer Systems*, 153, 52–69, 2024. DOI 10.1016/j.future.2023.10.021.
+
+Read by the author on 2026-11-15 in the authors' detailed version, the Elsevier page numbers were not assigned. The study compares the same e-commerce application as a monolith and as an event-driven architecture distributed over several services, in C# 9 with .NET 5, with load tests of 10, 25 and 50 concurrent users (JMeter, New Relic). The monolith needs clearly less RAM and has shorter response times, the event-driven version needs less CPU in the scenarios studied, so no architecture is ahead in all measures. The paper compares neither PHP and Node.js nor SSE and WebSocket and concerns communication between services, not delivery to many connected clients. Not adopted because of its low direct relevance and the page limit of the thesis. The entry was removed from `references.bib`.
 
 ## Empirical software engineering, validity framework
 
@@ -654,7 +640,7 @@ Andrea Arcuri, Lionel Briand. "A Hitchhiker's Guide to Statistical Tests for Ass
 
 **Use.** Always report significance tests together with an effect size. With enough runs, almost any difference becomes significant, even one without practical value. The paper also names the paired Wilcoxon test for paired data (DECISIONS.md 5.8). Checked in the full text on 2026-11-03.
 
-**CHECK BY HAND.** The paper recommends the effect measure A12 by Vargha & Delaney. Cliff's delta and Romano et al. do not appear in it. It therefore does not support the choice of effect measure and thresholds. Its main recommendation for unpaired data is the U test.
+**Checked by the author on 2026-11-15** in the authors' version, the Wiley page numbers are not confirmed. Cliff's delta and Romano et al. do not appear in the paper. It recommends the effect measure A12 by Vargha & Delaney (Section 7, pp. 16–17 of the authors' version) and therefore does not support the choice of Cliff's delta or of thresholds. With very large samples even practically irrelevant differences become significant, so effect sizes are needed in addition (pp. 16, 18). For paired data it uses the paired Wilcoxon test via `wilcox.test(X, Y, paired=TRUE)` (Section 10.2, p. 23), but calls it a rank-sum test, although the paired R function computes the signed-rank test. Cite Wilcoxon (1945) for the signed-rank test and this paper only for using a paired test on paired data. For independent samples its default recommendation is the two-sided Mann-Whitney U test (Section 10.3). For the same direction of comparison, and with A12 counting ties as half, Cliff's delta and A12 are equivalent (δ = 2·A12 − 1), so the choice changes no statement.
 
 ```bibtex
 @article{arcuri2014hitchhiker,
@@ -709,12 +695,12 @@ Myles Hollander, Douglas A. Wolfe, Eric Chicken. *Nonparametric Statistical Meth
 | 3.4 | A Distribution-Free Sign Test (Fisher) | p. 63 |
 | 3.9 | An Asymptotically Distribution-Free Test of Symmetry (Randles–Fligner–Policello–Wolfe, Davis–Quade) | p. 94 |
 
-**CHECK BY HAND.** The text of the book was not available, only its table of contents. It is therefore not confirmed that the book supports the statements below, and no exact page for any of them is known. Do not cite the book before these points are checked in the original.
+**CHECK BY HAND.** The text of the book was not available, only its table of contents. Chapter 3 was again not accessible on 2026-11-15. It is therefore not confirmed that the book supports the statements below, and no exact page for any of them is known. Do not cite the book before these points are checked in the original.
 
 - Section 3.1 (from p. 40). Does it assume that the differences are symmetric about a common median, and what does it say about the meaning of the test when they are not?
 - Section 3.2 (from p. 56). Is the estimator defined as the median of the Walsh averages? Does the book call it a pseudo-median, or does it relate it to the median in another way?
 - Section 3.4 (from p. 63). Does the sign test get by without the symmetry assumption?
-- Year of publication. Wiley lists December 2013 for the hardcover, Crossref lists 2015 for the online edition. Confirm the year on the copyright page and correct `date` below if needed.
+- Year of publication. Wiley lists December 2013 for the hardcover (ISBN 978-0-470-38737-5) and November 2013 for an e-book (ISBN 978-1-118-55329-9), plus an electronic format dated July 2015 with another ISBN (checked by the author on 2026-11-15). Crossref lists 2015 for the online edition. Use 2013 for the printed edition named above and confirm it on the copyright page when the book is read.
 - Enter the exact pages for each statement after the check. The entry is not yet in `references.bib`.
 
 ```bibtex
@@ -929,9 +915,9 @@ Bradley Efron, Robert J. Tibshirani. *An Introduction to the Bootstrap*. Chapman
 
 Bernard Widrow, István Kollár. *Quantization Noise: Roundoff Error in Digital Computation, Signal Processing, Control, and Communications*. Cambridge University Press, 2008. ISBN 978-0-521-88671-0. DOI 10.1017/CBO9780511754661 (confirmed through Crossref on 2026-10-17).
 
-**Use.** Reason for using the mean per run as the test statistic (DECISIONS.md 5.8). If timestamps are rounded to whole milliseconds and the events are not coupled to the millisecond grid, the rounding error is approximately uniform and zero on average. The mean of many rounded values is then finely resolved and unbiased, while the median stays tied to the grid.
+**Use.** Reason for using the mean per run as the test statistic (DECISIONS.md 5.8). If timestamps are rounded to whole milliseconds and the events are not coupled to the millisecond grid, the rounding error is approximately uniform and zero on average. Under these conditions the mean of many rounded values is finely resolved and unbiased, while the median stays tied to the grid.
 
-**CHECK BY HAND.** Check the conditions for the uniform rounding error and a suitable chapter reference.
+**Checked by the author on 2026-11-15** in Chapter 5, Section 5.6, pp. 107–108. If the conditions of the quantizing theorems hold, the quantization noise can be described as uniform between −q/2 and +q/2 with mean zero. The condition concerns how the input values are spread relative to the quantization grid, it does not hold automatically for every rounded timestamp. For this thesis it is plausible, because send and receive times are not tied to the millisecond grid, but it is not shown, since times below one millisecond were not recorded. Dependencies between rounding errors also matter. Word the statement conditionally in DECISIONS.md 5.8 and in the text.
 
 ```bibtex
 @book{widrow2008quantization,
@@ -1060,7 +1046,9 @@ Jeffrey Dean, Luiz André Barroso. "The Tail at Scale." *Communications of the A
 
 **Use.** Reason for reporting p95, p99 and the maximum in addition to the mean per run (DECISIONS.md 5.8). In large services, tail latencies shape the user experience more than the average shows.
 
-**CHECK BY HAND.** The paper deals with large distributed services. The transfer to many server-push connections is a conclusion of this thesis.
+**Checked by the author on 2026-11-15** in the journal version. The paper concerns large online services in which one user request involves many servers (pp. 74–75). At that scale, rare slow partial responses clearly affect the end-to-end latency, and averages alone do not capture this (pp. 74–75). The paper gives the example that if one partial response takes longer than one second with a probability of 1 %, a request that involves 100 servers in parallel waits longer than one second in about 63 % of cases (p. 75).
+
+**Note for writing.** The transfer to many server-push connections on a single Raspberry Pi is a conclusion of this thesis.
 
 ```bibtex
 @article{dean2013tail,
@@ -1099,11 +1087,11 @@ Jakob Nielsen. *Usability Engineering*. Academic Press, Boston, 1993. Chapter 5 
 
 Wes Felter, Alexandre Ferreira, Ram Rajamony, Juan Rubio. "An Updated Performance Comparison of Virtual Machines and Linux Containers." In *Proceedings of ISPASS 2015*, 171–172, 2015.
 
-**Content (per abstract).** Compares KVM and Docker. Containers perform equal to or better than virtual machines in almost all cases, and both need tuning for I/O-heavy applications.
+**Content (checked by the author on 2026-11-15 in the IEEE abstract and the longer IBM research report, the two-page IEEE text itself was not seen).** Compares KVM, Docker containers and, in the longer study, native execution as a reference. According to the abstract, containers reach equal or better performance than virtual machines in almost all cases studied, and both need suitable tuning for I/O-intensive applications. Cite only these two statements, and not as a general law.
 
 **Use.** For external validity. The results hold for PHP and Node.js under Docker, not automatically for bare-metal operation.
 
-**CHECK BY HAND.** That the overhead of Docker affects PHP and Node.js alike is not in the source. It is a conclusion of this thesis (same setup and same front proxy for all variants) and must be worded that way in the text. The ISPASS paper has only two pages.
+**Note for writing.** That the overhead of Docker affects PHP and Node.js alike is not in the source. It is a conclusion of this thesis (same setup and same front proxy for all variants) and must be worded that way in the text. The ISPASS paper has only two pages.
 
 ```bibtex
 @inproceedings{felter2015updated,
@@ -1939,7 +1927,7 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.26 | Versions by release date | Node.js Releases, PHP Supported Versions, Laravel Release Notes |
 | 5.23 | No Symfony variant | Symfony EventDispatcher and Mercure, Mercure hub |
 | Fundamentals | Request-response model, event-based integration | Fielding (2000), Fowler (2017), Hohpe & Woolf (2003) |
-| Related work | Event-driven architecture (modularity, performance, challenges, models) | Farias & Lazzari (2023), Cabane & Farias (2024, unverified, title only), Laigner et al. (2026), Woodside (2021) |
+| Related work | Event-driven architecture (modularity, challenges, performance models) | Farias & Lazzari (2023), Laigner et al. (2026), Woodside (2021) |
 | 5.13, 5.22 | Debugging and monitoring, maintainability | Laigner et al. (2026), Farias & Lazzari (2023) |
 | 5.4 | Persistence of Redis | Redis documentation (persistence) |
 | 5.6.2 | Budget per variant through systemd slices | systemd.resource-control, Docker Compose |
