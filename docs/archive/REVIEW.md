@@ -13,7 +13,7 @@
 | 1.5 Redis-Subscription pro Prozess | umgesetzt | 5.4 |
 | 1.6 Werkzeugasymmetrie SSE/WS, Keepalive | als Limitation der Arbeit. `TCP_NODELAY` nicht gesondert untersucht | — |
 | 2.1 PHP-Speicher bei 500 Clients | gemessen, ca. 1 390 MiB (php-laravel/SSE, Produktionsbetrieb) statt geschätzter 15–30 GB | 5.5, 5.10 |
-| 2.2 500 VUs ungetestet | lokal mit 500 SSE-Clients geprüft. Auf dem Pi ausstehend | `results/2026-10-16_verification/` |
+| 2.2 500 VUs ungetestet | lokal mit 500 SSE-Clients geprüft. Auf dem Pi ausstehend | `results/run1/2026-10-16_verification/` |
 | 2.3 Gesamtlaufzeit | Wiederholungszahl aus einem Pilot, Kampagnen unbeaufsichtigt lauffähig | 5.9 |
 | 2.4 Nginx- und OS-Limits | umgesetzt | README.md, Dateideskriptor-Limits |
 | 2.5 Platzierung des Lastgenerators | entschieden, separater Lastgenerator | 5.14 |

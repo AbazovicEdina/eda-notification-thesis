@@ -35,7 +35,7 @@ Weitere KI-Werkzeuge kamen nicht zum Einsatz.
 
 - **Entscheidungen.** Jede Entscheidung steht mit Datum, Begründung und verworfenen Alternativen in DECISIONS.md. Entscheidungen, die von der Autorin zu treffen waren, traf sie erst, wenn sie die Begründung nachvollziehen konnte. Andernfalls fragte sie nach und prüfte die Aussage, soweit möglich, mit eigener Recherche.
 - **Statistik.** Tests vergleichen die Verfahren mit von Hand gerechneten Werten (`tools/orchestrate/test/`).
-- **Änderungen am Code.** Nach jeder größeren Änderung lief eine lokale Prüfkampagne mit dokumentiertem Ergebnis, etwa in `results/2026-10-27_version-update/` und `results/2026-10-29_orchestrator-check/`.
+- **Änderungen am Code.** Nach jeder größeren Änderung lief eine lokale Prüfkampagne mit dokumentiertem Ergebnis, etwa in `results/run1/2026-10-27_version-update/` und `results/run1/2026-10-29_orchestrator-check/`.
 - **Zielhardware.** Belastungstest, Probeläufe und ein Test der Festplatte unter Last liefen vor Beginn des Pilots auf dem Pi (DECISIONS.md 5.14).
 - **Gültigkeitsregeln.** Fehlerhafte Läufe werden automatisch als ungültig markiert, mit dem Grund im Protokoll (DECISIONS.md 5.9). Der erste, vollständig fehlerhafte Probelauf fiel dadurch sofort auf.
 - **Quellen.** Bibliografische Angaben sind über Crossref, arXiv und Open Library geprüft. Neue Quellen darf die KI nur vorschlagen, zitiert werden sie erst nach Prüfung im Original (LITERATUR.md).
@@ -134,5 +134,5 @@ Seit 2026-10-19 schreibt ein Hook jeden Prompt im Wortlaut und den Antworttext i
 | 2026-11-08 | Hinweis der Autorin auf die Symmetrie-Voraussetzung des Wilcoxon-Tests | Symmetrie aller 156 Tests von Block 1 geprüft, Vorzeichentest und Hodges-Lehmann-Schätzer als beschreibende Sensitivitätsanalyse mit Tests in die Auswertung eingebaut, vor der Auswertung von Block 2 (DECISIONS.md 5.8) |
 | 2026-11-08 | Recherche zur Forschungslücke | IEEE Xplore automatisch, ACM Digital Library und Google Scholar von Hand exportiert, dazu Zitationssuche und Prüfung ausgewählter Volltexte mit KI-Unterstützung. Volltext, Abstract und Index getrennt ausgewiesen, Lücke in `LITERATUR.md` begrenzt |
 | 2026-11-09 | Gesamtaudit nach der Literaturprüfung, nur lesend | Block 1 aus den Laufdateien nachgerechnet, Befunde zu Forschungsfrage, Schreibmaterial und zeitlicher Abhängigkeit, Bericht außerhalb des Repositorys |
-| 2026-11-09 | Zeitliche Abhängigkeit der gepaarten Läufe | beschreibende Diagnose in die Auswertung eingebaut, getrennt in Python nachgerechnet, Festlegung nach einer Prüfung des Entwurfs überarbeitet, vor dem Öffnen von Block 2 (DECISIONS.md 5.8, `results/2026-11-09_temporal-dependence-check/`) |
+| 2026-11-09 | Zeitliche Abhängigkeit der gepaarten Läufe | beschreibende Diagnose in die Auswertung eingebaut, getrennt in Python nachgerechnet, Festlegung nach einer Prüfung des Entwurfs überarbeitet, vor dem Öffnen von Block 2 (DECISIONS.md 5.8, `results/run1/2026-11-09_temporal-dependence-check/`) |
 | 2026-11-09 | Präzisierung der Forschungsfragen | Formulierungen mit KI-Unterstützung erarbeitet und geprüft, Wortlaut selbst freigegeben (DECISIONS.md 5.23) |

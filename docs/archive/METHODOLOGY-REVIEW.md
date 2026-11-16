@@ -7,7 +7,7 @@
 | Befund | Bewertung damals | Stand | Fundstelle |
 |---|---|---|---|
 | Docker als symmetrischer Einflussfaktor | Einschränkung | als Limitation der externen Validität zu nennen | LITERATUR.md (Felter et al. 2015) |
-| xk6-sse nur bis 200 Verbindungen geprüft | Einschränkung | lokal mit 500 SSE-Clients geprüft. Auf dem Pi ausstehend | `results/2026-10-16_verification/` |
+| xk6-sse nur bis 200 Verbindungen geprüft | Einschränkung | lokal mit 500 SSE-Clients geprüft. Auf dem Pi ausstehend | `results/run1/2026-10-16_verification/` |
 | 5.1 Apache-Ausführungsmodell nicht festgelegt | Lücke | entfällt, kein Apache-Messaufbau | DECISIONS.md 5.1, 5.11 |
 | 5.2 keine Infrastruktur für HTTP/2 | Lücke | entfällt, kein HTTP/2-Messlauf | 5.2, 5.12 |
 | 5.3 keine Bewertungsskala | Lücke | operationalisiert und durchgeführt | 5.13 |

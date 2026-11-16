@@ -166,8 +166,10 @@ export function wilcoxonSignedRank(a, b) {
 
 // Cliff's delta (Cliff 1993) as effect size, a dominance statistic over all
 // combinations of both samples, δ = (#(a_i > b_j) − #(a_i < b_j)) / (n_a · n_b).
-// Positive means a tends to be larger. Classification according to Romano,
-// Kromrey, Coraggio & Skowronek (2006), fixed before looking at the results.
+// Positive means a tends to be larger. The four levels of the classification
+// were fixed before the results (DECISIONS.md 5.8). Romano, Kromrey, Coraggio
+// & Skowronek (2006) map only the three values 0.147, 0.33 and 0.474 to
+// Cohen's small, medium and large, so the four levels are a convention.
 export function cliffsDelta(a, b) {
   let gt = 0, lt = 0;
   for (const x of a) {

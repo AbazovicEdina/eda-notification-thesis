@@ -94,7 +94,7 @@ The comparison labels in the `question` field of `tools/orchestrate/plan.json` a
 | Measure names | `latency_mean_ms`, `cpu_seconds_total`, `working_set_peak_bytes_total`, `connect_mean_ms` | `tools/orchestrate/plan.json` |
 | JSON fields | `temporal_dependence`, `median_diff`, `run_indices` | `tools/orchestrate/evaluate.js`, `tools/orchestrate/run.js` |
 | Campaign names | `b1-c01-stress`, `probe-sat-` | `tools/orchestrate/plan-campaigns.js`, `DECISIONS.md` 5.17 |
-| Result directories and commit hashes | `results/2026-11-09T00-26-22-566Z_evaluation/`, `ac47cb7` | `results/`, `DECISIONS.md` 5.14 |
+| Result directories and commit hashes | `results/run1/2026-11-09T00-26-22-566Z_evaluation/`, `ac47cb7` | `results/`, `DECISIONS.md` 5.14 |
 | Section numbers of `DECISIONS.md` | 5.1 to 5.26 | `DECISIONS.md` |
 | BibTeX keys | `lei2014performance` | `LITERATUR.md` |
 | File names | `DECISIONS.md`, `LITERATUR.md` | repository |
