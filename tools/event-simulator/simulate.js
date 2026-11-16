@@ -40,7 +40,7 @@ function nextPayload(seq) {
 async function runPubsub() {
   const client = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` });
   await client.connect();
-  await publishLoop((seq) => client.publish(CHANNEL, JSON.stringify(nextPayload(seq))));
+  await publishLoop((seq) => client.publish(CHANNEL, JSON.stringify(nextPayload(seq))), { awaitEach: false });
   await client.close();
 }
 
@@ -64,25 +64,54 @@ async function runQueue() {
 // every interval, so the actual rate would be systematically below
 // RATE_PER_SECOND (DECISIONS.md 5.17). If the process falls behind, it
 // catches up without pausing instead of silently lowering the rate.
-async function publishLoop(publish) {
+//
+// awaitEach = false (pub/sub, second run of 2026-11-16): the next event does
+// not wait for the reply of Redis. Redis answers PUBLISH only after it has
+// queued the message for every subscriber, and with one subscription per
+// PHP-FPM worker the reply time grows with the number of clients. Waiting
+// for it made the send rate depend on Redis in the first run. Commands are
+// pipelined by the client, at most MAX_IN_FLIGHT are open at a time.
+// awaitEach = true (queue): waits for every job, like scan:produce, which
+// pushes synchronously.
+const MAX_IN_FLIGHT = 10000;
+
+async function publishLoop(publish, { awaitEach = true } = {}) {
   let seq = 0;
   let stop = false;
+  let failures = 0;
+  const inFlight = new Set();
   process.on('SIGINT', () => { stop = true; });
   process.on('SIGTERM', () => { stop = true; });
 
   const startedAt = performance.now();
-  console.log(`event-simulator: sende ${RATE_PER_SECOND} Events/s (Modus: ${MODE}, Kanal/Queue: ${CHANNEL})`);
+  console.log(`event-simulator: sende ${RATE_PER_SECOND} Events/s (Modus: ${MODE}, Kanal/Queue: ${CHANNEL}, ${awaitEach ? 'wartet je Event' : 'ohne Warten'})`);
   while (!stop && (COUNT === 0 || seq < COUNT)) {
     seq += 1;
-    await publish(seq);
+    if (awaitEach) {
+      await publish(seq);
+    } else {
+      const pending = publish(seq)
+        .catch((err) => {
+          failures += 1;
+          if (failures <= 5) console.error('event-simulator: Senden fehlgeschlagen:', err);
+        })
+        .finally(() => inFlight.delete(pending));
+      inFlight.add(pending);
+      if (inFlight.size >= MAX_IN_FLIGHT) await Promise.race(inFlight);
+    }
     const nextAt = startedAt + seq * intervalMs;
     const waitMs = nextAt - performance.now();
     if (waitMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, waitMs));
+    } else if (!awaitEach) {
+      // Behind schedule: still yield once, so that the client can write the
+      // pipelined commands to the socket while the loop catches up.
+      await new Promise((resolve) => setImmediate(resolve));
     }
   }
+  await Promise.allSettled([...inFlight]);
   const elapsedS = (performance.now() - startedAt) / 1000;
-  console.log(`event-simulator: ${seq} Events in ${elapsedS.toFixed(1)}s gesendet (${(seq / elapsedS).toFixed(2)}/s)`);
+  console.log(`event-simulator: ${seq} Events in ${elapsedS.toFixed(1)}s gesendet (${(seq / elapsedS).toFixed(2)}/s)${failures ? `, ${failures} fehlgeschlagen` : ''}`);
 }
 
 (MODE === 'queue' ? runQueue() : runPubsub()).catch((err) => {
