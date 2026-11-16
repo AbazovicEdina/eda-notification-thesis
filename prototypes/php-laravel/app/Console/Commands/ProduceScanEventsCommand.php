@@ -34,7 +34,10 @@ class ProduceScanEventsCommand extends Command
         $seq = 0;
         while (! $stop) {
             $seq++;
-            $ts = (int) round(microtime(true) * 1000);
+            // Truncated to whole milliseconds like Date.now() in the event simulator
+            // and in k6. Rounding shifted the latency of this variant by 0 to 1 ms in
+            // the first run (DECISIONS.md 5.4, second run of 2026-11-16).
+            $ts = (int) floor(microtime(true) * 1000);
             ProcessScanEvent::dispatch([
                 'event' => 'scan',
                 'device' => 'R200_3',

@@ -11,6 +11,13 @@ header('Connection: keep-alive');
 
 $channel = getenv('EVENT_CHANNEL') ?: 'scan-events';
 
+// Connect to Redis first, then report the connection. In the PHP-FPM model
+// every client needs its own Redis connection before it can receive events,
+// so the measured connection setup includes it (DECISIONS.md 5.9, second run
+// of 2026-11-16). Only the round trip of SUBSCRIBE itself follows afterwards.
+$redis = new Redis();
+$redis->connect(getenv('REDIS_HOST') ?: 'redis', (int) (getenv('REDIS_PORT') ?: 6379));
+
 // Send an SSE comment right away. This flushes the response headers, so the
 // client detects the connection setup before the first event arrives
 // (measure connection setup, DECISIONS.md 5.9). Clients ignore comment
@@ -20,9 +27,6 @@ if (ob_get_level() > 0) {
     ob_flush();
 }
 flush();
-
-$redis = new Redis();
-$redis->connect(getenv('REDIS_HOST') ?: 'redis', (int) (getenv('REDIS_PORT') ?: 6379));
 
 $redis->subscribe([$channel], function (Redis $redis, string $channel, string $message) {
     $event = json_decode($message, true);

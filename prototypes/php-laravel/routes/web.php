@@ -11,6 +11,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 // an artificially slim special route.
 Route::get('/sse', function () {
     return new StreamedResponse(function () {
+        // Resolve the Redis connection first. Laravel's phpredis connector opens it
+        // here, and Redis::subscribe() below reuses it. As in
+        // prototypes/php-minimal/sse.php, the measured connection setup then includes
+        // the Redis connection of this worker (second run of 2026-11-16).
+        Redis::connection();
+
         // Send an SSE comment right away, so that the client detects the connection
         // setup (see prototypes/php-minimal/sse.php).
         echo ": connected\n\n";
