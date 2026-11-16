@@ -157,16 +157,14 @@ if (saturationCells.length) {
   lines.push(`2. p95-Latenz höchstens ${crit?.maxP95LatencyMs} ms.`);
   lines.push(`3. Senderate der Quelle mindestens ${pct(crit?.minSourceRatio)} der eingestellten Rate.`);
   lines.push(`4. Mindestens ${pct(crit?.minServedRatio)} der Clients bedient, also mit mindestens einem Event im Messfenster.`);
-  lines.push(`5. Gesamtzustellung mindestens ${pct(crit?.minTotalDeliveryRatio)}, also alle empfangenen Events geteilt durch Clients × Rate × Haltezeit.`, '');
-  lines.push(`War der Lastgenerator im Median mehr als ${pct(crit?.maxLoadgenUtil)} ausgelastet oder ist seine Auslastung unbekannt, ist die Stufe nicht auswertbar. Die höchste nachhaltige Rate ist die höchste Stufe, bis zu der jede Stufe bestanden ist. „≥ … (Lastgenerator)“ heißt, dass die Reihe an einer nicht auswertbaren Stufe endete und die Grenze mindestens dort liegt. „≥ … (höchste Stufe)“ heißt, dass alle Stufen bestanden sind. „≥ …, … wegen zu niedriger Senderate nicht eindeutig bewertbar“ heißt, dass an der nächsten Stufe allein die Senderate der Quelle unter 99 % lag und alle anderen Bedingungen erfüllt waren (Regel vom 2026-11-14, DECISIONS.md 5.17).`, '');
-  lines.push('**Primäre Einstufung.** Die höchste nachhaltige Rate ist die höchste vollständig bestandene Teststufe nach den Kriterien oben. Sie ist keine nachgewiesene technische Grenze, die echte Grenze liegt zwischen ihr und der nächsten getesteten Stufe oder darüber.', '');
-  lines.push('**Nachträgliche Sensitivitätsanalyse (2026-11-15, nach Sichtung der Ergebnisse).** Eine Senderate unter 99 % lässt die auf die Sollrate bezogene Gesamtzustellung zwangsläufig mit durchfallen, deshalb kann die Regel vom 2026-11-14 nicht greifen. Die Sensitivitätsanalyse bezieht die Gesamtzustellung auf die tatsächlich gesendeten Events. Sie ist nicht Teil des Hauptergebnisses und nur dort ausgefüllt, wo sie vom Hauptergebnis abweicht. Die Ursache einer zu niedrigen Senderate ist nicht bestimmt.', '');
-  lines.push('| Zelle | primär: höchste bestandene Stufe (Events/s) | Senderate an der Stufe, an der die Reihe endete | nachträgliche Sensitivitätsanalyse | Kampagne |', '|---|---|---|---|---|');
+  lines.push(`5. Gesamtzustellung mindestens ${pct(crit?.minTotalDeliveryRatio)}, also alle empfangenen Events geteilt durch Clients × gemessene Senderate × Haltezeit.`, '');
+  lines.push(`War der Lastgenerator im Median mehr als ${pct(crit?.maxLoadgenUtil)} ausgelastet oder ist seine Auslastung unbekannt, ist die Stufe nicht auswertbar. Die höchste nachhaltige Rate ist die höchste Stufe, bis zu der jede Stufe bestanden ist. „≥ … (Lastgenerator)“ heißt, dass die Reihe an einer nicht auswertbaren Stufe endete und die Grenze mindestens dort liegt. „≥ … (höchste Stufe)“ heißt, dass alle Stufen bestanden sind. „≥ …, … wegen zu niedriger Senderate nicht eindeutig bewertbar“ heißt, dass an der nächsten Stufe allein die Senderate der Quelle unter 99 % lag und alle anderen Bedingungen erfüllt waren (DECISIONS.md 5.17).`, '');
+  lines.push('**Einstufung.** Jeder Wert ist die höchste vollständig bestandene Teststufe nach den Kriterien oben. Er ist keine nachgewiesene technische Grenze, die echte Grenze liegt zwischen ihm und der nächsten getesteten Stufe oder darüber.', '');
+  lines.push('| Zelle | höchste bestandene Teststufe (Events/s) | Senderate an der Stufe, an der die Reihe endete | Kampagne |', '|---|---|---|---|');
   for (const cell of saturationCells) {
     const s = series.saturation[cell];
     const stop = s.steps.find((st) => st.rate_per_s === s.stopped_at_rate_per_s);
-    const sens = s.sensitivity_sent_rate;
-    lines.push(`| ${cell} | ${rateLabel(s)} | ${stop ? `${pct(stop.source_ratio)} bei ${stop.rate_per_s}` : '–'} | ${sens?.differs ? rateLabel(sens) : '–'} | ${s.campaign} |`);
+    lines.push(`| ${cell} | ${rateLabel(s)} | ${stop ? `${pct(stop.source_ratio)} bei ${stop.rate_per_s}` : '–'} | ${s.campaign} |`);
   }
   lines.push('');
   for (const cell of saturationCells) {
@@ -201,7 +199,7 @@ if (stormCells.length) {
 if (transport.length) {
   lines.push('## SSE und WebSocket im Vergleich', '');
   lines.push('Gleiche Sprache und Variante, unterschiedlicher Transport. Beschreibend, da die Zellen in getrennten Kampagnen gemessen werden. Gepaarte Tests zum Transport enthalten nur die Vergleiche 12 und 13 der Hauptmessung (evaluation.md).', '');
-  lines.push('| Variante | Kapazitätsgrenze SSE | Kapazitätsgrenze WS | höchste Rate SSE (Events/s) | höchste Rate WS (Events/s) |');
+  lines.push('| Variante | Kapazitätsgrenze SSE | Kapazitätsgrenze WS | höchste bestandene Teststufe SSE (Events/s) | höchste bestandene Teststufe WS (Events/s) |');
   lines.push('|---|---|---|---|---|');
   // "–" = not measured. "nicht erreicht" or "keine" = measured, the criterion was never missed or already missed at the first level.
   const val = (v, measured, none) => (measured ? (v ?? none) : '–');

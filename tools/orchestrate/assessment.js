@@ -670,14 +670,6 @@ export function assessH11(saturation) {
   });
 }
 
-// Post-hoc sensitivity analysis of H11 (2026-11-15, DECISIONS.md 5.17). The
-// saturation entries are replaced by their sensitivity_sent_rate where it
-// exists. The primary assessment stays as above.
-export function saturationSensitivityEntries(saturation) {
-  if (!saturation) return null;
-  return Object.fromEntries(Object.entries(saturation).map(([cell, e]) => [cell, e.sensitivity_sent_rate ? { ...e, ...e.sensitivity_sent_rate } : e]));
-}
-
 // ---------------------------------------------------------------------------
 // Hypotheses H1 to H11 (plan.json, rule)
 // ---------------------------------------------------------------------------

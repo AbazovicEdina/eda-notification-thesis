@@ -1096,21 +1096,6 @@ def saturation_figure(series, out_dir, notes):
 
     # A variant without a value has no position on the rate axis. It gets a row of its own
     # below the axis, which carries no scale and names its meaning.
-    def sensitivity_raises(cell_name, cell):
-        # The gray arrow marks only the case the caption describes. The post-hoc
-        # sensitivity analysis keeps the value and turns the end of the series into a
-        # lower bound because of the send rate. Any other difference is listed in the
-        # notes, so that it is neither drawn wrongly nor hidden (2026-11-15).
-        sens = cell.get("sensitivity_sent_rate") or {}
-        if not sens.get("differs"):
-            return False
-        if (sens.get("limit") == "source" and cell.get("limit") == "criterion"
-                and sens.get("max_sustainable_rate_per_s") == cell.get("max_sustainable_rate_per_s")):
-            return True
-        notes.append(f"Sättigung {cell_name}: nachträgliche Sensitivitätsanalyse weicht anders ab "
-                     f"({sens.get('limit')}, {sens.get('max_sustainable_rate_per_s')}), in der Abbildung nicht dargestellt")
-        return False
-
     present = {row_of(c) for c in saturation.values()} - {None}
     rows = [r for r in ("none", "not_evaluable", "not_attributable") if r in present]
     row_labels = {"none": "none sustained", "not_evaluable": "not evaluable", "not_attributable": "not attributable"}
@@ -1143,9 +1128,6 @@ def saturation_figure(series, out_dir, notes):
                 strip.plot(x, rows.index(row), linestyle="none", marker=marker, markersize=5.5, markerfacecolor="none",
                            markeredgecolor=line, markeredgewidth=0.9, clip_on=False)
                 marks.add("empty")
-                if (cell.get("sensitivity_sent_rate") or {}).get("differs"):
-                    notes.append(f"Sättigung {cell_name}: nachträgliche Sensitivitätsanalyse weicht ab, "
-                                 "Variante ohne Wert, in der Abbildung nicht dargestellt")
                 continue
             ax.plot(x, value, linestyle="none", marker=marker, markersize=5.5, color=line, markeredgewidth=0)
             point_rates.add(f"{value:g}")
@@ -1162,14 +1144,6 @@ def saturation_figure(series, out_dir, notes):
                 ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
                             arrowprops={"arrowstyle": "-|>", "color": text, "linewidth": 0.7, "mutation_scale": 6,
                                         "shrinkA": 0, "shrinkB": 0, "linestyle": style})
-            elif sensitivity_raises(cell_name, cell):
-                # Post-hoc sensitivity analysis of 2026-11-15 (DECISIONS.md 5.17): gray and dotted,
-                # so that it stays apart from the primary classification. The point keeps its
-                # primary value.
-                marks.add("sensitivity")
-                ax.annotate("", xy=(x, value * 1.85), xytext=(x, value * 1.14),
-                            arrowprops={"arrowstyle": "-|>", "color": INFRA_LINE, "linewidth": 0.7, "mutation_scale": 6,
-                                        "shrinkA": 0, "shrinkB": 0, "linestyle": DOTTED})
     ax.set_yscale("log")
     if rates:
         ax.set_yticks(rates)
@@ -1204,9 +1178,6 @@ def saturation_figure(series, out_dir, notes):
         columns[2].append(arrow(DASHED, "at least, load generator limit"))
     if "source" in marks:
         columns[2].append(arrow(DOTTED, "at least, next level: source below 99 %"))
-    if "sensitivity" in marks:
-        columns[2].append(ArrowKey([], [], color=INFRA_LINE, linestyle=DOTTED,
-                                   label="post hoc: next level not assessable"))
     if "empty" in marks:
         columns[2].append(legend_marker("o", FLOW, "no rate, see the lowest rows", filled=False))
     figure_legend(fig, [c for c in columns if c])
@@ -1222,7 +1193,7 @@ def saturation_figure(series, out_dir, notes):
                 f"zwischen dem ersten und dem letzten empfangenen Event ankamen, die p95-Latenz höchstens "
                 f"{crit['maxP95LatencyMs']:g} ms betrug, die Quelle mindestens {pct('minSourceRatio')} % der eingestellten Rate "
                 f"sendete, mindestens {pct('minServedRatio')} % der Clients bedient wurden und mindestens "
-                f"{pct('minTotalDeliveryRatio')} % aller vorgesehenen Events ankamen. War der Lastgenerator im Median über "
+                f"{pct('minTotalDeliveryRatio')} % aller gesendeten Events ankamen. War der Lastgenerator im Median über "
                 f"{pct('maxLoadgenUtil')} % ausgelastet, ist die Stufe nicht auswertbar. Ein Wert gilt nur, wenn auch alle "
                 f"niedrigeren Stufen bestanden wurden.")
     else:
@@ -1235,9 +1206,7 @@ def saturation_figure(series, out_dir, notes):
                "Die Zeilen unter der Achse haben keine Skala und zeigen keinen Messwert. Offenes Symbol in der Zeile none sustained: schon die niedrigste getestete Stufe wurde nicht bestanden. "
                "Offenes Symbol in der Zeile not evaluable: schon die niedrigste Stufe ließ sich wegen des Lastgenerators nicht auswerten. "
                "Offenes Symbol in der Zeile not attributable: schon an der niedrigsten Stufe lag allein die Senderate der Quelle unter 99 %. "
-               "Grauer gepunkteter Pfeil: nachträgliche Sensitivitätsanalyse vom 2026-11-15, nicht Teil des Hauptergebnisses. Bezieht man die Gesamtzustellung "
-               "auf die tatsächlich gesendeten Events, ist die nächste Stufe wegen zu niedriger Senderate nicht eindeutig bewertbar. Der Punkt zeigt die primäre Einstufung, "
-               "die Ursache der niedrigen Senderate ist nicht bestimmt. Jeder Wert ist die höchste bestandene Teststufe, keine nachgewiesene technische Grenze." + rule + " SSE in der Farbe der Sprache, "
+               "Jeder Wert ist die höchste bestandene Teststufe, keine nachgewiesene technische Grenze." + rule + " SSE in der Farbe der Sprache, "
                "WebSocket petrol, SSE mit Queue apricot, dazu je Transport ein eigenes Symbol.")
     return {"file": "saturation.pdf", "tier": "Kern (6.3)", "caption": caption,
             "what": "Sättigungstest, höchste bestandene Teststufe je Variante"}

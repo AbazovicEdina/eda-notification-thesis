@@ -3,7 +3,7 @@
 // Run with: node --test tools/orchestrate/test/saturation.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assessLevel, sustainableRate, assessSaturationConfig, rateLabel, sensitivitySentRate, SATURATION_CRITERIA } from '../saturation.js';
+import { assessLevel, sustainableRate, assessSaturationConfig, rateLabel, SATURATION_CRITERIA } from '../saturation.js';
 
 // Descriptive values of one level as run.js stores them, every value as median.
 const describe = ({ delivery = 1, p95 = 50, source = null, served = 1, delivered = null, loadgen = 0.3, rate = 100, vus = 50 } = {}) => ({
@@ -130,55 +130,46 @@ test('ein nicht auswertbarer Lastgenerator hat Vorrang vor der Senderate', () =>
 });
 
 test('unbekannte Senderate gilt nicht als zu niedrige Senderate', () => {
-  // Gegenbeispiel added on 2026-11-15 after the independent check. Every other
-  // condition holds, only the send rate is missing.
+  // Every other value is there, only the send rate is missing. The total
+  // delivery then cannot be related to the sent events either.
   const unknown = assessLevel({ rate: 100, vus: 50, holdSeconds: 60, describe: { ...describe({ rate: 100 }), source_rate_eps: { median: null } } });
   assert.equal(unknown.source_ratio, null);
-  assert.deepEqual(unknown.reasons, ['Senderate']);
+  assert.equal(unknown.total_delivery_ratio, null);
+  assert.deepEqual(unknown.reasons, ['Senderate', 'Gesamtzustellung']);
   const res = sustainableRate([level(10), level(50), unknown]);
   assert.deepEqual(res, { max_sustainable_rate_per_s: 50, limit: 'criterion', stopped_at_rate_per_s: 100 });
   assert.equal(rateLabel(res), '50');
-  // The sensitivity analysis cannot relate the total delivery to the sent events either.
-  const sens = sensitivitySentRate([level(10), level(50), unknown]);
-  assert.equal(sens.limit, 'criterion');
-  assert.equal(sens.differs, false);
-  assert.equal(sens.total_delivery_sent_ratio_at_stop, null);
 });
 
-// Post-hoc sensitivity analysis of 2026-11-15 (DECISIONS.md 5.17).
-test('Sensitivitätsanalyse: alles Gesendete zugestellt, nur die Senderate zu niedrig', () => {
-  const steps = [level(700), level(1000, { source: 900, delivered: 50 * 900 })];
-  const primary = sustainableRate(steps);
-  assert.deepEqual(primary, { max_sustainable_rate_per_s: 700, limit: 'criterion', stopped_at_rate_per_s: 1000 });
-  assert.deepEqual(steps[1].reasons, ['Senderate', 'Gesamtzustellung']);
-  const sens = sensitivitySentRate(steps);
-  assert.equal(sens.limit, 'source');
-  assert.equal(sens.max_sustainable_rate_per_s, 700);
-  assert.equal(sens.differs, true);
-  assert.equal(sens.total_delivery_sent_ratio_at_stop, 1);
-  assert.equal(rateLabel(sens), '≥ 700, 1000 wegen zu niedriger Senderate nicht eindeutig bewertbar');
+// Total delivery related to the events actually sent (second run of
+// 2026-11-16, DECISIONS.md 5.17).
+test('Gesamtzustellung bezieht sich auf die gesendeten Events', () => {
+  // The case of the first run. The source sent only 90 %, everything it sent arrived.
+  const l = level(1000, { source: 900, delivered: 50 * 900 });
+  assert.equal(l.total_delivery_ratio, 1);
+  assert.deepEqual(l.reasons, ['Senderate']);
+  const res = sustainableRate([level(700), l]);
+  assert.deepEqual(res, { max_sustainable_rate_per_s: 700, limit: 'source', stopped_at_rate_per_s: 1000 });
+  assert.equal(rateLabel(res), '≥ 700, 1000 wegen zu niedriger Senderate nicht eindeutig bewertbar');
 });
 
-test('Sensitivitätsanalyse ändert nichts, wenn eine weitere Bedingung verfehlt ist', () => {
-  // Gegenbeispiel 1: the p95 latency is missed as well.
-  let s = sensitivitySentRate([level(700), level(1000, { source: 900, delivered: 50 * 900, p95: 5000 })]);
-  assert.equal(s.limit, 'criterion');
-  assert.equal(s.differs, false);
-  // Gegenbeispiel 2: fewer events arrived than were sent.
-  s = sensitivitySentRate([level(700), level(1000, { source: 900, delivered: 50 * 800 })]);
-  assert.equal(s.limit, 'criterion');
-  assert.equal(s.differs, false);
-  // Gegenbeispiel 3: every level passed.
-  s = sensitivitySentRate([level(700), level(1000)]);
-  assert.equal(s.limit, 'highest_rate');
-  assert.equal(s.differs, false);
-  // Gegenbeispiel 4: the load generator was not evaluable.
-  s = sensitivitySentRate([level(700), level(1000, { source: 900, delivered: 50 * 900, loadgen: 0.9 })]);
-  assert.equal(s.limit, 'loadgen');
-  assert.equal(s.differs, false);
+test('Gegenbeispiele zur Senderate: weniger zugestellt als gesendet oder eine weitere Bedingung verfehlt', () => {
+  // Gegenbeispiel 1: fewer events arrived than were sent.
+  let l = level(1000, { source: 900, delivered: 50 * 800 });
+  assert.deepEqual(l.reasons, ['Senderate', 'Gesamtzustellung']);
+  assert.equal(sustainableRate([level(700), l]).limit, 'criterion');
+  // Gegenbeispiel 2: the p95 latency is missed as well.
+  l = level(1000, { source: 900, delivered: 50 * 900, p95: 5000 });
+  assert.equal(sustainableRate([level(700), l]).limit, 'criterion');
+  // Gegenbeispiel 3: the load generator was not evaluable.
+  l = level(1000, { source: 900, delivered: 50 * 900, loadgen: 0.9 });
+  assert.equal(sustainableRate([level(700), l]).limit, 'loadgen');
+  // Gegenbeispiel 4: the source kept its rate, so the total delivery decides as before.
+  l = level(1000, { delivered: 50 * 1000 * 0.98 });
+  assert.deepEqual(l.reasons, ['Gesamtzustellung']);
 });
 
-test('Sensitivitätsanalyse steht in der Auswertung einer Kampagne neben dem Hauptergebnis', () => {
+test('Auswertung einer Kampagne mit zu niedriger Senderate', () => {
   const agg = {
     scenarios: {
       'rate-0700': { vus: 50, hold_seconds: 60, configs: { 'php-minimal-sse': { describe: describe({ rate: 700 }) } } },
@@ -187,8 +178,7 @@ test('Sensitivitätsanalyse steht in der Auswertung einer Kampagne neben dem Hau
   };
   const steps = [{ scenario: 'rate-0700', rate_per_s: 700, pass: true }, { scenario: 'rate-1000', rate_per_s: 1000, pass: true }];
   const res = assessSaturationConfig(agg, 'php-minimal-sse', steps);
-  assert.equal(res.limit, 'criterion');
-  assert.equal(rateLabel(res), '700');
-  assert.equal(res.sensitivity_sent_rate.limit, 'source');
-  assert.equal(res.sensitivity_sent_rate.differs, true);
+  assert.equal(res.limit, 'source');
+  assert.equal(res.max_sustainable_rate_per_s, 700);
+  assert.equal(res.sensitivity_sent_rate, undefined);
 });
