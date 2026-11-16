@@ -107,6 +107,10 @@ Ein öffentliches ntfy-Thema kann jeder mitlesen, der den Namen kennt. Die Nachr
 node --input-type=module -e "import { notify } from './tools/orchestrate/notify.js'; console.log(await notify('EDA: Testnachricht', 'Benachrichtigung eingerichtet.'))"
 ```
 
+**Zweiter Durchlauf unbeaufsichtigt.** `bash tools/orchestrate/run-all.sh` führt Vorab-Check, Probelauf, Block 1, Block 2, Sättigungstest, Skalierungsreihe und Ansturm nacheinander aus und hält bei jedem Problem mit einer Benachrichtigung an (DECISIONS.md 5.14). `precheck.js --sut sut.pi.json` prüft beide Rechner vor dem Start, `smoke-check.js --prefix precheck-` den Probelauf. Das Skript setzt den cron-Eintrag für den stündlichen Statusbericht selbst und lässt ihn immer auf den laufenden Schritt zeigen (`campaigns/run2/current`).
+
+**Reihenfolge im Paar.** Seit dem zweiten Durchlauf wechselt die Reihenfolge der beiden Konfigurationen je Laufnummer ab (`alternateOrder`, Standard `true`). `false` stellt die Reihenfolge des ersten Durchlaufs wieder her, in dem A immer vor B lief.
+
 Stündliche Prüfung per cron auf dem Lastgenerator (`crontab -e`):
 
 ```cron
