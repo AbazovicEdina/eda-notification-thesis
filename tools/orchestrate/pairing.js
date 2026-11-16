@@ -6,6 +6,15 @@
 // formed by position in a list, so a single failed run shifted all
 // following pairs.
 //
+// Order of the configurations for one run number (second run of 2026-11-16).
+// With alternate = true the order is reversed for every even run number, so
+// two configurations run A, B, B, A, A, B, … Each pair still consists of the
+// two runs with the same run number, next to each other, but neither
+// configuration always runs first. In the first run A always ran before B.
+export function runOrder(configs, runIndex, alternate) {
+  return alternate && runIndex % 2 === 0 ? [...configs].reverse() : [...configs];
+}
+
 // runsA/runsB are arrays of run records with `run_index` (run number per
 // configuration) and `valid`. valueOf(run) returns the value of the measure.
 export function pairByRunIndex(runsA, runsB, valueOf) {

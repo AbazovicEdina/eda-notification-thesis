@@ -22,7 +22,7 @@ import { readFileSync, writeFileSync, appendFileSync, mkdirSync, existsSync, unl
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, comparePaired } from './stats.js';
-import { pairByRunIndex } from './pairing.js';
+import { pairByRunIndex, runOrder } from './pairing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
@@ -264,6 +264,9 @@ function resolveSettings(campaign) {
     // Wait time after restarting the cell in the storm, so that the start is
     // complete (e.g. all 550 FPM workers forked).
     restartSettleMs: campaign.restartSettleMs ?? 5000,
+    // Order within a pair alternates A, B / B, A by run number (pairing.js,
+    // second run of 2026-11-16). false restores the order of the first run.
+    alternateOrder: campaign.alternateOrder ?? true,
     pauseMinMs: campaign.pauseMinMs ?? 100,
     pauseMaxMs: campaign.pauseMaxMs ?? 500,
     reportEvery: campaign.reportEvery ?? 0,
@@ -371,6 +374,11 @@ async function containerIds(sides, services) {
   return ids;
 }
 
+const LOGGED_ENV_KEYS = [
+  'APP_ENV', 'APP_DEBUG', 'NODE_ENV', 'LOG_LEVEL',
+  'SESSION_DRIVER', 'CACHE_STORE', 'BROADCAST_CONNECTION', 'QUEUE_CONNECTION', 'REDIS_CLIENT', 'REDIS_PREFIX',
+];
+
 async function inspectContainers(sides, ids) {
   if (ids.length === 0) return [];
   const r = await sides.sutDocker(['inspect', '--format', '{{json .}}', ...ids]);
@@ -391,7 +399,11 @@ async function inspectContainers(sides, ids) {
       status: c.State?.Status,
       oom_killed: c.State?.OOMKilled ?? false,
       started_at: c.State?.StartedAt,
-      runtime_env: { APP_ENV: env.APP_ENV ?? null, APP_DEBUG: env.APP_DEBUG ?? null, NODE_ENV: env.NODE_ENV ?? null },
+      // Only these named settings, never the whole environment, because it holds
+      // keys such as APP_KEY. The Laravel settings are logged since the second
+      // run of 2026-11-16, because they differ from Laravel's defaults
+      // (DECISIONS.md 5.20).
+      runtime_env: Object.fromEntries(LOGGED_ENV_KEYS.map((key) => [key, env[key] ?? null])),
       limits: {
         cpus: c.HostConfig?.NanoCpus ? c.HostConfig.NanoCpus / 1e9 : null,
         memory_bytes: c.HostConfig?.Memory || null,
@@ -1191,7 +1203,7 @@ async function runScenario(ctx, scenario, configs, comparisons, interim) {
   ctx.partialResults = results;
 
   for (let runIndex = 1; runIndex <= scenario.runsPerConfig; runIndex++) {
-    for (const config of configs) {
+    for (const config of runOrder(configs, runIndex, settings.alternateOrder)) {
       if (ctx.interrupted) throw new CampaignError('Abbruch auf Anforderung (Strg-C)');
       const isWarmup = runIndex <= settings.warmupRuns;
       await useProducerOf(ctx, config);
@@ -1312,7 +1324,7 @@ async function main() {
   process.on('SIGTERM', () => { ctx.interrupted = true; });
 
   console.log(`Kampagne "${settings.name}" (${settings.phase}${settings.block ? `, Block ${settings.block}` : ''}) -> ${path.relative(REPO_ROOT, campaignDir)}`);
-  log('campaign_started', { name: settings.name, phase: settings.phase, block: settings.block, configs: configs.map((c) => c.name), scenarios: scenarios.map((s) => s.name) });
+  log('campaign_started', { name: settings.name, phase: settings.phase, block: settings.block, alternate_order: settings.alternateOrder, configs: configs.map((c) => c.name), scenarios: scenarios.map((s) => s.name) });
 
   const aggregate = {
     schema: 'eda-thesis/aggregate/2',

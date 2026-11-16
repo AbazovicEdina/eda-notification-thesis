@@ -7,7 +7,7 @@ import {
   bootstrapMedianDiffCI, holmCorrection, comparePaired,
   quantileLinear, signTest, hodgesLehmann, skewness,
 } from '../stats.js';
-import { pairByRunIndex } from '../pairing.js';
+import { pairByRunIndex, runOrder } from '../pairing.js';
 
 const close = (actual, expected, eps = 1e-4) =>
   assert.ok(Math.abs(actual - expected) < eps, `${actual} ≉ ${expected}`);
@@ -181,4 +181,17 @@ test('Schiefe: symmetrisch 0, Ausreißer nach rechts positiv, ohne Streuung defi
   const flat = skewness([3, 3, 3]);
   assert.equal(flat.bowley, null);
   assert.equal(flat.moment, 0);
+});
+
+// Order within a pair (second run of 2026-11-16, pairing.js).
+test('Reihenfolge im Paar wechselt je Laufnummer ab', () => {
+  const configs = [{ name: 'A' }, { name: 'B' }];
+  const names = (index, alternate) => runOrder(configs, index, alternate).map((c) => c.name).join('');
+  assert.equal([1, 2, 3, 4, 5].map((i) => names(i, true)).join(' '), 'AB BA AB BA AB');
+  // Without alternating, A always runs first, as in the first run.
+  assert.equal([1, 2, 3].map((i) => names(i, false)).join(' '), 'AB AB AB');
+  // A single configuration and the original array stay unchanged.
+  assert.equal(runOrder([{ name: 'X' }], 2, true).map((c) => c.name).join(''), 'X');
+  runOrder(configs, 2, true);
+  assert.equal(configs.map((c) => c.name).join(''), 'AB');
 });
