@@ -1,22 +1,27 @@
 # Literature
 
-Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03, 2026-11-04, 2026-11-07 and 2026-11-09). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records unless an entry says "per full text". The thesis cites only what the author has read.
+Sources for the related work and for the decisions in `DECISIONS.md`, ordered by topic. Each source has its full reference, its purpose and a BibTeX entry. The details were cross-checked by web search (as of 2026-08-25, additions on 2026-10-16, 2026-10-17, 2026-10-18, 2026-11-03, 2026-11-04, 2026-11-07, 2026-11-09 and 2026-11-16). The BibTeX entries follow the recommendations of the HagenbergThesis template for biblatex (`date`, `journaltitle`, `urldate`, `langid`, online sources as `@online`, no ISBN) and can be copied unchanged into the `.bib` file of the thesis. On 2026-10-17, all records with a DOI were confirmed through Crossref, books without a DOI through Open Library or the publisher. On 2026-11-03, all entries with a DOI were compared with Crossref again, the RFCs with the RFC Editor, and all addresses were accessed. Open points are marked with **CHECK BY HAND.**, and the list is directly below. Online sources carry their access date. Summaries of content are based on abstracts and catalog records unless an entry says "per full text". The thesis cites only what the author has read.
 
 **Adding sources.** A source is added only after its existence and metadata (authors, title, year, venue, volume, pages, DOI) are confirmed through Crossref, arXiv, Open Library, rfc-editor.org or the publisher's page. The entry names the claim the source supports in the thesis. Whether the source actually contains that claim is checked in the original before citing it. Unconfirmed details are not adopted. New sources go into this file and into `references.bib`.
 
-## To check by hand (as of 2026-11-15)
+## To check by hand (as of 2026-11-16)
 
 The author checks these points in the original before they appear in the text. Each source concerned carries the note **CHECK BY HAND**, or a **Note for writing** where only the wording in the text remains open.
 
-**Still open:**
-
-- [ ] **Hollander, Wolfe & Chicken (3rd edition).** Chapter 3 was not accessible on 2026-11-15. Confirm in the text what it says on symmetry, on the median and on the Hodges-Lehmann estimator, with exact pages and the year of publication. Do not cite the book before that.
+**Still open.** No source. Hollander, Wolfe & Chicken was replaced on 2026-11-16 (see below).
 
 **Only for writing:**
 
 - [ ] **Georges et al. (2007).** Word the transfer of the warm-up passages to PHP and Node.js as a conclusion of this thesis. The fixed number of five warm-up runs is a decision of this thesis.
 - [ ] **Dean & Barroso (2013).** The transfer to server push on a single Raspberry Pi is a conclusion of this thesis.
 - [ ] **Felter et al. (2015).** That the overhead affects both languages alike is a conclusion of this thesis. Cite only the two statements of the abstract.
+- [ ] **Hodges & Lehmann (1963) and NIST.** Neither source supports the term "pseudo-median" or the statement that median and pseudo-median can differ in sign. Write only that without symmetry a significant result is no direct statement about the median. Cite NIST as the source of its summary, not Conover. The order within a pair alternates in the second run and is not randomised, so p. 607 of Hodges & Lehmann does not apply directly. The possible serial dependence of the paired runs remains a limitation of this thesis.
+- [ ] **Hodges & Lehmann (1963), author name.** Crossref lists the first author as "J. L. Hodges". Check on the first page of the PDF whether the byline adds "Jr." and adjust the BibTeX entry if so.
+
+**Checked on 2026-11-16:**
+
+- [x] **Hodges & Lehmann (1963).** Checked by the author in the original PDF and cross-checked independently. p. 603, pp. 606–607 and p. 607, see the entry.
+- [x] **NIST, Dataplot Reference Manual, "Signed Rank Test".** Online text checked, see the entry. Together with Hodges & Lehmann it replaces Hollander, Wolfe & Chicken, whose Chapter 3 was not accessible.
 
 **Checked by the author on 2026-11-15:**
 
@@ -679,7 +684,63 @@ Frank Wilcoxon. "Individual Comparisons by Ranking Methods." *Biometrics Bulleti
 }
 ```
 
-### Hollander, Wolfe & Chicken, nonparametric textbook (symmetry assumption, to be checked)
+### Hodges & Lehmann (1963), estimator of location based on the signed-rank statistic
+
+J. L. Hodges, E. L. Lehmann. "Estimates of Location Based on Rank Tests." *The Annals of Mathematical Statistics*, 34(2), 598–611, 1963. Institute of Mathematical Statistics. DOI 10.1214/aoms/1177704172. Metadata confirmed in Crossref on 2026-11-16.
+
+**Use.** Original source of the Hodges-Lehmann estimator, which the descriptive sensitivity analysis reports, and of the role of symmetry for reading the signed-rank test (DECISIONS.md 5.8).
+
+**Checked by the author on 2026-11-16 in the original PDF, cross-checked independently.**
+
+- p. 603. The estimator is the median of the Walsh averages (d_i + d_j) / 2. The page also relates it to the sign test.
+- pp. 606–607. Symmetry and its meaning for the interpretation.
+- p. 607. A random assignment within paired experiments can justify the symmetry. This does not carry over to this thesis. In the first run, A always ran before B. In the second run, the order alternates by run number (A, B and B, A). It is balanced, but not randomised.
+
+**Not supported.** The term "pseudo-median" and the statement that median and pseudo-median can differ in sign (DECISIONS.md 5.8, correction of 2026-11-16). Do not cite the paper for them.
+
+```bibtex
+@article{hodges1963estimates,
+  author       = {Hodges, J. L. and Lehmann, E. L.},
+  title        = {Estimates of Location Based on Rank Tests},
+  journaltitle = {The Annals of Mathematical Statistics},
+  volume       = {34},
+  number       = {2},
+  pages        = {598--611},
+  date         = {1963},
+  doi          = {10.1214/aoms/1177704172},
+  langid       = {english}
+}
+```
+
+### NIST Dataplot Reference Manual, signed rank test (assumptions)
+
+National Institute of Standards and Technology. "Signed Rank Test." *Dataplot Reference Manual*. https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signrank.htm. Page created 2001-06-05, last updated 2023-12-11, accessed 2026-11-16.
+
+**Use.** Assumptions of the Wilcoxon signed-rank test and the sign test as the alternative without symmetry (DECISIONS.md 5.8).
+
+**Checked on 2026-11-16 in the online text.**
+
+- Following Conover, the test assumes that each difference d_i has a symmetric distribution, that the d_i are mutually independent, that all d_i have the same mean and that the scale is at least interval.
+- Because of the symmetry assumption, the null hypothesis can be stated in terms of the mean or the median.
+- The sign test has weaker assumptions. If symmetry is not reasonable, the sign test is preferred.
+
+**Note for writing.** The page summarises Conover (1999), *Practical Nonparametric Statistics*, 3rd edition, pp. 352–364. Cite NIST as the source of this summary and not Conover, which was not read. Independence is an assumption of the test. How strongly the paired runs depend on each other over time is a finding of this thesis (DECISIONS.md 5.8) and not a statement of the source. The page states the hypotheses in terms of population means, while the thesis reports median differences, which is why the symmetry matters.
+
+```bibtex
+@online{nist-dataplot-signrank,
+  author     = {{National Institute of Standards and Technology}},
+  title      = {Signed Rank Test},
+  titleaddon = {{Dataplot} Reference Manual},
+  date       = {2023-12-11},
+  url        = {https://www.itl.nist.gov/div898/software/dataplot/refman1/auxillar/signrank.htm},
+  urldate    = {2026-11-16},
+  langid     = {english}
+}
+```
+
+### Hollander, Wolfe & Chicken, nonparametric textbook (replaced)
+
+**Status.** Replaced on 2026-11-16 by Hodges & Lehmann (1963) and the NIST Dataplot page. Chapter 3 was not accessible, and the author decided against borrowing the printed book. The book is not cited and is not in `references.bib`. The entry stays as the record of what it was meant to support.
 
 Myles Hollander, Douglas A. Wolfe, Eric Chicken. *Nonparametric Statistical Methods*, 3rd edition. Wiley Series in Probability and Statistics. Wiley. ISBN 978-0-470-38737-5 (hardcover), 848 pages. Online edition DOI 10.1002/9781119196037.
 
@@ -695,7 +756,7 @@ Myles Hollander, Douglas A. Wolfe, Eric Chicken. *Nonparametric Statistical Meth
 | 3.4 | A Distribution-Free Sign Test (Fisher) | p. 63 |
 | 3.9 | An Asymptotically Distribution-Free Test of Symmetry (Randles–Fligner–Policello–Wolfe, Davis–Quade) | p. 94 |
 
-**CHECK BY HAND.** The text of the book was not available, only its table of contents. Chapter 3 was again not accessible on 2026-11-15. It is therefore not confirmed that the book supports the statements below, and no exact page for any of them is known. Do not cite the book before these points are checked in the original.
+**Former check note (closed on 2026-11-16 by the replacement).** The text of the book was not available, only its table of contents. Chapter 3 was again not accessible on 2026-11-15. It is therefore not confirmed that the book supports the statements below, and no exact page for any of them is known. Do not cite the book before these points are checked in the original.
 
 - Section 3.1 (from p. 40). Does it assume that the differences are symmetric about a common median, and what does it say about the meaning of the test when they are not?
 - Section 3.2 (from p. 56). Is the estimator defined as the median of the Walsh averages? Does the book call it a pseudo-median, or does it relate it to the median in another way?
@@ -1891,7 +1952,8 @@ Low visibility or little relevance. They do show that related measurements exist
 | 5.8 | k6 run as the unit of analysis | Hurlbert (1984) |
 | 5.8 | Mean per run as the test statistic | Widrow & Kollár (2008) |
 | 5.8 | Wilcoxon signed-rank test (paired) | Wilcoxon (1945), Arcuri & Briand (2014) |
-| 5.8 | Symmetry assumption of the Wilcoxon test, Hodges-Lehmann estimator, sign test | Hollander, Wolfe & Chicken (3rd edition), to be checked by hand |
+| 5.8 | Symmetry assumption of the Wilcoxon test, Hodges-Lehmann estimator, sign test | Hodges & Lehmann (1963), NIST Dataplot (signed rank test). Hollander, Wolfe & Chicken replaced on 2026-11-16 |
+| 5.8 | Independence of the paired differences as an assumption of the test | NIST Dataplot (signed rank test). The serial dependence itself is a finding of this thesis |
 | 5.8 | Mann-Whitney U test (replaced) | Mann & Whitney (1947) |
 | 5.8 | Cliff's delta and thresholds | Cliff (1993), Romano et al. (2006), see also Vargha & Delaney (2000) |
 | 5.8 | Rank-biserial correlation (paired) | Kerby (2014) |
