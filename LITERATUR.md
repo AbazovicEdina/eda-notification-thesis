@@ -1194,6 +1194,8 @@ WHATWG. "9.2 Server-Sent Events." *HTML Living Standard*. https://html.spec.what
 
 **Use.** Formal definition of SSE. Unlike WebSocket, SSE is not an IETF RFC but part of the WHATWG standard. The thesis can briefly mention this difference in publication status. The standard also specifies that EventSource reestablishes a dropped connection automatically. After a server restart, all clients therefore reconnect almost simultaneously, which is the case of the connection storm phase (DECISIONS.md 5.10).
 
+**Checked on 2026-11-18 in the online text.** Section 9.2.6 "Interpreting an event stream" says that a line starting with a colon is ignored, so a comment line such as `: connected` produces no event in the browser. Section 9.2.7 "Authoring notes" suggests such comment lines against proxies that drop idle connections. Use, the comment that the SSE prototypes send when the connection is ready, which marks the end of the connection setup (DECISIONS.md 5.14).
+
 ```bibtex
 @online{whatwg-sse,
   author  = {{WHATWG}},
@@ -1660,6 +1662,8 @@ Grafana Labs. *Grafana k6 Documentation*. https://grafana.com/docs/k6/latest/. P
 The Linux Kernel Documentation. "Control Group v2." https://docs.kernel.org/admin-guide/cgroup-v2.html. Docker Inc. "docker container stats." *Docker Docs*. https://docs.docker.com/reference/cli/docker/container/stats/
 
 **Use.** Resource measurement from `cpu.stat`, `memory.current` and `memory.stat` (DECISIONS.md 5.16, `tools/resource-sampler`). Definition of the working set as in `docker stats` (memory minus `inactive_file`). The memory controller must be enabled, otherwise no `memory.` interface files exist in the child cgroups and memory limits cannot be set (section "Controlling Controllers", subsection "Enabling and Disabling", DECISIONS.md 5.14).
+
+**Checked on 2026-11-18 in the online text.** `memory.peak` is "the max memory usage recorded for the cgroup and its descendants since either the creation of the cgroup or the most recent reset" (section on the memory interface files). It counts memory usage like `memory.current`, including the page cache, and is therefore not a peak of the working set. Use, the exact peak according to the kernel that is reported in addition to the sampled values (DECISIONS.md 5.16).
 
 ```bibtex
 @online{kernel-cgroup-v2,
